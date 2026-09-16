@@ -1,5 +1,10 @@
 use bdnovabank;
-DELETE FROM mysql.proc WHERE db = 'bdnovabank' AND type = 'PROCEDURE';
+--this is the error if your searching i'm working on it
+SELECT CONCAT('DROP ', ROUTINE_TYPE, ' IF EXISTS `', ROUTINE_SCHEMA, '`.`', ROUTINE_NAME, '`;') AS drop_stmt
+FROM INFORMATION_SCHEMA.ROUTINES
+WHERE ROUTINE_TYPE IN ('PROCEDURE', 'FUNCTION')
+  AND ROUTINE_SCHEMA = 'bdnovabank';
+  -- end of error 
 DELIMITER //
 
 -- does password encryption and adds user to db
