@@ -1,5 +1,7 @@
 :root {
   --bg-color: #07090e;
+  --bg-surface: #0e121d;
+  --card-bg: rgba(18, 24, 38, 0.7);
   --card-border: rgba(255, 255, 255, 0.08);
   --primary: #38bdf8;
   --primary-glow: rgba(56, 189, 248, 0.25);
@@ -50,18 +52,19 @@ body {
   opacity: 0.25;
 }
 .glow-bg.bottom-center {
-  bottom: 10%;
+  bottom: 15%;
   left: 30%;
   background: radial-gradient(circle, #4f46e5, transparent 70%);
   opacity: 0.15;
 }
 
-/* Barre de navigation */
+/* Navbar */
 .navbar {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
-  padding: 1.25rem 8%;
+  gap: 3rem;
+  padding: 1.25rem 2rem;
   position: sticky;
   top: 0;
   z-index: 50;
@@ -83,6 +86,22 @@ body {
   width: auto;
   vertical-align: middle;
 }
+.fallback-icon {
+  color: var(--primary);
+}
+
+.academy-badge {
+  background: rgba(56, 189, 248, 0.15);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  color: var(--primary);
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 999px;
+  letter-spacing: 0.5px;
+  margin-left: 4px;
+}
 
 .nav-links a {
   color: var(--text-muted);
@@ -96,7 +115,7 @@ body {
   color: var(--text-main);
 }
 
-/* Boutons navbar */
+/* Boutons */
 .btn-ghost {
   color: var(--text-main);
   text-decoration: none;
@@ -123,7 +142,27 @@ body {
   box-shadow: 0 8px 25px rgba(56, 189, 248, 0.4);
 }
 
-/* Ticker boursier défilant */
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--card-border);
+  color: var(--text-main);
+  padding: 0.65rem 1.4rem;
+  border-radius: 999px;
+  text-decoration: none;
+  font-weight: 600;
+  display: inline-block;
+  transition: background 0.2s;
+}
+.btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.btn-large {
+  padding: 0.85rem 1.8rem;
+  font-size: 1rem;
+}
+
+/* Ticker boursier */
 .market-ticker {
   background: rgba(14, 18, 29, 0.9);
   border-bottom: 1px solid var(--card-border);
@@ -154,9 +193,265 @@ body {
 .ticker-item .up { color: var(--success); }
 .ticker-item .down { color: var(--danger); }
 
+/* Conteneur principal */
+.main-content {
+  position: relative;
+  z-index: 10;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 4.5rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 6rem;
+}
 
+/* 1. Hero Presentation */
+.hero-presentation {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(56, 189, 248, 0.1);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  padding: 0.4rem 1rem;
+  border-radius: 50px;
+  font-size: 0.85rem;
+  color: var(--primary);
+  margin-bottom: 1.5rem;
+}
+.badge-dot {
+  width: 8px;
+  height: 8px;
+  background: var(--primary);
+  border-radius: 50%;
+  box-shadow: 0 0 8px var(--primary);
+}
+
+.hero-presentation h1 {
+  font-size: 3.1rem;
+  line-height: 1.2;
+  font-weight: 800;
+  max-width: 850px;
+  letter-spacing: -1px;
+  margin-bottom: 1.2rem;
+}
+.hero-presentation h1 span {
+  background: linear-gradient(135deg, var(--primary), #a855f7);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.hero-lead {
+  color: var(--text-muted);
+  font-size: 1.15rem;
+  line-height: 1.6;
+  max-width: 700px;
+  margin-bottom: 2.2rem;
+}
+
+.hero-buttons {
+  display: flex;
+  gap: 1.2rem;
+  margin-bottom: 3.5rem;
+}
+
+.key-points {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
+  width: 100%;
+  max-width: 850px;
+  padding-top: 2rem;
+  border-top: 1px solid var(--card-border);
+}
+.point-box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.point-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+.point-label {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+/* En-têtes de sections partagés */
+.section-header {
+  text-align: center;
+  margin-bottom: 3.5rem;
+}
+.section-tag {
+  color: var(--primary);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 1px;
+  display: block;
+  margin-bottom: 0.6rem;
+}
+.section-header h2 {
+  font-size: 2.2rem;
+  margin-bottom: 0.6rem;
+}
+.section-header p {
+  color: var(--text-muted);
+  font-size: 1rem;
+}
+
+/* 2. Grille de Programme (Curriculum) */
+.curriculum-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+}
+.module-card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 20px;
+  padding: 2.2rem;
+  backdrop-filter: blur(14px);
+  position: relative;
+  transition: transform 0.2s, border-color 0.2s;
+}
+.module-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(56, 189, 248, 0.35);
+}
+.module-level {
+  font-size: 0.75rem;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--primary);
+  font-weight: 700;
+  text-transform: uppercase;
+  margin-bottom: 0.8rem;
+}
+.module-icon {
+  font-size: 1.8rem;
+  margin-bottom: 0.8rem;
+}
+.module-card h3 {
+  font-size: 1.3rem;
+  margin-bottom: 0.6rem;
+}
+.module-card p {
+  color: var(--text-muted);
+  font-size: 0.92rem;
+  line-height: 1.5;
+  margin-bottom: 1.2rem;
+}
+.module-topics {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  padding-top: 1rem;
+}
+.module-topics li {
+  font-size: 0.85rem;
+  color: #cbd5e1;
+}
+
+/* 3. Section Méthode */
+.method-card {
+  background: linear-gradient(135deg, rgba(14, 18, 29, 0.85), rgba(24, 32, 52, 0.7));
+  border: 1px solid var(--card-border);
+  border-radius: 24px;
+  padding: 3.5rem 3rem;
+  backdrop-filter: blur(16px);
+}
+.method-content h2 {
+  font-size: 2.1rem;
+  line-height: 1.25;
+  margin-bottom: 1.2rem;
+}
+.method-content p {
+  color: var(--text-muted);
+  line-height: 1.6;
+  margin-bottom: 1rem;
+  font-size: 1rem;
+  max-width: 800px;
+}
+.method-highlights {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  margin-top: 2.5rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--card-border);
+}
+.m-highlight strong {
+  display: block;
+  color: var(--text-main);
+  font-size: 1.05rem;
+  margin-bottom: 0.3rem;
+}
+.m-highlight span {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+/* 4. Outils pédagogiques */
+.tools-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+}
+.tool-box {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 18px;
+  padding: 2rem;
+  backdrop-filter: blur(12px);
+}
+.tool-box .t-icon {
+  font-size: 1.8rem;
+  margin-bottom: 0.8rem;
+}
+.tool-box h3 {
+  font-size: 1.2rem;
+  margin-bottom: 0.5rem;
+}
+.tool-box p {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+/* 5. Bannière CTA finale */
+.cta-banner {
+  text-align: center;
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.6), rgba(15, 23, 42, 0.85));
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  border-radius: 24px;
+  padding: 3.5rem 2rem;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+}
+.cta-banner h2 {
+  font-size: 2rem;
+  margin-bottom: 0.8rem;
+}
+.cta-banner p {
+  color: var(--text-muted);
+  margin-bottom: 2rem;
+  font-size: 1.05rem;
+}
+
+/* Footer centré */
 footer {
-  margin-top: auto; 
+  margin-top: auto;
   border-top: 1px solid var(--card-border);
   padding: 2.5rem 8%;
   background: #04060a;
@@ -176,9 +471,28 @@ footer p {
   line-height: 1.5;
 }
 
-/* Mobile */
-@media (max-width: 768px) {
+/* Responsive */
+@media (max-width: 900px) {
+  .navbar {
+    gap: 1.5rem;
+    justify-content: space-between;
+  }
   .nav-links {
     display: none;
+  }
+  .hero-presentation h1 {
+    font-size: 2.2rem;
+  }
+  .curriculum-grid,
+  .tools-grid,
+  .method-highlights {
+    grid-template-columns: 1fr;
+  }
+  .key-points {
+    grid-template-columns: 1fr;
+    gap: 1.2rem;
+  }
+  .method-card {
+    padding: 2rem;
   }
 }
