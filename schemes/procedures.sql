@@ -1,7 +1,9 @@
-
+use bdnovabank;
+DELETE FROM mysql.proc WHERE db = 'bdnovabank' AND type = 'PROCEDURE';
 DELIMITER //
+
 -- does password encryption and adds user to db
-Create PROCEDURE bdnovabank.AddUser(
+Create PROCEDURE  bdnovabank.addUser(
   palias VARCHAR(45),
   pdescription VARCHAR(45),
   pPFP BLOB,
@@ -16,7 +18,7 @@ DECLARE encryptedPass VARBINARY(48);
 END;
 //
 
-CREATE Procedure bdnovabank.AddStock(
+CREATE Procedure  bdnovabank.addStock(
   pname VARCHAR(45),
   plastprice VARCHAR(45),
   pvolume VARCHAR(45))  
@@ -26,13 +28,14 @@ Begin
   END IF;
 END;
 //
-
+--checks password and encryption 
 CREATE FUNCTION bdnovabank.verifyUser(
   palias VARCHAR(45),
   ppassword VARCHAR(24))
 RETURNS BOOLEAN
 BEGIN
-  DECLARE encryptedPass VARBINARY(48), userCount INT;
+  DECLARE encryptedPass VARBINARY(48);
+  DECLARE userCount INT;
   
   IF (palias IS NOT NULL AND ppassword IS NOT NULL) THEN 
       SELECT Hashbyte('SHA2-256', ppassword) into encryptedPass;
