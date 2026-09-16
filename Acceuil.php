@@ -1,4 +1,0 @@
-<?php
-// Salut les amis !
-
-
