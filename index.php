@@ -1,220 +1,171 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NovaBank</title>
-  <link rel="stylesheet" href="public/css/main.css">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-</head>
-<body>
+<?php
+session_start();
+require __DIR__ . '/vendor/autoload.php';
+require __DIR__ . '/configs/database.php';
 
-  <!-- Halos d'ambiance -->
-  <div class="glow-bg top-left"></div>
-  <div class="glow-bg top-right"></div>
-  <div class="glow-bg bottom-center"></div>
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
 
-  <!-- Barre de navigation -->
-  <header class="navbar">
-    <div class="logo">
-      <span class="logo-symbol">
-        <img src="public/images/logo.png" alt="NovaBank Logo" onerror="this.style.display='none'">
-      </span>
-      NovaBank
-    </div>
+function sendVerificationEmail(string $email, string $username, string $token): void {
+    $config = require __DIR__ . '/configs/config.php';
+    $mail = new PHPMailer(true);
 
-    <nav class="nav-links">
-      <a href="#programme">Programme</a>
-      <a href="#methode">Notre Méthode</a>
-      <a href="#avantages">Outils Pédagogiques</a>
-    </nav>
+    try {
+        $mail->isSMTP();
+        $mail->Host = $config['mail']['host'];
+        $mail->SMTPAuth = true;
+        $mail->Username = $config['mail']['username'];
+        $mail->Password = $config['mail']['password'];
+        $mail->SMTPSecure = $config['mail']['smtp_secure'];
+        $mail->Port = $config['mail']['port'];
+        $mail->CharSet = 'UTF-8';
 
-    <div class="nav-actions">
-      <a href="#" class="btn-ghost">Se connecter</a>
-      <a href="#" class="btn-primary">Créer mon compte</a>
-    </div>
-  </header>
+        $mail->setFrom($config['mail']['from_email'], $config['mail']['from_name']);
+        $mail->addAddress($email, $username);
+        $mail->Subject = 'Vérification de votre compte NovaBank';
 
-  <!-- Bandeau cours de bourse défilant -->
-  <div class="market-ticker">
-    <div class="ticker-track">
-      <div class="ticker-item"><span class="sym">NVDA</span> <span class="val">$128.45</span> <span class="up">+5.42%</span></div>
-      <div class="ticker-item"><span class="sym">AAPL</span> <span class="val">$224.10</span> <span class="up">+1.15%</span></div>
-      <div class="ticker-item"><span class="sym">TSLA</span> <span class="val">$248.80</span> <span class="down">-2.30%</span></div>
-      <div class="ticker-item"><span class="sym">BTC/USD</span> <span class="val">$64,320</span> <span class="up">+3.80%</span></div>
-      <div class="ticker-item"><span class="sym">SPY</span> <span class="val">$562.14</span> <span class="up">+0.65%</span></div>
-      <div class="ticker-item"><span class="sym">MSFT</span> <span class="val">$432.20</span> <span class="down">-0.45%</span></div>
-      <!-- Répétition pour la fluidité -->
-      <div class="ticker-item"><span class="sym">NVDA</span> <span class="val">$128.45</span> <span class="up">+5.42%</span></div>
-      <div class="ticker-item"><span class="sym">AAPL</span> <span class="val">$224.10</span> <span class="up">+1.15%</span></div>
-      <div class="ticker-item"><span class="sym">TSLA</span> <span class="val">$248.80</span> <span class="down">-2.30%</span></div>
-      <div class="ticker-item"><span class="sym">BTC/USD</span> <span class="val">$64,320</span> <span class="up">+3.80%</span></div>
-    </div>
-  </div>
+        $verificationUrl = $config['app_url'] . '/index.php?action=verify&token=' . urlencode($token);
+        $mail->Body = "Bonjour $username,\r\n\r\nMerci de vous être inscrit sur NovaBank.\r\nCliquez sur le lien ci-dessous pour vérifier votre adresse email :\r\n$verificationUrl\r\n\r\nSi vous n'êtes pas à l'origine de cette inscription, ignorez ce message.";
+        $mail->AltBody = "Bonjour $username,\r\n\r\nMerci de vous être inscrit sur NovaBank.\r\nUtilisez ce lien pour vérifier votre email : $verificationUrl";
 
-  <!-- Corps principal -->
-  <main class="main-content">
-    
-    <!-- 1. Hero éducatif -->
-    <section class="hero-presentation">
+        $mail->send();
+    } catch (Exception $e) {
+        throw new RuntimeException('Impossible d’envoyer le mail de vérification : ' . $e->getMessage());
+    }
+}
 
-      <h1>Maîtrisez la bourse et vos finances grâce à un <span>apprentissage guidé</span>.</h1>
-      <p class="hero-lead">
-        La finance ne s’apprend pas uniquement dans les livres. NovaBank combine des cours pas-à-pas, 
-        des ateliers interactifs et un simulateur temps réel doté de 100 000 $ virtuels pour tester vos connaissances sans risque de perte.
-      </p>
+if (($_GET['action'] ?? '') === 'logout') {
+    unset($_SESSION['user']);
+    header('Location: index.php');
+    exit;
+}
 
-      <div class="hero-buttons">
-        <a href="#" class="btn-primary btn-large">Créer mon compte</a>
-        <a href="#programme" class="btn-secondary btn-large">Consulter les modules</a>
-      </div>
+if (($_GET['action'] ?? '') === 'verify') {
+    $token = trim($_GET['token'] ?? '');
 
-      <!-- Métriques pédagogiques -->
-      <div class="key-points">
-        <div class="point-box">
-          <span class="point-num">4 Niveaux</span>
-          <span class="point-label">Du débutant à l'expert</span>
-        </div>
-        <div class="point-box">
-          <span class="point-num">100 000 $</span>
-          <span class="point-label">Capital d'entraînement  offert</span>
-        </div>
-        <div class="point-box">
-          <span class="point-num">100% Sans risque</span>
-          <span class="point-label">Droit à l'erreur garanti</span>
-        </div>
-      </div>
-    </section>
+    if ($token !== '') {
+        try {
+            $pdo = getPDO();
+            $stmt = $pdo->prepare('SELECT idUser FROM `User` WHERE `email_verification_token` = :token LIMIT 1');
+            $stmt->execute(['token' => $token]);
+            $user = $stmt->fetch();
 
-    <!-- 2. Parcours de formation (Curriculum) -->
-    <section class="curriculum-section" id="programme">
-      <div class="section-header">
-        <span class="section-tag">Parcours structuré</span>
-        <h2>Un programme conçu pour progresser pas à pas</h2>
-        <p>Une progression claire : apprenez un concept théorique, puis appliquez-le immédiatement dans la simulation.</p>
-      </div>
+            if ($user) {
+                $update = $pdo->prepare('UPDATE `User` SET `email_verified` = 1, `email_verification_token` = NULL WHERE `idUser` = :id');
+                $update->execute(['id' => $user['idUser']]);
+                $_SESSION['verify_success'] = 'Votre adresse email a bien été vérifiée. Vous pouvez maintenant vous connecter.';
+            } else {
+                $_SESSION['verify_error'] = 'Lien de vérification invalide ou déjà utilisé.';
+            }
+        } catch (Throwable $e) {
+            $_SESSION['verify_error'] = 'Erreur lors de la vérification de l’email.';
+        }
+    } else {
+        $_SESSION['verify_error'] = 'Aucun token de vérification fourni.';
+    }
 
-      <div class="curriculum-grid">
-        <!-- Module 1 -->
-        <div class="module-card">
-          <div class="module-level">Module 01</div>
-          <div class="module-icon">📘</div>
-          <h3>Les Fondations Bancaires</h3>
-          <p>Comprendre la gestion des liquidités, l'épargne d'urgence, la création d'un budget personnel équilibré et l'impact de l'inflation.</p>
-          <ul class="module-topics">
-            <li>✓ Comptes courants & comptes d'épargne</li>
-            <li>✓ Gestion des entrées/sorties et virement</li>
-            <li>✓ Notion d'intérêt composé</li>
-          </ul>
-        </div>
+    header('Location: login.php');
+    exit;
+}
 
-        <!-- Module 2 -->
-        <div class="module-card">
-          <div class="module-level">Module 02</div>
-          <div class="module-icon">📊</div>
-          <h3>Décrypter la Bourse</h3>
-          <p>Découvrir le fonctionnement des marchés financiers, la différence entre actions, obligations et ETF, et la lecture des cours en direct.</p>
-          <ul class="module-topics">
-            <li>✓ Qu'est-ce qu'une action ?</li>
-            <li>✓ Rôle des indices boursiers (S&P 500, TSX)</li>
-            <li>✓ Comprendre les spreads et la liquidité</li>
-          </ul>
-        </div>
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_GET['action'] ?? '') === 'login') {
+    $email = trim($_POST['email'] ?? '');
+    $password = $_POST['password'] ?? '';
 
-        <!-- Module 3 -->
-        <div class="module-card">
-          <div class="module-level">Module 03</div>
-          <div class="module-icon">🛡️</div>
-          <h3>Gestion du Risque & Stratégies</h3>
-          <p>La clé des investisseurs durables : apprendre à protéger son capital avant de chercher à maximiser les gains.</p>
-          <ul class="module-topics">
-            <li>✓ Diversification de portefeuille</li>
-            <li>✓ Utilisation des ordres Stop-Loss et Limites</li>
-            <li>✓ Gestion des émotions et psychologie de marché</li>
-          </ul>
-        </div>
+    if ($email === '' || $password === '') {
+        $_SESSION['login_error'] = 'Veuillez renseigner votre email et votre mot de passe.';
+        header('Location: login.php');
+        exit;
+    }
 
-        <!-- Module 4 -->
-        <div class="module-card">
-          <div class="module-level">Module 04</div>
-          <div class="module-icon">🚀</div>
-          <h3>Pratique & Analyse de Performance</h3>
-          <p>Passez à l'exécution réelle avec votre solde fictif. Analysez vos trades passés, calculez votre ratio de gain et ajustez votre méthode.</p>
-          <ul class="module-topics">
-            <li>✓ Lecture et analyse du P&L (Profit & Loss)</li>
-            <li>✓ Suivi des résultats trimestriels d'entreprises</li>
-            <li>✓ Participation aux défis hebdomadaires</li>
-          </ul>
-        </div>
-      </div>
-    </section>
+    try {
+        $pdo = getPDO();
+        $stmt = $pdo->prepare('SELECT * FROM `User` WHERE `Description` = :email LIMIT 1');
+        $stmt->execute(['email' => $email]);
+        $user = $stmt->fetch();
 
-    <!-- 3. Notre méthode pédagogique (Learn by Doing) -->
-    <section class="method-section" id="methode">
-      <div class="method-card">
-        <div class="method-content">
-          <span class="section-tag">La méthode NovaBank</span>
-          <h2>Apprendre par la pratique : le principe du bac à sable</h2>
-          <p>
-            Lire des articles théoriques ne suffit pas pour comprendre la volatilité ou savoir quand acheter et vendre. 
-            Chez NovaBank, chaque leçon est directement connectée à une action concrète dans le simulateur.
-          </p>
-          <p>
-            Vous commettez une erreur d'achat ? Vous subissez une baisse subite ? C'est le moment idéal pour analyser ce qui s'est passé, 
-            sans aucun impact négatif sur votre portefeuille réel.
-          </p>
-          <div class="method-highlights">
-            <div class="m-highlight">
-              <strong>Théorie condensée</strong>
-              <span>Des fiches synthétiques sans vocabulaire opaque.</span>
-            </div>
-            <div class="m-highlight">
-              <strong>Application instantanée</strong>
-              <span>Des exercices concrets exécutés au marché réel.</span>
-            </div>
-            <div class="m-highlight">
-              <strong>Analyse rétroactive</strong>
-              <span>Comprenez pourquoi une position a gagné ou perdu.</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
+        if ($user && password_verify($password, $user['Password'])) {
+            if ((int)($user['email_verified'] ?? 0) !== 1) {
+                $_SESSION['login_error'] = 'Veuillez vérifier votre adresse email avant de vous connecter.';
+                header('Location: login.php');
+                exit;
+            }
 
-    <!-- 4. Boîte à outils de l'apprenant -->
-    <section class="tools-section" id="avantages">
-      <div class="section-header">
-        <span class="section-tag">Accompagnement</span>
-        <h2>Les outils dédiés à votre apprentissage</h2>
-        <p>Tout ce qu'il faut pour accélérer votre compréhension et développer de vrais réflexes financiers.</p>
-      </div>
+            $_SESSION['user'] = [
+                'id' => $user['idUser'],
+                'username' => $user['Alias'],
+                'email' => $user['Description'],
+            ];
+            header('Location: index.php');
+            exit;
+        }
 
-      <div class="tools-grid">
-        <div class="tool-box">
-          <div class="t-icon">💡</div>
-          <h3>Lexique interactif intégré</h3>
-          <p>Survolez n'importe quel terme technique (P/E ratio, dividende, ordre limite, ETF) pour obtenir une explication vulgarisée et illustrée.</p>
-        </div>
+        $_SESSION['login_error'] = 'Identifiants invalides.';
+        header('Location: login.php');
+        exit;
+    } catch (Throwable $e) {
+        $_SESSION['login_error'] = 'Erreur de connexion à la base de données.';
+        header('Location: login.php');
+        exit;
+    }
+}
 
-        <div class="tool-box">
-          <div class="t-icon">📝</div>
-          <h3>Quiz & Validation des acquis</h3>
-          <p>Des questionnaires courts à la fin de chaque étape pour vérifier que les fondamentaux sont bien assimilés avant d'investir.</p>
-        </div>
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_GET['action'] ?? '') === 'register') {
+    $username = trim($_POST['username'] ?? '');
+    $email = trim($_POST['email'] ?? '');
+    $password = $_POST['password'] ?? '';
 
-        <div class="tool-box">
-          <div class="t-icon">🔍</div>
-          <h3>Diagnostic de portefeuille</h3>
-          <p>Un outil automatisé évalue la répartition de vos actifs et vous signale si votre portefeuille est trop concentré ou trop exposé au risque.</p>
-        </div>
+    if ($username === '' || $email === '' || $password === '') {
+        $_SESSION['register_error'] = 'Tous les champs sont requis.';
+        header('Location: register.php');
+        exit;
+    }
 
-        <div class="tool-box">
-          <div class="t-icon">🏆</div>
-          <h3>Défis pédagogiques</h3>
-          <p>Participez à des scénarios guidés (ex: "Construire un portefeuille défensif contre l'inflation") et observez vos résultats.</p>
-        </div>
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $_SESSION['register_error'] = 'Adresse email invalide.';
+        header('Location: register.php');
+        exit;
+    }
+
+    try {
+        $pdo = getPDO();
+        $stmt = $pdo->prepare('SELECT idUser FROM `User` WHERE `Alias` = :username OR `Description` = :email LIMIT 1');
+        $stmt->execute(['username' => $username, 'email' => $email]);
+
+        if ($stmt->fetch()) {
+            $_SESSION['register_error'] = 'Ce nom d’utilisateur ou cet email existe déjà.';
+            header('Location: register.php');
+            exit;
+        }
+
+        $hash = password_hash($password, PASSWORD_DEFAULT);
+        $token = bin2hex(random_bytes(32));
+        $insert = $pdo->prepare('INSERT INTO `User` (`Alias`, `Description`, `Password`, `Balance`, `email_verified`, `email_verification_token`) VALUES (:username, :email, :password, 1500.00, 0, :token)');
+        $insert->execute([
+            'username' => $username,
+            'email' => $email,
+            'password' => $hash,
+            'token' => $token,
+        ]);
+
+        sendVerificationEmail($email, $username, $token);
+
+        $_SESSION['register_success'] = 'Compte créé avec succès. Un email de vérification a été envoyé à votre adresse.';
+        header('Location: login.php');
+        exit;
+    } catch (Throwable $e) {
+        $_SESSION['register_error'] = 'Erreur pendant la création du compte : ' . $e->getMessage();
+        header('Location: register.php');
+        exit;
+    }
+}
+
+$pageTitle = 'NovaBank | Banque virtuelle & Simulateur de Bourse';
+require __DIR__ . '/views/layout/header.php';
+?>
+
+<?php require __DIR__ . '/views/layout/footer.php'; ?>
+
       </div>
     </section>
 
@@ -233,6 +184,166 @@
       <p>© 2026 NovaBank. Académie et simulateur éducatif d'investissement boursier et bancaire. Ne constitue pas un conseil financier.</p>
     </div>
   </footer>
+=======
+function sendVerificationEmail(string $email, string $username, string $token): void {
+    $config = require __DIR__ . '/configs/config.php';
+    $mail = new PHPMailer(true);
 
-</body>
-</html>
+    try {
+        $mail->isSMTP();
+        $mail->Host = $config['mail']['host'];
+        $mail->SMTPAuth = true;
+        $mail->Username = $config['mail']['username'];
+        $mail->Password = $config['mail']['password'];
+        $mail->SMTPSecure = $config['mail']['smtp_secure'];
+        $mail->Port = $config['mail']['port'];
+        $mail->CharSet = 'UTF-8';
+
+        $mail->setFrom($config['mail']['from_email'], $config['mail']['from_name']);
+        $mail->addAddress($email, $username);
+        $mail->Subject = 'Vérification de votre compte NovaBank';
+
+        $verificationUrl = $config['app_url'] . '/index.php?action=verify&token=' . urlencode($token);
+        $mail->Body = "Bonjour $username,\r\n\r\nMerci de vous être inscrit sur NovaBank.\r\nCliquez sur le lien ci-dessous pour vérifier votre adresse email :\r\n$verificationUrl\r\n\r\nSi vous n'êtes pas à l'origine de cette inscription, ignorez ce message.";
+        $mail->AltBody = "Bonjour $username,\r\n\r\nMerci de vous être inscrit sur NovaBank.\r\nUtilisez ce lien pour vérifier votre email : $verificationUrl";
+>>>>>>> 49baf60 (création dun compte plus verif via mail)
+
+        $mail->send();
+    } catch (Exception $e) {
+        throw new RuntimeException('Impossible d’envoyer le mail de vérification : ' . $e->getMessage());
+    }
+}
+
+if (($_GET['action'] ?? '') === 'logout') {
+    unset($_SESSION['user']);
+    header('Location: index.php');
+    exit;
+}
+
+if (($_GET['action'] ?? '') === 'verify') {
+    $token = trim($_GET['token'] ?? '');
+
+    if ($token !== '') {
+        try {
+            $pdo = getPDO();
+            $stmt = $pdo->prepare('SELECT idUser FROM `User` WHERE `email_verification_token` = :token LIMIT 1');
+            $stmt->execute(['token' => $token]);
+            $user = $stmt->fetch();
+
+            if ($user) {
+                $update = $pdo->prepare('UPDATE `User` SET `email_verified` = 1, `email_verification_token` = NULL WHERE `idUser` = :id');
+                $update->execute(['id' => $user['idUser']]);
+                $_SESSION['verify_success'] = 'Votre adresse email a bien été vérifiée. Vous pouvez maintenant vous connecter.';
+            } else {
+                $_SESSION['verify_error'] = 'Lien de vérification invalide ou déjà utilisé.';
+            }
+        } catch (Throwable $e) {
+            $_SESSION['verify_error'] = 'Erreur lors de la vérification de l’email.';
+        }
+    } else {
+        $_SESSION['verify_error'] = 'Aucun token de vérification fourni.';
+    }
+
+    header('Location: login.php');
+    exit;
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_GET['action'] ?? '') === 'login') {
+    $email = trim($_POST['email'] ?? '');
+    $password = $_POST['password'] ?? '';
+
+    if ($email === '' || $password === '') {
+        $_SESSION['login_error'] = 'Veuillez renseigner votre email et votre mot de passe.';
+        header('Location: login.php');
+        exit;
+    }
+
+    try {
+        $pdo = getPDO();
+        $stmt = $pdo->prepare('SELECT * FROM `User` WHERE `Description` = :email LIMIT 1');
+        $stmt->execute(['email' => $email]);
+        $user = $stmt->fetch();
+
+        if ($user && password_verify($password, $user['Password'])) {
+            if ((int)($user['email_verified'] ?? 0) !== 1) {
+                $_SESSION['login_error'] = 'Veuillez vérifier votre adresse email avant de vous connecter.';
+                header('Location: login.php');
+                exit;
+            }
+
+            $_SESSION['user'] = [
+                'id' => $user['idUser'],
+                'username' => $user['Alias'],
+                'email' => $user['Description'],
+            ];
+            header('Location: index.php');
+            exit;
+        }
+
+        $_SESSION['login_error'] = 'Identifiants invalides.';
+        header('Location: login.php');
+        exit;
+    } catch (Throwable $e) {
+        $_SESSION['login_error'] = 'Erreur de connexion à la base de données.';
+        header('Location: login.php');
+        exit;
+    }
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_GET['action'] ?? '') === 'register') {
+    $username = trim($_POST['username'] ?? '');
+    $email = trim($_POST['email'] ?? '');
+    $password = $_POST['password'] ?? '';
+
+    if ($username === '' || $email === '' || $password === '') {
+        $_SESSION['register_error'] = 'Tous les champs sont requis.';
+        header('Location: register.php');
+        exit;
+    }
+
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $_SESSION['register_error'] = 'Adresse email invalide.';
+        header('Location: register.php');
+        exit;
+    }
+
+    try {
+        $pdo = getPDO();
+        $stmt = $pdo->prepare('SELECT idUser FROM `User` WHERE `Alias` = :username OR `Description` = :email LIMIT 1');
+        $stmt->execute(['username' => $username, 'email' => $email]);
+
+        if ($stmt->fetch()) {
+            $_SESSION['register_error'] = 'Ce nom d’utilisateur ou cet email existe déjà.';
+            header('Location: register.php');
+            exit;
+        }
+
+        $hash = password_hash($password, PASSWORD_DEFAULT);
+        $token = bin2hex(random_bytes(32));
+        $insert = $pdo->prepare('INSERT INTO `User` (`Alias`, `Description`, `Password`, `Balance`, `email_verified`, `email_verification_token`) VALUES (:username, :email, :password, 1500.00, 0, :token)');
+        $insert->execute([
+            'username' => $username,
+            'email' => $email,
+            'password' => $hash,
+            'token' => $token,
+        ]);
+
+        sendVerificationEmail($email, $username, $token);
+
+        $_SESSION['register_success'] = 'Compte créé avec succès. Un email de vérification a été envoyé à votre adresse.';
+        header('Location: login.php');
+        exit;
+    } catch (Throwable $e) {
+        $_SESSION['register_error'] = 'Erreur pendant la création du compte : ' . $e->getMessage();
+        header('Location: register.php');
+        exit;
+    }
+}
+
+$pageTitle = 'NovaBank | Banque virtuelle & Simulateur de Bourse';
+require __DIR__ . '/views/layout/header.php';
+?>
+
+
+
+<?php require __DIR__ . '/views/layout/footer.php'; ?>

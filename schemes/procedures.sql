@@ -1,60 +1,46 @@
-use bdnovabank;
---this is the error if your searching i'm working on it
-SELECT CONCAT('DROP ', ROUTINE_TYPE, ' IF EXISTS `', ROUTINE_SCHEMA, '`.`', ROUTINE_NAME, '`;') AS drop_stmt
-FROM INFORMATION_SCHEMA.ROUTINES
-WHERE ROUTINE_TYPE IN ('PROCEDURE', 'FUNCTION')
-  AND ROUTINE_SCHEMA = 'bdnovabank';
-  -- end of error 
+USE bdnovabank;
+
 DELIMITER //
 
--- does password encryption and adds user to db
-Create PROCEDURE  bdnovabank.addUser(
-  palias VARCHAR(45),
-  pdescription VARCHAR(45),
-  pPFP BLOB,
-  ppassword VARCHAR(24))
+CREATE PROCEDURE addUser(
+    palias VARCHAR(45),
+    pdescription VARCHAR(45),
+    pPFP BLOB,
+    ppassword VARCHAR(255)
+)
 BEGIN
-DECLARE encryptedPass VARBINARY(48);
-  IF (palias IS NOT NULL AND ppassword IS NOT NULL) THEN 
-      SELECT Hashbyte('SHA2-256', ppassword) into encryptedPass;
+    IF palias IS NOT NULL AND ppassword IS NOT NULL THEN
+        INSERT INTO `User` (Alias, Description, PFP, Password)
+        VALUES (palias, pdescription, pPFP, SHA2(ppassword, 256));
+    END IF;
+END //
 
-      INSERT INTO bdnovabank.User (Alias, Description, PFP, Password) VALUES (palias, pdescription, pPFP, encryptedPass);
-  END IF;
-END;
-//
-
-CREATE Procedure  bdnovabank.addStock(
-  pname VARCHAR(45),
-  plastprice VARCHAR(45),
-  pvolume VARCHAR(45))  
-Begin 
-  IF (pname IS NOT NULL AND plastprice IS NOT NULL AND pvolume IS NOT NULL) THEN 
-    INSERT INTO bdnovabank.Stock (Name, LastPrice, Volume) VALUES (pname, plastprice, pvolume);
-  END IF;
-END;
-//
---checks password and encryption 
-CREATE FUNCTION bdnovabank.verifyUser(
-  palias VARCHAR(45),
-  ppassword VARCHAR(24))
-RETURNS BOOLEAN
+CREATE PROCEDURE addStock(
+    pname VARCHAR(45),
+    plastprice VARCHAR(45),
+    pvolume VARCHAR(45)
+)
 BEGIN
-  DECLARE encryptedPass VARBINARY(48);
-  DECLARE userCount INT;
-  
-  IF (palias IS NOT NULL AND ppassword IS NOT NULL) THEN 
-      SELECT Hashbyte('SHA2-256', ppassword) into encryptedPass;
+    IF pname IS NOT NULL AND plastprice IS NOT NULL AND pvolume IS NOT NULL THEN
+        INSERT INTO `Stock` (Name, LastPrice, Volume)
+        VALUES (pname, plastprice, pvolume);
+    END IF;
+END //
 
-      SELECT COUNT(*) INTO userCount FROM bdnovabank.User WHERE Alias = palias AND Password = encryptedPass;
-      
-      IF (userCount > 0) THEN
-        RETURN TRUE;
-      ELSE
-        RETURN FALSE;
-      END IF;
+CREATE FUNCTION verifyUser(
+    palias VARCHAR(45),
+    ppassword VARCHAR(255)
+)
+RETURNS TINYINT
+BEGIN
+    DECLARE userCount INT;
 
-  END IF;
-END; 
-//
+    SELECT COUNT(*) INTO userCount
+    FROM `User`
+    WHERE Alias = palias
+      AND Password = SHA2(ppassword, 256);
+
+    RETURN userCount > 0;
+END //
 
 DELIMITER ;

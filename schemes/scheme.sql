@@ -1,16 +1,18 @@
-DROP DATABASE IF EXISTS bdnovabank;
-CREATE DATABASE bdnovabank;
-USE bdnovabank;
-
 CREATE TABLE IF NOT EXISTS `User` (
   `idUser` INT NOT NULL AUTO_INCREMENT,
   `Alias` VARCHAR(45) NOT NULL,
-  `Description` VARCHAR(45) NULL,
+  `Description` VARCHAR(255) NULL,
+  `email_verified` TINYINT(1) NOT NULL DEFAULT 0,
+  `email_verification_token` VARCHAR(255) NULL,
   `PFP` BLOB NULL,
-  `Password` VARBINARY(48) NULL,
+  `Password` VARCHAR(255) NOT NULL,
   `Balance` DECIMAL(65,2) NULL DEFAULT 1500,
   PRIMARY KEY (`idUser`)
 );
+
+ALTER TABLE `User`
+  ADD UNIQUE KEY `uniq_alias` (`Alias`),
+  ADD UNIQUE KEY `uniq_email` (`Description`);
 
 CREATE TABLE IF NOT EXISTS `Stock` (
   `idStock` INT NOT NULL AUTO_INCREMENT,
