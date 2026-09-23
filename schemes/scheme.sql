@@ -1,3 +1,8 @@
+CREATE DATABASE IF NOT EXISTS bdnovabank;
+  
+
+USE bdnovabank;
+
 CREATE TABLE IF NOT EXISTS `User` (
   `idUser` INT NOT NULL AUTO_INCREMENT,
   `Alias` VARCHAR(45) NOT NULL,
