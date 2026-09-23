@@ -96,6 +96,64 @@ BEGIN
 END //
 
 
+CREATE PROCEDURE BuyStockInvestment(
+    IN pidUser INT,
+    IN pidStock INT,
+    IN pAmount DECIMAL(65,2)
+)
+BEGIN
+    DECLARE vBalance DECIMAL(65,2);
+    DECLARE vPrice DECIMAL(65,2);
+    DECLARE vTotal DECIMAL(65,2);
+
+    IF pidUser IS NULL OR pidStock IS NULL OR pAmount IS NULL OR pAmount <= 0 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Invalid investment parameters.';
+    END IF;
+
+    SELECT Balance
+    INTO vBalance
+    FROM `User`
+    WHERE idUser = pidUser
+    FOR UPDATE;
+
+    SELECT LastPrice 
+    INTO vPrice
+    FROM `Stock`
+    WHERE idStock = pidStock
+    FOR UPDATE;
+
+    IF vBalance IS NULL THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'User not found.';
+    END IF;
+
+    IF vPrice IS NULL THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Stock not found or price is invalid.';
+    END IF;
+
+    SET vTotal = vPrice * pAmount;
+
+    IF vBalance < vTotal THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Insufficient balance.';
+    END IF;
+
+    START TRANSACTION;
+
+    UPDATE `User`
+    SET Balance = Balance - vTotal
+    WHERE idUser = pidUser;
+
+    INSERT INTO `StockInvest` (idStock, IdUser, Investement)
+    VALUES (pidStock, pidUser, vTotal);
+
+    COMMIT;
+END;
+
+
+
 
 CREATE FUNCTION verifyUser(
     palias VARCHAR(45),
