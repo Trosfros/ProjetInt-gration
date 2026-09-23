@@ -69,33 +69,6 @@ BEGIN
 END //
 
 
-CREATE PROCEDURE addStockInvestment(
-    pidStock INT,
-    pidUser INT,
-    pinvestement DECIMAL(65,2)
-)
-BEGIN
-    IF pidStock IS NOT NULL AND pidUser IS NOT NULL AND pinvestement IS NOT NULL AND pinvestement > 0 THEN
-        INSERT INTO `StockInvest` (idStock, IdUser, Investement)
-        VALUES (pidStock, pidUser, pinvestement);
-    END IF;
-END //
-
-
-
-CREATE PROCEDURE addCryptoInvestment(
-    pidCrypto INT,
-    pidUser INT,
-    pinvestement DECIMAL(65,2)
-)
-BEGIN
-    IF pidCrypto IS NOT NULL AND pidUser IS NOT NULL AND pinvestement IS NOT NULL AND pinvestement > 0 THEN
-        INSERT INTO `CryptoInvest` (idCrypto, IdUser, Investement)
-        VALUES (pidCrypto, pidUser, pinvestement);
-    END IF;
-END //
-
-
 CREATE PROCEDURE BuyStockInvestment(
     IN pidUser INT,
     IN pidStock INT,
