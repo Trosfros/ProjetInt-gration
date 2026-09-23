@@ -55,8 +55,9 @@ foreach ($symbols as $sym) {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><?= htmlspecialchars($pageTitle) ?></title>
-  <link rel="stylesheet" href="public/css/main.css?v=5">
-  <link rel="stylesheet" href="public/css/investment.css?v=2">
+  <link rel="stylesheet" href="public/css/main.css">
+  <link rel="stylesheet" href="public/css/investment.css">
+  <link rel="stylesheet" href="public/css/marcher.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
