@@ -2,7 +2,6 @@
     "require": {
         "phpmailer/phpmailer": "^7.1",
         "finnhub/client": "^2.0",
-        "symfony/dotenv": "^8.1",
         "vlucas/phpdotenv": "^5.7",
         "composer/ca-bundle": "^1.5"
     }
