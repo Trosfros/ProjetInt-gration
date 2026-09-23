@@ -1,3 +1,5 @@
+CREATE DATABASE IF NOT EXISTS bdnovabank;
+
 USE bdnovabank;
 
 DELIMITER //
