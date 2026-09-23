@@ -112,5 +112,6 @@ BEGIN
 
     RETURN userCount > 0;
 END //
+CREATE 
+DELIMITER ; 
 
-DELIMITER ;
