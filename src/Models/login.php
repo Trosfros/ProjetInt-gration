@@ -1,5 +1,9 @@
 <?php
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+$projectRoot = dirname(__DIR__, 2);
 
 $error = $_SESSION['login_error'] ?? null;
 $success = $_SESSION['register_success'] ?? null;
@@ -9,6 +13,6 @@ $verificationLink = $_SESSION['verification_link'] ?? null;
 unset($_SESSION['login_error'], $_SESSION['register_success'], $_SESSION['verify_success'], $_SESSION['verify_error'], $_SESSION['verification_link']);
 
 $pageTitle = 'Connexion | NovaBank';
-require __DIR__ . '/views/layout/header.php';
-require __DIR__ . '/views/layout/auth/login.php';
-require __DIR__ . '/views/layout/footer.php';
+require $projectRoot . '/views/layout/header.php';
+require $projectRoot . '/views/layout/auth/login.php';
+require $projectRoot . '/views/layout/footer.php';

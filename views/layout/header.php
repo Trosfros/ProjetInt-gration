@@ -79,6 +79,7 @@ foreach ($symbols as $sym) {
       <?php if ($isLoggedIn): ?>
         <a href="index.php?action=dashboard">Tableau de bord</a>
         <a href="index.php?action=investment">Investissements</a>
+        <a href="index.php?action=marketPage">Marché</a>
         <a href="index.php?action=accounts">Comptes</a>
         <a href="index.php?action=education">Éducation</a>
       <?php else: ?>
@@ -96,8 +97,8 @@ foreach ($symbols as $sym) {
         </span>
         <a href="index.php?action=logout" class="btn-ghost">Déconnexion</a>
       <?php else: ?>
-        <a href="login.php" class="btn-ghost">Se connecter</a>
-        <a href="register.php" class="btn-primary">Créer un compte</a>
+        <a href="index.php?action=loginPage" class="btn-ghost">Se connecter</a>
+        <a href="index.php?action=registerPage" class="btn-primary">Créer un compte</a>
       <?php endif; ?>
     </div>
   </header>

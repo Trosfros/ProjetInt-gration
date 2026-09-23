@@ -1,11 +1,15 @@
 <?php
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+$projectRoot = dirname(__DIR__, 2);
 
 $error = $_SESSION['register_error'] ?? null;
 unset($_SESSION['register_error']);
 
 $pageTitle = 'Inscription | NovaBank';
-require __DIR__ . '/views/layout/header.php';
+require $projectRoot . '/views/layout/header.php';
 ?>
 
 <main class="auth-container">
@@ -39,9 +43,9 @@ require __DIR__ . '/views/layout/header.php';
     </form>
 
     <div class="auth-footer">
-      <p>Déjà membre ? <a href="login.php">Se connecter</a></p>
+      <p>Déjà membre ? <a href="index.php?action=loginPage">Se connecter</a></p>
     </div>
   </div>
 </main>
 
-<?php require __DIR__ . '/views/layout/footer.php';
+<?php require $projectRoot . '/views/layout/footer.php';
