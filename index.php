@@ -205,7 +205,7 @@ require __DIR__ . '/views/layout/header.php';
           <span class="sidebar-icon">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 18V9m7 9V5m7 13v-7"/></svg>
           </span>
-          <span>Investissements</span>
+          <span>Vos Investissements</span>
         </a>
         <a class="sidebar-link" href="#">
           <span class="sidebar-icon">
