@@ -3,11 +3,7 @@
         'name' => '__root__',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
-<<<<<<< HEAD
-        'reference' => '522d736d9b4ea121ec885a5393c523171d191e6e',
-=======
-        'reference' => 'c7594cbced89cb0d413385e5ebf5e53624d8e0e5',
->>>>>>> 7c3ca97 (Regenerate Composer metadata)
+        'reference' => '9337a9080c1af5f5bdc46fc7417288fdd85a4068',
         'type' => 'library',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -17,13 +13,18 @@
         '__root__' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-<<<<<<< HEAD
-            'reference' => '522d736d9b4ea121ec885a5393c523171d191e6e',
-=======
-            'reference' => 'c7594cbced89cb0d413385e5ebf5e53624d8e0e5',
->>>>>>> 7c3ca97 (Regenerate Composer metadata)
+            'reference' => '9337a9080c1af5f5bdc46fc7417288fdd85a4068',
             'type' => 'library',
             'install_path' => __DIR__ . '/../../',
+            'aliases' => array(),
+            'dev_requirement' => false,
+        ),
+        'composer/ca-bundle' => array(
+            'pretty_version' => '1.5.14',
+            'version' => '1.5.14.0',
+            'reference' => '0c8abba0634f637bd78c4e451981da368d403463',
+            'type' => 'library',
+            'install_path' => __DIR__ . '/./ca-bundle',
             'aliases' => array(),
             'dev_requirement' => false,
         ),
@@ -33,6 +34,15 @@
             'reference' => '8ad39b132d32761d8eb6e3fc2a49dc42b46d2be4',
             'type' => 'library',
             'install_path' => __DIR__ . '/../finnhub/client',
+            'aliases' => array(),
+            'dev_requirement' => false,
+        ),
+        'graham-campbell/result-type' => array(
+            'pretty_version' => 'v1.2.0',
+            'version' => '1.2.0.0',
+            'reference' => 'adccca3324eece92ca35463648c12b9e6293c05b',
+            'type' => 'library',
+            'install_path' => __DIR__ . '/../graham-campbell/result-type',
             'aliases' => array(),
             'dev_requirement' => false,
         ),
@@ -69,6 +79,15 @@
             'reference' => '1bc1716a507a65e039d4ac9d9adebbbd0d346e15',
             'type' => 'library',
             'install_path' => __DIR__ . '/../phpmailer/phpmailer',
+            'aliases' => array(),
+            'dev_requirement' => false,
+        ),
+        'phpoption/phpoption' => array(
+            'pretty_version' => '1.10.0',
+            'version' => '1.10.0.0',
+            'reference' => '67b192b6a42ec03944b972d6e633ddec78ad2c6d',
+            'type' => 'library',
+            'install_path' => __DIR__ . '/../phpoption/phpoption',
             'aliases' => array(),
             'dev_requirement' => false,
         ),
@@ -135,7 +154,6 @@
             'aliases' => array(),
             'dev_requirement' => false,
         ),
-<<<<<<< HEAD
         'symfony/polyfill-ctype' => array(
             'pretty_version' => 'v1.37.0',
             'version' => '1.37.0.0',
@@ -151,14 +169,6 @@
             'reference' => 'd3d318bad5e7a1bfbd026009c8bfb8d8f99ae6b6',
             'type' => 'library',
             'install_path' => __DIR__ . '/../symfony/polyfill-mbstring',
-=======
-        'symfony/dotenv' => array(
-            'pretty_version' => 'v8.1.6',
-            'version' => '8.1.6.0',
-            'reference' => '4ea87b35c75f7052309ec9735c0eb5c1fd7d2182',
-            'type' => 'library',
-            'install_path' => __DIR__ . '/../symfony/dotenv',
->>>>>>> 7c3ca97 (Regenerate Composer metadata)
             'aliases' => array(),
             'dev_requirement' => false,
         ),
@@ -168,6 +178,15 @@
             'reference' => 'dfb55726c3a76ea3b6459fcfda1ec2d80a682411',
             'type' => 'library',
             'install_path' => __DIR__ . '/../symfony/polyfill-php80',
+            'aliases' => array(),
+            'dev_requirement' => false,
+        ),
+        'vlucas/phpdotenv' => array(
+            'pretty_version' => 'v5.7.0',
+            'version' => '5.7.0.0',
+            'reference' => '301c07936b16d88628b126b01d082ba153cf4c40',
+            'type' => 'library',
+            'install_path' => __DIR__ . '/../vlucas/phpdotenv',
             'aliases' => array(),
             'dev_requirement' => false,
         ),

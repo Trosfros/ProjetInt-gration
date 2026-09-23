@@ -4,30 +4,29 @@
 
 namespace Composer\Autoload;
 
-class ComposerStaticInit2185d2f99bcd56787481d9357a5972d3
+class ComposerStaticInite0f1e460cb74057d3873ee43d01c748c
 {
     public static $files = array (
         '6e3fae29631ef280660b3cdad06f25a8' => __DIR__ . '/..' . '/symfony/deprecation-contracts/function.php',
         'a4a119a56e50fbb293281d9a48007e0e' => __DIR__ . '/..' . '/symfony/polyfill-php80/bootstrap.php',
         '7b11c4dc42b3b3023073cb14e519683c' => __DIR__ . '/..' . '/ralouphie/getallheaders/src/getallheaders.php',
         '37a3dc5111fe8f707ab4c132ef1dbc62' => __DIR__ . '/..' . '/guzzlehttp/guzzle/src/functions_include.php',
+        '320cde22f66dd4f5d3fd621d3e88b98f' => __DIR__ . '/..' . '/symfony/polyfill-ctype/bootstrap.php',
+        '0e6d7bf4a5811bfa5cf40c5ccd6fae6a' => __DIR__ . '/..' . '/symfony/polyfill-mbstring/bootstrap.php',
     );
 
     public static $prefixLengthsPsr4 = array (
         'S' =>
         array (
             'Symfony\\Polyfill\\Php80\\' => 23,
-<<<<<<< HEAD
             'Symfony\\Polyfill\\Mbstring\\' => 26,
             'Symfony\\Polyfill\\Ctype\\' => 23,
-=======
-            'Symfony\\Component\\Dotenv\\' => 25,
->>>>>>> 7c3ca97 (Regenerate Composer metadata)
         ),
         'P' =>
         array (
             'Psr\\Http\\Message\\' => 17,
             'Psr\\Http\\Client\\' => 16,
+            'PhpOption\\' => 10,
             'PHPMailer\\PHPMailer\\' => 20,
         ),
         'G' =>
@@ -35,10 +34,19 @@ class ComposerStaticInit2185d2f99bcd56787481d9357a5972d3
             'GuzzleHttp\\Psr7\\' => 16,
             'GuzzleHttp\\Promise\\' => 19,
             'GuzzleHttp\\' => 11,
+            'GrahamCampbell\\ResultType\\' => 26,
         ),
         'F' =>
         array (
             'Finnhub\\' => 8,
+        ),
+        'D' =>
+        array (
+            'Dotenv\\' => 7,
+        ),
+        'C' =>
+        array (
+            'Composer\\CaBundle\\' => 18,
         ),
     );
 
@@ -47,7 +55,6 @@ class ComposerStaticInit2185d2f99bcd56787481d9357a5972d3
         array (
             0 => __DIR__ . '/..' . '/symfony/polyfill-php80',
         ),
-<<<<<<< HEAD
         'Symfony\\Polyfill\\Mbstring\\' =>
         array (
             0 => __DIR__ . '/..' . '/symfony/polyfill-mbstring',
@@ -55,11 +62,6 @@ class ComposerStaticInit2185d2f99bcd56787481d9357a5972d3
         'Symfony\\Polyfill\\Ctype\\' =>
         array (
             0 => __DIR__ . '/..' . '/symfony/polyfill-ctype',
-=======
-        'Symfony\\Component\\Dotenv\\' =>
-        array (
-            0 => __DIR__ . '/..' . '/symfony/dotenv',
->>>>>>> 7c3ca97 (Regenerate Composer metadata)
         ),
         'Psr\\Http\\Message\\' =>
         array (
@@ -69,6 +71,10 @@ class ComposerStaticInit2185d2f99bcd56787481d9357a5972d3
         'Psr\\Http\\Client\\' =>
         array (
             0 => __DIR__ . '/..' . '/psr/http-client/src',
+        ),
+        'PhpOption\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/phpoption/phpoption/src/PhpOption',
         ),
         'PHPMailer\\PHPMailer\\' =>
         array (
@@ -86,9 +92,21 @@ class ComposerStaticInit2185d2f99bcd56787481d9357a5972d3
         array (
             0 => __DIR__ . '/..' . '/guzzlehttp/guzzle/src',
         ),
+        'GrahamCampbell\\ResultType\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/graham-campbell/result-type/src',
+        ),
         'Finnhub\\' =>
         array (
             0 => __DIR__ . '/..' . '/finnhub/client/lib',
+        ),
+        'Dotenv\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/vlucas/phpdotenv/src',
+        ),
+        'Composer\\CaBundle\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/composer/ca-bundle/src',
         ),
     );
 
@@ -104,9 +122,9 @@ class ComposerStaticInit2185d2f99bcd56787481d9357a5972d3
     public static function getInitializer(ClassLoader $loader)
     {
         return \Closure::bind(function () use ($loader) {
-            $loader->prefixLengthsPsr4 = ComposerStaticInit2185d2f99bcd56787481d9357a5972d3::$prefixLengthsPsr4;
-            $loader->prefixDirsPsr4 = ComposerStaticInit2185d2f99bcd56787481d9357a5972d3::$prefixDirsPsr4;
-            $loader->classMap = ComposerStaticInit2185d2f99bcd56787481d9357a5972d3::$classMap;
+            $loader->prefixLengthsPsr4 = ComposerStaticInite0f1e460cb74057d3873ee43d01c748c::$prefixLengthsPsr4;
+            $loader->prefixDirsPsr4 = ComposerStaticInite0f1e460cb74057d3873ee43d01c748c::$prefixDirsPsr4;
+            $loader->classMap = ComposerStaticInite0f1e460cb74057d3873ee43d01c748c::$classMap;
 
         }, null, ClassLoader::class);
     }
