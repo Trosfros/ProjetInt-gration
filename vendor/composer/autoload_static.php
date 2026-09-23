@@ -17,6 +17,7 @@ class ComposerStaticInit2185d2f99bcd56787481d9357a5972d3
         'S' =>
         array (
             'Symfony\\Polyfill\\Php80\\' => 23,
+            'Symfony\\Component\\Dotenv\\' => 25,
         ),
         'P' =>
         array (
@@ -40,6 +41,10 @@ class ComposerStaticInit2185d2f99bcd56787481d9357a5972d3
         'Symfony\\Polyfill\\Php80\\' =>
         array (
             0 => __DIR__ . '/..' . '/symfony/polyfill-php80',
+        ),
+        'Symfony\\Component\\Dotenv\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/symfony/dotenv',
         ),
         'Psr\\Http\\Message\\' =>
         array (
