@@ -1,7 +1,53 @@
 <?php
-// Définition d'un titre par défaut si la page n'en fournit pas
+// Démarrer la session si ce n'est pas déjà fait ailleurs
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 $pageTitle = $pageTitle ?? 'NovaBank | Banque virtuelle & Simulateur de Bourse';
 $isLoggedIn = !empty($_SESSION['user']);
+
+require_once dirname(__DIR__, 2) . '/vendor/autoload.php';
+
+use Dotenv\Dotenv;
+use Composer\CaBundle\CaBundle;
+
+$dotenv = Dotenv::createImmutable(dirname(__DIR__, 2));
+$dotenv->load();
+
+$apiKey = $_ENV['FinnhubKey'] ?? $_ENV['API_KEY'] ?? '';
+
+$symbols = ['NVDA', 'AAPL', 'TSLA', 'MSFT'];
+$marketData = [];
+$caBundle = CaBundle::getSystemCaRootBundlePath();
+
+foreach ($symbols as $sym) {
+    $url = 'https://finnhub.io/api/v1/quote?' . http_build_query([
+      'symbol' => $sym,
+      'token' => $apiKey,
+    ]);
+
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+    curl_setopt($ch, CURLOPT_CAINFO, $caBundle);
+
+    $res = curl_exec($ch);
+    $httpStatus = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    
+    $quote = json_decode($res, true);
+    
+    if ($httpStatus === 200 && $quote && isset($quote['c'], $quote['dp'])) {
+        $marketData[] = [
+            'symbol' => $sym,
+            'price'  => number_format($quote['c'], 2),
+            'change' => round($quote['dp'], 2)
+        ];
+    }
+}
+
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -56,15 +102,22 @@ $isLoggedIn = !empty($_SESSION['user']);
 
   <div class="market-ticker">
     <div class="ticker-track">
-      <div class="ticker-item"><span class="sym">NVDA</span> <span class="val">$128.45</span> <span class="up">+5.42%</span></div>
-      <div class="ticker-item"><span class="sym">AAPL</span> <span class="val">$224.10</span> <span class="up">+1.15%</span></div>
-      <div class="ticker-item"><span class="sym">TSLA</span> <span class="val">$248.80</span> <span class="down">-2.30%</span></div>
-      <div class="ticker-item"><span class="sym">BTC/USD</span> <span class="val">$64,320</span> <span class="up">+3.80%</span></div>
-      <div class="ticker-item"><span class="sym">SPY</span> <span class="val">$562.14</span> <span class="up">+0.65%</span></div>
-      <div class="ticker-item"><span class="sym">MSFT</span> <span class="val">$432.20</span> <span class="down">-0.45%</span></div>
-      <div class="ticker-item"><span class="sym">NVDA</span> <span class="val">$128.45</span> <span class="up">+5.42%</span></div>
-      <div class="ticker-item"><span class="sym">AAPL</span> <span class="val">$224.10</span> <span class="up">+1.15%</span></div>
-      <div class="ticker-item"><span class="sym">TSLA</span> <span class="val">$248.80</span> <span class="down">-2.30%</span></div>
-      <div class="ticker-item"><span class="sym">BTC/USD</span> <span class="val">$64,320</span> <span class="up">+3.80%</span></div>
+      <?php if (empty($marketData)): ?>
+        <div class="ticker-item"><span class="sym">API</span> <span class="val">Données indisponibles</span></div>
+      <?php else: ?>
+        <?php
+        $loopData = array_merge($marketData, $marketData);
+        foreach ($loopData as $stock):
+          $isPositive = $stock['change'] >= 0;
+          $class = $isPositive ? 'up' : 'down';
+          $sign = $isPositive ? '+' : '';
+        ?>
+          <div class="ticker-item">
+            <span class="sym"><?= htmlspecialchars($stock['symbol']) ?></span>
+            <span class="val">$<?= htmlspecialchars($stock['price']) ?></span>
+            <span class="<?= $class ?>"><?= $sign . htmlspecialchars($stock['change']) ?>%</span>
+          </div>
+        <?php endforeach; ?>
+      <?php endif; ?>
     </div>
   </div>
