@@ -55,7 +55,7 @@ foreach ($symbols as $sym) {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><?= htmlspecialchars($pageTitle) ?></title>
-  <link rel="stylesheet" href="public/css/main.css">
+  <link rel="stylesheet" href="public/css/main.css?v=5">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
@@ -104,21 +104,27 @@ foreach ($symbols as $sym) {
   <div class="market-ticker">
     <div class="ticker-track">
       <?php if (empty($marketData)): ?>
-        <div class="ticker-item"><span class="sym">API</span> <span class="val">Données indisponibles</span></div>
-      <?php else: ?>
-        <?php
-        $loopData = array_merge($marketData, $marketData);
-        foreach ($loopData as $stock):
-          $isPositive = $stock['change'] >= 0;
-          $class = $isPositive ? 'up' : 'down';
-          $sign = $isPositive ? '+' : '';
-        ?>
-          <div class="ticker-item">
-            <span class="sym"><?= htmlspecialchars($stock['symbol']) ?></span>
-            <span class="val">$<?= htmlspecialchars($stock['price']) ?></span>
-            <span class="<?= $class ?>"><?= $sign . htmlspecialchars($stock['change']) ?>%</span>
+        <?php for ($copy = 0; $copy < 4; $copy++): ?>
+          <div class="ticker-group">
+            <div class="ticker-item"><span class="sym">API</span> <span class="val">Données indisponibles</span></div>
           </div>
-        <?php endforeach; ?>
+        <?php endfor; ?>
+      <?php else: ?>
+        <?php for ($copy = 0; $copy < 4; $copy++): ?>
+          <div class="ticker-group">
+            <?php foreach ($marketData as $stock):
+              $isPositive = $stock['change'] >= 0;
+              $class = $isPositive ? 'up' : 'down';
+              $sign = $isPositive ? '+' : '';
+            ?>
+              <div class="ticker-item">
+                <span class="sym"><?= htmlspecialchars($stock['symbol']) ?></span>
+                <span class="val">$<?= htmlspecialchars($stock['price']) ?></span>
+                <span class="trend <?= $class ?>"><?= $sign . htmlspecialchars($stock['change']) ?>%</span>
+              </div>
+            <?php endforeach; ?>
+          </div>
+        <?php endfor; ?>
       <?php endif; ?>
     </div>
   </div>
