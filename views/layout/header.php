@@ -60,6 +60,7 @@ foreach ($symbols as $sym) {
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 </head>
+
 <body>
   <div class="glow-bg top-left"></div>
   <div class="glow-bg top-right"></div>
