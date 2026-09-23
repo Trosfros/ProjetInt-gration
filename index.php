@@ -40,6 +40,21 @@ if (($_GET['action'] ?? '') === 'logout') {
     exit;
 }
 
+if (($_GET['action'] ?? '') === 'market') {
+    header('Location: index.php?action=investment');
+    exit;
+}
+
+if (($_GET['action'] ?? '') === 'investment') {
+    if (empty($_SESSION['user'])) {
+        header('Location: login.php');
+        exit;
+    }
+
+    require __DIR__ . '/investment.php';
+    exit;
+}
+
 if (($_GET['action'] ?? '') === 'verify') {
     $token = trim($_GET['token'] ?? '');
 

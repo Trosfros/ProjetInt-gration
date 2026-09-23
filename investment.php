@@ -3,6 +3,11 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+if (empty($_SESSION['user'])) {
+    header('Location: login.php');
+    exit;
+}
+
 require_once __DIR__ . '/vendor/autoload.php';
 if (!function_exists('getPDO')) {
     require_once __DIR__ . '/configs/database.php';
