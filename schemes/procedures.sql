@@ -20,21 +20,21 @@ END //
 CREATE PROCEDURE addStock(
     IN pname VARCHAR(45),
     IN plastprice VARCHAR(45),
-    IN pvolume VARCHAR(45)
+    IN pChange VARCHAR(45)
 )
 BEGIN
-    IF pname IS NOT NULL AND plastprice IS NOT NULL AND pvolume IS NOT NULL THEN
+    IF pname IS NOT NULL AND plastprice IS NOT NULL AND pChange IS NOT NULL THEN
         
         IF EXISTS (SELECT 1 FROM `Stock` WHERE Name = pname) THEN
            
             UPDATE `Stock`
             SET LastPrice = plastprice,
-                Volume = pvolume
+                Change = pChange
             WHERE Name = pname;
         ELSE
             
-            INSERT INTO `Stock` (Name, LastPrice, Volume)
-            VALUES (pname, plastprice, pvolume);
+            INSERT INTO `Stock` (Name, LastPrice, Change)
+            VALUES (pname, plastprice, pChange);
         END IF;
     END IF;
 END //

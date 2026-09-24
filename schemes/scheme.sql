@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS `Stock` (
   `idStock` INT NOT NULL AUTO_INCREMENT,
   `Name` VARCHAR(45) NULL,
   `LastPrice` DECIMAL(65,2) NULL,
-  `Volume` DECIMAL(65,2) NULL,
+  `Change` DECIMAL(65,2) NULL,
   PRIMARY KEY (`idStock`)
 );
 
