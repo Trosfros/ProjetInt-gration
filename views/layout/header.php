@@ -1,5 +1,4 @@
 <?php
-// Démarrer la session si ce n'est pas déjà fait ailleurs
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -19,32 +18,57 @@ $apiKey = $_ENV['FinnhubKey'] ?? $_ENV['API_KEY'] ?? '';
 
 $symbols = ['NVDA', 'AAPL', 'TSLA', 'MSFT'];
 $marketData = [];
-$caBundle = CaBundle::getSystemCaRootBundlePath();
 
-foreach ($symbols as $sym) {
-    $url = 'https://finnhub.io/api/v1/quote?' . http_build_query([
-      'symbol' => $sym,
-      'token' => $apiKey,
-    ]);
+// --- SYSTÈME DE CACHE FINNHUB ---
+$cacheFile = dirname(__DIR__, 2) . '/storage/market_cache.json'; 
+$cacheLifetime = 60; // 60 secondes de mémoire
 
-    $ch = curl_init($url);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 10);
-    curl_setopt($ch, CURLOPT_CAINFO, $caBundle);
+// 1. Vérifie si un cache valide existe déjà
+if (file_exists($cacheFile) && (time() - filemtime($cacheFile) < $cacheLifetime)) {
+    $cachedContent = file_get_contents($cacheFile);
+    $marketData = json_decode($cachedContent, true) ?? [];
+} else {
+    // 2. Si le cache est expiré, on fait les appels API
+    $caBundle = CaBundle::getSystemCaRootBundlePath();
 
-    $res = curl_exec($ch);
-    $httpStatus = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
-    
-    $quote = json_decode($res, true);
-    
-    if ($httpStatus === 200 && $quote && isset($quote['c'], $quote['dp'])) {
-        $marketData[] = [
+    foreach ($symbols as $sym) {
+        $url = 'https://finnhub.io/api/v1/quote?' . http_build_query([
             'symbol' => $sym,
-            'price'  => number_format($quote['c'], 2),
-            'change' => round($quote['dp'], 2)
-        ];
+            'token'  => $apiKey,
+        ]);
+
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 3);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 5);
+        curl_setopt($ch, CURLOPT_CAINFO, $caBundle);
+
+        $res = curl_exec($ch);
+        $httpStatus = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        $quote = json_decode($res, true);
+
+        if ($httpStatus === 200 && $quote && isset($quote['c'], $quote['dp'])) {
+            $marketData[] = [
+                'symbol' => $sym,
+                'price'  => number_format($quote['c'], 2),
+                'change' => round($quote['dp'], 2)
+            ];
+        }
+    }
+
+    // n met à jour le fichier de cache
+    if (!empty($marketData)) {
+        // Crée le dossier storage s'il n'existe pas
+        $cacheDir = dirname($cacheFile);
+        if (!is_dir($cacheDir)) {
+            @mkdir($cacheDir, 0755, true);
+        }
+        file_put_contents($cacheFile, json_encode($marketData));
+    } else if (file_exists($cacheFile)) {
+        // En cas d'échec 
+        $marketData = json_decode(file_get_contents($cacheFile), true) ?? [];
     }
 }
 
