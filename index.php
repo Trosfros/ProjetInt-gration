@@ -208,7 +208,60 @@ require __DIR__ . '/views/layout/header.php';
     </main>
   </div>
 <?php else: ?>
-  <main class="main-content"></main>
+  <main class="main-content">
+        <section class="home-hero" aria-labelledby="hero-title">
+            <div class="home-copy">
+                <span class="home-eyebrow">NovaBank</span>
+                <h1 id="hero-title">La banque simple, <span>pour votre quotidien.</span></h1>
+                <p class="hero-lead">
+                    Gérez votre compte, suivez vos finances et découvrez l'investissement depuis un seul espace.
+                </p>
+                <div class="hero-buttons">
+                    <a href="index.php?action=registerPage" class="btn-primary btn-large">Ouvrir un compte</a>
+                    <a href="index.php?action=loginPage" class="btn-secondary btn-large">Se connecter</a>
+                </div>
+                <p class="home-note">Simple à utiliser · Accessible en ligne · Pensée pour apprendre</p>
+            </div>
+
+            <aside class="home-side-panel" aria-label="Marchés en direct">
+                <span class="side-panel-label">Marchés en direct</span>
+                <h2>Les valeurs du moment</h2>
+                <div class="market-preview-list">
+                    <?php if (!empty($marketData)): ?>
+                        <?php foreach (array_slice($marketData, 0, 3) as $stock): ?>
+                            <div class="market-preview-row">
+                                <strong><?= htmlspecialchars($stock['symbol']) ?></strong>
+                                <span>$<?= htmlspecialchars($stock['price']) ?></span>
+                                <span class="market-preview-change <?= $stock['change'] >= 0 ? 'up' : 'down' ?>">
+                                    <?= $stock['change'] >= 0 ? '+' : '' ?><?= htmlspecialchars($stock['change']) ?>%
+                                </span>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <p class="market-preview-empty">Les données de marché seront disponibles après la configuration de l'API.</p>
+                    <?php endif; ?>
+                </div>
+                <p class="security-note"><span class="security-dot"></span> Vos données restent protégées.</p>
+            </aside>
+        </section>
+
+        <section class="home-basics" id="home-basics" aria-label="Services NovaBank">
+            <article>
+                <strong>Compte bancaire</strong>
+                <span>Un aperçu clair de votre solde et de vos opérations.</span>
+            </article>
+            <article>
+                <strong>Suivi des marchés</strong>
+                <span>Les principales valeurs accessibles en quelques secondes.</span>
+            </article>
+            <article>
+                <strong>Éducation financière</strong>
+                <span>Des ressources pour avancer à votre rythme.</span>
+            </article>
+
+            
+        </section>
+  </main>
 <?php endif; ?>
 
 <?php require __DIR__ . '/views/layout/footer.php'; ?>
