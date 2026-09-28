@@ -80,7 +80,6 @@ BEGIN
     END IF;
 END //
 
-
 CREATE PROCEDURE BuyStockInvestment(
     IN pidUser INT,
     IN pidStock INT,
