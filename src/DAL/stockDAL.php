@@ -15,7 +15,7 @@ class StockDAL
     //returns if function worked
     public function buyStock(int $Alias,int $idstock,float $amount) : array 
     {       
-             $userId = GetActiveUserID($Alias);
+             $userId = $this->GetActiveUserID($Alias);
               try {
             $stmt = $this->pdo->prepare("CALL BuyStockInvestment(?, ?, ?)");
             $stmt->bindParam(1, $userId, PDO::PARAM_INT);
@@ -37,13 +37,13 @@ class StockDAL
     public function GetActiveUserID(string $username) : int
     {
         $stmt = $this->pdo->prepare("SELECT idUser from user where ? = Alias");
-        $stmt->bindParam( $username);
+        $stmt->bindParam( 1,$username);
         $stmt->execute();
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
         $stmt->closeCursor();
         if (!$result)
             {
-                throw new RuntimeException("no user found under the username ". $username )
+                throw new RuntimeException("no user found under the username ". $username );
             }
         return (int) $result["idUser"];
     }

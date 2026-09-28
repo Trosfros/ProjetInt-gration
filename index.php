@@ -3,6 +3,7 @@ session_start();
 require __DIR__ . '/vendor/autoload.php';
 require __DIR__ . '/configs/database.php';
 
+
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
@@ -197,6 +198,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_GET['action'] ?? '') === 'regist
 
 $pageTitle = 'NovaBank | Banque virtuelle & Simulateur de Bourse';
 require __DIR__ . '/views/layout/header.php';
+require_once __DIR__ .'\views\layout\sales\transactionSideBar.php';
 ?>
 
 <?php if ($isLoggedIn): ?>
@@ -262,6 +264,7 @@ require __DIR__ . '/views/layout/header.php';
             
         </section>
   </main>
+  
 <?php endif; ?>
 
 <?php require __DIR__ . '/views/layout/footer.php'; ?>
