@@ -6,6 +6,7 @@ USE bdnovabank;
 CREATE TABLE IF NOT EXISTS `User` (
   `idUser` INT NOT NULL AUTO_INCREMENT,
   `Alias` VARCHAR(45) NOT NULL,
+  `idAvatar` INT NULL,
   `Description` VARCHAR(255) NULL,
   `email_verified` TINYINT(1) NOT NULL DEFAULT 0,
   `email_verification_token` VARCHAR(255) NULL,
@@ -41,6 +42,25 @@ CREATE TABLE IF NOT EXISTS `StockInvest` (
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT `FK_idUser`
+    FOREIGN KEY (`IdUser`)
+    REFERENCES `User` (`idUser`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION
+);
+
+CREATE TABLE IF NOT EXISTS `StockFavorite` (
+  `idFavorite` INT NOT NULL AUTO_INCREMENT,
+  `idStock` INT NOT NULL,
+  `IdUser` INT NOT NULL,
+  PRIMARY KEY (`idFavorite`),
+  INDEX `FK_idStock1_idx` (`idStock`),
+  INDEX `FK_idUser1_idx` (`IdUser`),
+  CONSTRAINT `FK_idStock1`
+    FOREIGN KEY (`idStock`)
+    REFERENCES `Stock` (`idStock`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `FK_idUser1`
     FOREIGN KEY (`IdUser`)
     REFERENCES `User` (`idUser`)
     ON DELETE NO ACTION
