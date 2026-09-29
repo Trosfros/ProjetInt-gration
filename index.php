@@ -2,8 +2,15 @@
 session_start();
 require __DIR__ . '/vendor/autoload.php';
 require __DIR__ . '/configs/database.php';
+/*
+require __DIR__ . '/src/Middlewares/FinnhubMiddleware.php';
 
 
+$finnhub = new FinnhubMiddleware();
+//interaval in seconds
+
+$finnhub->startPolling(60);
+*/
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 

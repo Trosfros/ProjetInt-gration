@@ -13,9 +13,9 @@ class StockDAL
          $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     }
     //returns if function worked
-    public function buyStock(int $Alias,int $idstock,float $amount) : array 
+    public function buyStock(int $idstock,float $amount) : array 
     {       
-             $userId = $this->GetActiveUserID($Alias);
+             $userId = $this->GetActiveUserID($_SESSION['alias']);
               try {
             $stmt = $this->pdo->prepare("CALL BuyStockInvestment(?, ?, ?)");
             $stmt->bindParam(1, $userId, PDO::PARAM_INT);
@@ -33,6 +33,20 @@ class StockDAL
             throw $e;
         }
 
+    }
+     private function getStockPrice(int $idStock): float
+    {
+        $stmt = $this->pdo->prepare("SELECT LastPrice FROM `Stock` WHERE idStock = ?");
+        $stmt->bindParam(1, $idStock, PDO::PARAM_INT);
+        $stmt->execute();
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        $stmt->closeCursor();
+ 
+        if (!$result) {
+            throw new \RuntimeException("No stock found for idStock: $idStock");
+        }
+ 
+        return (float) $result['LastPrice'];
     }
     public function GetActiveUserID(string $username) : int
     {

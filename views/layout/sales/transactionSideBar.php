@@ -51,9 +51,9 @@ function formatSignedPct(float $pct): string
                 <div class="order-ticket-field">
                     <label class="order-ticket-label">Size</label>
                     <div class="order-ticket-input-row">
-                        <input type="text" class="order-ticket-input" id="orderSize" placeholder="shares or dollars">
+                        <input type="number" class="order-ticket-input" id="orderSize" placeholder="shares or dollars">
                         <select class="order-ticket-unit" id="orderUnit">
-                            <option value="shares">#</option>
+                            <option value="shares" >#</option>
                             <option value="dollars">$</option>
                         </select>
                     </div>
@@ -79,7 +79,7 @@ function formatSignedPct(float $pct): string
                     </div>
                     <div class="order-ticket-field">
                         <label class="order-ticket-label">Total SH</label>
-                        <input type="text" class="order-ticket-input" placeholder="--">
+                        <input type="number" class="order-ticket-input" placeholder="--">
                     </div>
                 </div>
  
@@ -472,7 +472,7 @@ function formatSignedPct(float $pct): string
         placeBtn.textContent = 'Placing…';
  
         try {
-            const res = await fetch('place-order.php', {
+            const res = await fetch('/src/DAL/placeOrder.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ side, idStock, amount, unit }),

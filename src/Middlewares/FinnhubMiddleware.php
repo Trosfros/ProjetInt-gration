@@ -4,10 +4,10 @@ use Finnhub\Api\DefaultApi;
 use Finnhub\Configuration;
 use GuzzleHttp\Client;
 use GuzzleHttp\Psr7\Query;
-use Symfony\Component\Dotenv\Dotenv;
+use Dotenv\Dotenv;
 
-require_once __DIR__ . "/configs/database.php";
-require_once __DIR__ . '/vendor/autoload.php';
+require_once __DIR__ . '/../../configs/database.php';
+require_once __DIR__ . '/../../vendor/autoload.php';
 //this is a very complicated class to handle please bring a lot of coffee if you do want to touch it
 class FinnhubMiddleware
 {
@@ -25,7 +25,7 @@ class FinnhubMiddleware
 
     public function __construct()
     {
-        $this->dotenv = new Dotenv();
+        $this->dotenv = Dotenv::createImmutable(dirname(__DIR__,2));
         $this->dotenv->load(__DIR__ . '/../../.env');
 
         $this->apiKey = $_ENV['FINNHUB_API_KEY'] ?? getenv('FINNHUB_API_KEY') ?? '';
