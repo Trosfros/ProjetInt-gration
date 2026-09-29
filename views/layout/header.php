@@ -3,7 +3,7 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-$pageTitle = $pageTitle ?? 'NovaBank | Banque virtuelle & Simulateur de Bourse';
+$pageTitle =$pageTitle ?? 'NovaBank | Banque virtuelle & Simulateur de Bourse';
 $isLoggedIn = !empty($_SESSION['user']);
 
 require_once dirname(__DIR__, 2) . '/vendor/autoload.php';
@@ -11,28 +11,38 @@ require_once dirname(__DIR__, 2) . '/vendor/autoload.php';
 use Dotenv\Dotenv;
 use Composer\CaBundle\CaBundle;
 
-$dotenv = Dotenv::createImmutable(dirname(__DIR__, 2));
-$dotenv->load();
+$dotenv = Dotenv::createImmutable(dirname(__DIR__, 2));$dotenv->load();
 
 $apiKey = $_ENV['FinnhubKey'] ?? $_ENV['API_KEY'] ?? '';
 
-$symbols = ['NVDA', 'AAPL', 'TSLA', 'MSFT'];
-$marketData = [];
+// --- CONNEXION (bdnovabank) ---
+$pdo = null;
+try {
+    $dbHost =$_ENV['DB_HOST'] ?? '127.0.0.1';
+    $dbName =$_ENV['DB_NAME'] ?? 'bdnovabank';
+    $dbUser =$_ENV['DB_USER'] ?? 'root';
+    $dbPass =$_ENV['DB_PASS'] ?? '';
+
+    $pdo = new PDO("mysql:host={$dbHost};dbname={$dbName};charset=utf8mb4", $dbUser,$dbPass, [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
+    ]);
+} catch (PDOException $e) {
+    error_log("Erreur connexion BDD : " . $e->getMessage());
+}
+
+$symbols = ['NVDA', 'AAPL', 'TSLA', 'MSFT'];$marketData = [];
 
 // --- SYSTÈME DE CACHE FINNHUB ---
-$cacheFile = dirname(__DIR__, 2) . '/storage/market_cache.json'; 
-$cacheLifetime = 60; // 60 secondes de mémoire
+$cacheFile = dirname(__DIR__, 2) . '/storage/market_cache.json';$cacheLifetime = 60; // 60 secondes
 
-// 1. Vérifie si un cache valide existe déjà
-if (file_exists($cacheFile) && (time() - filemtime($cacheFile) < $cacheLifetime)) {
+if (file_exists($cacheFile) && (time() - filemtime($cacheFile) <$cacheLifetime)) {
     $cachedContent = file_get_contents($cacheFile);
     $marketData = json_decode($cachedContent, true) ?? [];
 } else {
-    // 2. Si le cache est expiré, on fait les appels API
     $caBundle = CaBundle::getSystemCaRootBundlePath();
 
-    foreach ($symbols as $sym) {
-        $url = 'https://finnhub.io/api/v1/quote?' . http_build_query([
+    foreach ($symbols as $sym) {$url = 'https://finnhub.io/api/v1/quote?' . http_build_query([
             'symbol' => $sym,
             'token'  => $apiKey,
         ]);
@@ -41,7 +51,7 @@ if (file_exists($cacheFile) && (time() - filemtime($cacheFile) < $cacheLifetime)
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 3);
         curl_setopt($ch, CURLOPT_TIMEOUT, 5);
-        curl_setopt($ch, CURLOPT_CAINFO, $caBundle);
+        curl_setopt($ch, CURLOPT_CAINFO,$caBundle);
 
         $res = curl_exec($ch);
         $httpStatus = curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -49,29 +59,45 @@ if (file_exists($cacheFile) && (time() - filemtime($cacheFile) < $cacheLifetime)
 
         $quote = json_decode($res, true);
 
-        if ($httpStatus === 200 && $quote && isset($quote['c'], $quote['dp'])) {
+        if ($httpStatus === 200 && $quote && isset($quote['c'], $quote['dp'])) {$stockId = null;
+            $priceFormatted = number_format($quote['c'], 2, '.', '');
+            $changeFormatted = round($quote['dp'], 2);
+
+            // --- SYNCHRONISATION AVEC LA PROCÉDURE BDD 'addStock' ---
+            if ($pdo) {
+                // Inserer ou Mettre à jour l'action via la procédure stockée addStock(Name, LastPrice, Change)
+                $stmtProc =$pdo->prepare("CALL addStock(?, ?, ?)");
+                $stmtProc->execute([$sym,$priceFormatted, $changeFormatted]);$stmtProc->closeCursor(); // Libère la connexion 
+
+                // Récupére l'idStock associé au symbole
+                $stmtGet =$pdo->prepare("SELECT idStock FROM `Stock` WHERE Name = ?");
+                $stmtGet->execute([$sym]);
+                $row =$stmtGet->fetch();
+                if ($row) {
+                    $stockId = (int)$row['idStock'];
+                }
+            }
+
             $marketData[] = [
+                'id'     => $stockId, 
                 'symbol' => $sym,
-                'price'  => number_format($quote['c'], 2),
-                'change' => round($quote['dp'], 2)
+                'price'  => $priceFormatted,
+                'change' => $changeFormatted
             ];
         }
     }
 
-    // n met à jour le fichier de cache
+    // Sauvegarde dans le cache local
     if (!empty($marketData)) {
-        // Crée le dossier storage s'il n'existe pas
         $cacheDir = dirname($cacheFile);
         if (!is_dir($cacheDir)) {
             @mkdir($cacheDir, 0755, true);
         }
         file_put_contents($cacheFile, json_encode($marketData));
     } else if (file_exists($cacheFile)) {
-        // En cas d'échec 
         $marketData = json_decode(file_get_contents($cacheFile), true) ?? [];
     }
 }
-
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -118,7 +144,7 @@ if (file_exists($cacheFile) && (time() - filemtime($cacheFile) < $cacheLifetime)
     <div class="nav-actions">
       <?php if ($isLoggedIn): ?>
         <span class="user-greeting" style="color: var(--text-muted); font-size: 0.9rem; margin-right: 1rem;">
-          Bonjour, <?= htmlspecialchars($_SESSION['user']['username'] ?? $_SESSION['user']['first_name'] ?? 'Membre') ?>
+          Bonjour, <?= htmlspecialchars($_SESSION['user']['username'] ?? $_SESSION['user']['Alias'] ?? 'Membre') ?>
         </span>
         <a href="index.php?action=logout" class="btn-ghost">Déconnexion</a>
       <?php else: ?>
@@ -139,12 +165,12 @@ if (file_exists($cacheFile) && (time() - filemtime($cacheFile) < $cacheLifetime)
       <?php else: ?>
         <?php for ($copy = 0; $copy < 4; $copy++): ?>
           <div class="ticker-group">
-            <?php foreach ($marketData as $stock):
-              $isPositive = $stock['change'] >= 0;
-              $class = $isPositive ? 'up' : 'down';
-              $sign = $isPositive ? '+' : '';
+            <?php foreach ($marketData as$stock):
+              $isPositive =$stock['change'] >= 0;
+              $class =$isPositive ? 'up' : 'down';
+              $sign =$isPositive ? '+' : '';
             ?>
-              <div class="ticker-item">
+              <div class="ticker-item" data-stock-id="<?= htmlspecialchars($stock['id'] ?? '') ?>">
                 <span class="sym"><?= htmlspecialchars($stock['symbol']) ?></span>
                 <span class="val">$<?= htmlspecialchars($stock['price']) ?></span>
                 <span class="trend <?= $class ?>"><?= $sign . htmlspecialchars($stock['change']) ?>%</span>
