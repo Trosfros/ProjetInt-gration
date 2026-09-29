@@ -134,7 +134,7 @@ BEGIN
     VALUES (pidStock, pidUser, vTotal);
 
     COMMIT;
-END;
+END //
 
 
 CREATE PROCEDURE SellStockInvestment(
@@ -142,7 +142,7 @@ CREATE PROCEDURE SellStockInvestment(
     IN pidStock INT,
     IN pAmount DECIMAL(65,2)
 )
-Begin
+BEGIN
 
     DECLARE vBalance DECIMAL(65,2);
     DECLARE vPrice DECIMAL(65,2);
@@ -187,13 +187,13 @@ Begin
     VALUES (pidStock, pidUser, -vTotal);
 
     COMMIT;
-end
+END //
 
 CREATE PROCEDURE TOGGLE_STOCK_FAVORITE(
     IN pidUser INT,
     IN pidStock INT
 )
-begin
+BEGIN
 
     IF EXISTS (SELECT 1 FROM `StockFavorite` WHERE idStock = pidStock AND IdUser = pidUser) THEN
         DELETE FROM `StockFavorite` WHERE idStock = pidStock AND IdUser = pidUser;
@@ -201,7 +201,7 @@ begin
         INSERT INTO `StockFavorite` (idStock, IdUser) VALUES (pidStock, pidUser);
     END IF;
 
-end //
+END //
 
 
 CREATE PROCEDURE updatePassword(
@@ -212,7 +212,7 @@ BEGIN
     DECLARE vUserCount INT;
     DECLARE pOldPassword VARCHAR(255);
 
-    Select Password INTO pOldPassword
+    SELECT Password INTO pOldPassword
     FROM `User`
     WHERE idUser = pidUser;
 
@@ -230,7 +230,6 @@ BEGIN
     SET Password = SHA2(pNewPassword, 256)
     WHERE idUser = pidUser;
 END //
-
 
 
 CREATE FUNCTION verifyUser(
@@ -256,6 +255,7 @@ CREATE FUNCTION verifyUserEmail(
     IN pToken VARCHAR(255)
 )
 RETURNS TINYINT
+DETERMINISTIC
 BEGIN
     DECLARE vMatch INT;
     SELECT COUNT(*) INTO vMatch FROM `User` WHERE idUser = pidUser AND email_verification_token = pToken;
@@ -277,17 +277,4 @@ BEGIN
     UPDATE `User` SET idAvatar = pidAvatar WHERE idUser = pidUser;
 END //
 
-
-
-
-
-
-
-
-DELIMITER ; 
-
-
-
-
-
-
+DELIMITER ;
