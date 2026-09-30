@@ -15,7 +15,6 @@ $pageTitle = 'Connexion | NovaBank';
 require $projectRoot . '/views/layout/header.php';
 ?>
 
-// Les styles sont généré par l'intelligence artificielle.
 <style>
   .loading-overlay {
     position: fixed;

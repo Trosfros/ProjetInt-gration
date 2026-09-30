@@ -12,7 +12,6 @@ $pageTitle = 'Inscription | NovaBank';
 require $projectRoot . '/views/layout/header.php';
 ?>
 
-// Les styles sont généré par l'intelligence artificielle.
 <style>
   /* Overlay de chargement */
   .loading-overlay {
