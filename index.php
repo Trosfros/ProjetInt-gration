@@ -205,7 +205,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_GET['action'] ?? '') === 'regist
 
 $pageTitle = 'NovaBank | Banque virtuelle & Simulateur de Bourse';
 require __DIR__ . '/views/layout/header.php';
-require_once __DIR__ .'\views\layout\sales\transactionSideBar.php';
+
 ?>
 
 <?php if ($isLoggedIn): ?>
