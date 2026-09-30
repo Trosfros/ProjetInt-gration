@@ -36,6 +36,18 @@ try
             'message' => 'Selling isn\'t wired up yet — only BuyStockInvestment exists in the database.',
         ]);
     }
-    $shares = $dal->shares($alias, $amount, $unit);
-}
+    $shares = $dal->calculateShares($alias, $amount, $unit);
+    if ($share <= 0) {
+        respond(421, 
+        ['sucess' => false,
+        'message' => 'ammount is to small to buy any shares at this price']);
+    }
+    $result = $dal->buyStock($alias, $idStock, $shares);
+}catch (\RuntimeException $e) {
+    
+    respond(404, ['success' => false, 'message' => $e->getMessage()]);
+} catch (\Throwable $e) {
+    error_log('place-order.php failed: ' . $e->getMessage());
+    respond(500, ['success' => false, 'message' => 'Something went wrong placing the order']);
+} 
 
