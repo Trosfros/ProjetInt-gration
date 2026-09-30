@@ -233,6 +233,37 @@ BEGIN
 END //
 
 
+CREATE PROCEDURE GetUserStockInvestments(
+    IN pidUser INT,
+    IN plastPrice DECIMAL(65,2),
+    IN pChange DECIMAL(65,2)
+)
+BEGIN
+    SELECT 
+        si.idInvest,
+        si.IdUser,
+        si.idStock,
+        si.Investement AS AmountInvested,
+        s.Name AS StockName,
+        s.LastPrice,
+        s.Change
+    FROM `StockInvest` si
+    INNER JOIN `Stock` s ON si.idStock = s.idStock
+    WHERE si.IdUser = pidUser
+      AND (plastPrice IS NULL OR s.LastPrice = plastPrice)
+      AND (pChange IS NULL OR s.Change = pChange);
+END //
+
+
+CREATE PROCEDURE updateUserAvatar(
+    IN pidUser INT,
+    IN pidAvatar INT
+)
+BEGIN
+    UPDATE `User` SET idAvatar = pidAvatar WHERE idUser = pidUser;
+END //
+
+
 CREATE FUNCTION verifyUser(
     palias VARCHAR(45),
     ppassword VARCHAR(255)
@@ -267,15 +298,6 @@ BEGIN
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Jeton de vérification invalide.';
     END IF;
     RETURN vMatch > 0;
-END //
-
-
-CREATE PROCEDURE updateUserAvatar(
-    IN pidUser INT,
-    IN pidAvatar INT
-)
-BEGIN
-    UPDATE `User` SET idAvatar = pidAvatar WHERE idUser = pidUser;
 END //
 
 DELIMITER ;
