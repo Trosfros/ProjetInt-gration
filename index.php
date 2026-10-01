@@ -31,11 +31,31 @@ function sendVerificationEmail(string $email, string $username, string $token): 
 
         $mail->setFrom($config['mail']['from_email'], $config['mail']['from_name']);
         $mail->addAddress($email, $username);
-        $mail->Subject = 'Vérification de votre compte NovaBank';
+        $mail->Subject = 'Confirmez votre adresse email - NovaBank';
 
-        $verificationUrl = $config['app_url'] . '/index.php?action=verify&token=' . urlencode($token);
-        $mail->Body = "Bonjour $username,\r\n\r\nMerci de vous être inscrit sur NovaBank.\r\nCliquez sur le lien ci-dessous pour vérifier votre adresse email :\r\n$verificationUrl\r\n\r\nSi vous n'êtes pas à l'origine de cette inscription, ignorez ce message.";
-        $mail->AltBody = "Bonjour $username,\r\n\r\nMerci de vous être inscrit sur NovaBank.\r\nUtilisez ce lien pour vérifier votre email : $verificationUrl";
+        $verificationUrl = rtrim($config['app_url'], '/') . '/index.php?' . http_build_query([
+            'action' => 'verify',
+            'token' => $token,
+        ]);
+        $safeUsername = htmlspecialchars($username, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+        $safeVerificationUrl = htmlspecialchars($verificationUrl, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+
+        $mail->isHTML(true);
+        $mail->Body = "
+            <div style=\"font-family: Arial, sans-serif; color: #1f2937; line-height: 1.6; max-width: 600px; margin: 0 auto;\">
+                <h1 style=\"color: #0f172a; font-size: 24px;\">Bienvenue sur NovaBank, $safeUsername&nbsp;!</h1>
+                <p>Merci d’avoir créé votre compte. Pour terminer votre inscription et accéder à votre espace, confirmez votre adresse email en cliquant sur le bouton ci-dessous.</p>
+                <p style=\"margin: 28px 0;\">
+                    <a href=\"$safeVerificationUrl\" style=\"display: inline-block; padding: 12px 20px; background-color: #0284c7; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: bold;\">
+                        Vérifier mon adresse email
+                    </a>
+                </p>
+                <p>Si le bouton ne fonctionne pas, copiez ce lien dans la barre d’adresse de votre navigateur&nbsp;:<br>
+                    <a href=\"$safeVerificationUrl\">$safeVerificationUrl</a>
+                </p>
+                <p style=\"color: #64748b; font-size: 14px;\">Si vous n’êtes pas à l’origine de cette inscription, vous pouvez ignorer ce message.</p>
+            </div>";
+        $mail->AltBody = "Bonjour $username,\r\n\r\nMerci d’avoir créé votre compte NovaBank. Pour terminer votre inscription, ouvrez ce lien dans votre navigateur :\r\n$verificationUrl\r\n\r\nSi vous n’êtes pas à l’origine de cette inscription, ignorez ce message.";
 
         $mail->send();
     } catch (Exception $e) {
@@ -129,7 +149,7 @@ if (($_GET['action'] ?? '') === 'verify') {
         $_SESSION['verify_error'] = 'Aucun token de vérification fourni.';
     }
 
-    header('Location: login.php');
+    header('Location: index.php?action=loginPage');
     exit;
 }
 
