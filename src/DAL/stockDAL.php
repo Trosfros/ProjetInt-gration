@@ -1,7 +1,7 @@
 <?php
 
-require_once __DIR__ . "/configs/database.php";
-require_once __DIR__ . "/vendor/autoload.php";
+require_once dirname(__DIR__,2) . "/configs/database.php";
+require_once dirname(__DIR__,2) . "/vendor/autoload.php";
 
 class StockDAL
 {
@@ -74,6 +74,15 @@ class StockDAL
 
 
         return round($amount / $price, 4);
+    }
+    public function AddStock(string $name, string $price, string $change):void
+    {   
+        $stmt = $this->pdo->prepare('call addStock(?,?,?)');
+        $stmt->bindParam(1, $name, PDO::PARAM_STR);
+        $stmt->bindParam(2, $price);
+        $stmt->bindParam(3, $change);
+        $stmt->execute();
+        $stmt->closeCursor();
     }
 
 }

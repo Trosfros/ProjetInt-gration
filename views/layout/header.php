@@ -7,6 +7,8 @@ $pageTitle =$pageTitle ?? 'NovaBank | Banque virtuelle & Simulateur de Bourse';
 $isLoggedIn = !empty($_SESSION['user']);
 
 require_once dirname(__DIR__, 2) . '/vendor/autoload.php';
+require_once dirname(__DIR__,2) .'/src/DAL/stockDAL.php';
+require_once dirname(__DIR__,2) .'/configs/database.php';
 
 use Dotenv\Dotenv;
 use Composer\CaBundle\CaBundle;
@@ -16,22 +18,8 @@ $dotenv = Dotenv::createImmutable(dirname(__DIR__, 2));$dotenv->load();
 $apiKey = $_ENV['FinnhubKey'] ?? $_ENV['API_KEY'] ?? '';
 
 // --- CONNEXION (bdnovabank) ---
-$pdo = null;
-try {
-    $dbHost =$_ENV['DB_HOST'] ?? '127.0.0.1';
-    $dbName =$_ENV['DB_NAME'] ?? 'bdnovabank';
-    $dbUser =$_ENV['DB_USER'] ?? 'root';
-    $dbPass =$_ENV['DB_PASS'] ?? '';
 
-    $pdo = new PDO("mysql:host={$dbHost};dbname={$dbName};charset=utf8mb4", $dbUser,$dbPass, [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
-    ]);
-} catch (PDOException $e) {
-    error_log("Erreur connexion BDD : " . $e->getMessage());
-}
-
-$symbols = ['NVDA', 'AAPL', 'TSLA', 'MSFT'];$marketData = [];
+$marketData = [];
 
 // --- SYSTÈME DE CACHE FINNHUB ---
 $cacheFile = dirname(__DIR__, 2) . '/storage/market_cache.json';$cacheLifetime = 60; // 60 secondes
@@ -63,19 +51,7 @@ if (file_exists($cacheFile) && (time() - filemtime($cacheFile) <$cacheLifetime))
             $priceFormatted = number_format($quote['c'], 2, '.', '');
             $changeFormatted = round($quote['dp'], 2);
 
-            // --- SYNCHRONISATION AVEC LA PROCÉDURE BDD 'addStock' ---
-            if ($pdo) {
-                // Inserer ou Mettre à jour l'action via la procédure stockée addStock(Name, LastPrice, Change)
-                $stmtProc =$pdo->prepare("CALL addStock(?, ?, ?)");
-                $stmtProc->execute([$sym,$priceFormatted, $changeFormatted]);$stmtProc->closeCursor(); // Libère la connexion 
-
-                // Récupére l'idStock associé au symbole
-                $stmtGet =$pdo->prepare("SELECT idStock FROM `Stock` WHERE Name = ?");
-                $stmtGet->execute([$sym]);
-                $row =$stmtGet->fetch();
-                if ($row) {
-                    $stockId = (int)$row['idStock'];
-                }
+            $stockDal->AddStock($sym, $priceFormatted, $changeFormatted);
             }
 
             $marketData[] = [
@@ -97,7 +73,7 @@ if (file_exists($cacheFile) && (time() - filemtime($cacheFile) <$cacheLifetime))
     } else if (file_exists($cacheFile)) {
         $marketData = json_decode(file_get_contents($cacheFile), true) ?? [];
     }
-}
+
 ?>
 <!DOCTYPE html>
 <html lang="fr">

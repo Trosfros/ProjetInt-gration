@@ -19,8 +19,8 @@ END //
 
 CREATE PROCEDURE addStock(
     IN pname VARCHAR(45),
-    IN plastprice VARCHAR(45),
-    IN pChange VARCHAR(45)
+    IN plastprice DECIMAL(45),
+    IN pChange DECIMAL(45)
 )
 BEGIN
     IF pname IS NOT NULL AND plastprice IS NOT NULL AND pChange IS NOT NULL THEN
