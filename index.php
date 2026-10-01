@@ -42,6 +42,27 @@ function sendVerificationEmail(string $email, string $username, string $token): 
     }
 }
 
+$action = $_GET['action'] ?? '';
+
+$knownActions = [
+    'logout',
+    'market',
+    'loginPage',
+    'registerPage',
+    'marketPage',
+    'investment',
+    'verify',
+    'login',
+    'register',
+];
+
+if ($action !== '' && !in_array($action, $knownActions, true)) {
+    http_response_code(404);
+    $pageTitle = 'Page introuvable | NovaBank';
+    require __DIR__ . '/views/errors/404.php';
+    exit;
+}
+
 if (($_GET['action'] ?? '') === 'logout') {
     unset($_SESSION['user']);
     header('Location: index.php');
