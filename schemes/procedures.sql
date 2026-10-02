@@ -179,12 +179,13 @@ BEGIN
 
     START TRANSACTION;
 
-    UPDATE `User`
-    SET Balance = Balance + vTotal
-    WHERE idUser = pidUser;
+        UPDATE `User`
+        SET Balance = Balance + vTotal
+        WHERE idUser = pidUser;
 
-    INSERT INTO `StockInvest` (idStock, IdUser, Investement)
-    VALUES (pidStock, pidUser, -vTotal);
+        DELETE FROM `StockInvest`
+        WHERE idStock = pidStock
+            AND IdUser = pidUser;
 
     COMMIT;
 END //
