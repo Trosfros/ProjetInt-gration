@@ -20,7 +20,7 @@ class StockDAL
         }
 
         $userId = $this->getActiveUserID($alias);
-
+       
         try {
             $stmt = $this->pdo->prepare("CALL BuyStockInvestment(?, ?, ?)");
             $stmt->bindParam(1, $userId, PDO::PARAM_INT);
@@ -29,7 +29,7 @@ class StockDAL
             $stmt->execute();
             $stmt->closeCursor();
 
-            return ['success' => true, 'message' => "Bought {$shares} share(s) of stock #{$idStock}."];
+            return ['success' => true, 'message' => "Achat passer avec succès!"];
         } catch (PDOException $e) {
            
             if ($e->errorInfo[0] === '45000') {
@@ -37,6 +37,34 @@ class StockDAL
             }
             throw $e;
         }
+        return ['success' => false, 'message' => 'Erreur BDD: ' . $e->getMessage()];
+    }
+    public function sellStock(string $alias, int $idStock,$shares): array
+    {
+        
+        if ($shares <= 0) {
+            return ['success' => false, 'message' => 'Share amount must be greater than 0.'];
+        }
+
+        $userId = $this->getActiveUserID($alias);
+    
+        try {
+            $stmt = $this->pdo->prepare("CALL SellStockInvestment(?, ?, ?)");
+            $stmt->bindParam(1, $userId, PDO::PARAM_INT);
+            $stmt->bindParam(2, $idStock, PDO::PARAM_INT);
+            $stmt->bindParam(3, $shares);
+            $stmt->execute();
+            $stmt->closeCursor();
+
+            return ['success' => true, 'message' => "Vendu stock avec succès!"];
+        } catch (PDOException $e) {
+           
+            if ($e->errorInfo[0] === '45000') {
+                return ['success' => false, 'message' => $e->errorInfo[2]];
+            }
+            throw $e;
+        }
+        return ['success' => false, 'message' => 'Erreur BDD: ' . $e->getMessage()];
     }
     private function getStockPrice(int $idStock): float
     {

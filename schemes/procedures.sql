@@ -89,7 +89,7 @@ BEGIN
     DECLARE vBalance DECIMAL(65,2);
     DECLARE vPrice DECIMAL(65,2);
     DECLARE vTotal DECIMAL(65,2);
-
+    DECLARE vExisting DECIMAL(65,2);
     IF pidUser IS NULL OR pidStock IS NULL OR pAmount IS NULL OR pAmount <= 0 THEN
         SIGNAL SQLSTATE '45000'
         SET MESSAGE_TEXT = 'Invalid investment parameters.';
@@ -129,9 +129,23 @@ BEGIN
     UPDATE `User`
     SET Balance = Balance - vTotal
     WHERE idUser = pidUser;
-
-    INSERT INTO `StockInvest` (idStock, IdUser, Investement)
-    VALUES (pidStock, pidUser, vTotal);
+    
+ 
+    -- Does the user already hold a position in this stock?
+    SELECT Investement INTO vExisting
+    FROM `StockInvest`
+    WHERE idUser = pidUser AND idStock = pidStock
+    FOR UPDATE;
+ 
+    IF vExisting IS NULL THEN
+        INSERT INTO `StockInvest` (idStock, idUser, Investement)
+        VALUES (pidStock, pidUser, vTotal);
+    ELSE
+        UPDATE `StockInvest`
+        SET Investement = Investement + vTotal
+        WHERE idUser = pidUser AND idStock = pidStock;
+    END IF;
+    
 
     COMMIT;
 END //
@@ -147,6 +161,7 @@ BEGIN
     DECLARE vBalance DECIMAL(65,2);
     DECLARE vPrice DECIMAL(65,2);
     DECLARE vTotal DECIMAL(65,2);
+    DECLARE vHeld DECIMAL(65,2);
 
     IF pidUser IS NULL OR pidStock IS NULL OR pAmount IS NULL OR pAmount <= 0 THEN
         SIGNAL SQLSTATE '45000'
@@ -178,14 +193,25 @@ BEGIN
     SET vTotal = vPrice * pAmount;
 
     START TRANSACTION;
+    -- added a small check that was missing
+    SELECT Investement INTO vHeld
+    FROM `StockInvest`
+    WHERE idUser = pidUser AND idStock = pidStock
+    FOR UPDATE;
+ 
+    IF vHeld IS NULL THEN
+        ROLLBACK;
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'You do not own any shares of this stock.';
+    END IF;
+    UPDATE `User`
+    SET Balance = Balance + vTotal
+    WHERE idUser = pidUser;
 
-        UPDATE `User`
-        SET Balance = Balance + vTotal
-        WHERE idUser = pidUser;
-
-        DELETE FROM `StockInvest`
-        WHERE idStock = pidStock
-            AND IdUser = pidUser;
+    Update StockInvest
+    Set Investement = Investement - vTotal
+    WHERE idUser = pidUser AND idStock = pidStock;
+    DELETE FROM StockInvest 
+    where idUser = pidUser AND idStock = pidStock AND Investement <= 0;
 
     COMMIT;
 END //

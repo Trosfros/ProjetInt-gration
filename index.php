@@ -2,7 +2,7 @@
 session_start();
 require __DIR__ . '/vendor/autoload.php';
 require __DIR__ . '/configs/database.php';
-require_once __DIR__. '/configs/constants.php';
+require_once __DIR__ . '/configs/constants.php';
 /*
 require __DIR__ . '/src/controllers/finnhubcontroller.php';
 
@@ -63,47 +63,26 @@ function sendVerificationEmail(string $email, string $username, string $token): 
 
 $action = $_GET['action'] ?? '';
 
-$knownActions = [
-    'logout',
-    'market',
-    'loginPage',
-    'registerPage',
-    'marketPage',
-    'investment',
-    'verify',
-    'login',
-    'register',
-];
 
-if ($action !== '' && !in_array($action, $knownActions, true)) {
-    http_response_code(404);
-    $pageTitle = 'Page introuvable | NovaBank';
-    require __DIR__ . '/views/errors/404.php';
-    exit;
-}
 
-if (($_GET['action'] ?? '') === 'logout') {
+ if (($_GET['action'] ?? '') === 'logout') {
     unset($_SESSION['user']);
     header('Location: index.php');
     exit;
 }
-
-if (($_GET['action'] ?? '') === 'market') {
+else if (($_GET['action'] ?? '') === 'market') {
     header('Location: index.php?action=investment');
     exit;
 }
-
-if (($_GET['action'] ?? '') === 'loginPage') {
+else if (($_GET['action'] ?? '') === 'loginPage') {
     require __DIR__ . '/src/Models/login.php';
     exit;
 }
-
-if (($_GET['action'] ?? '') === 'registerPage') {
+else if (($_GET['action'] ?? '') === 'registerPage') {
     require __DIR__ . '/src/Models/register.php';
     exit;
 }
-
-if (($_GET['action'] ?? '') === 'marketPage') {
+else if (($_GET['action'] ?? '') === 'marketPage') {
     if (empty($_SESSION['user'])) {
         header('Location: index.php?action=loginPage');
         exit;
@@ -112,8 +91,7 @@ if (($_GET['action'] ?? '') === 'marketPage') {
     require __DIR__ . '/src/Models/market.php';
     exit;
 }
-
-if (($_GET['action'] ?? '') === 'investment') {
+else if (($_GET['action'] ?? '') === 'investment') {
     if (empty($_SESSION['user'])) {
         header('Location: index.php?action=loginPage');
         exit;
@@ -122,8 +100,7 @@ if (($_GET['action'] ?? '') === 'investment') {
     require __DIR__ . '/src/Models/investment.php';
     exit;
 }
-
-if (($_GET['action'] ?? '') === 'verify') {
+else if (($_GET['action'] ?? '') === 'verify') {
     $token = trim($_GET['token'] ?? '');
 
     if ($token !== '') {
@@ -150,8 +127,7 @@ if (($_GET['action'] ?? '') === 'verify') {
     header('Location: index.php?action=loginPage');
     exit;
 }
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_GET['action'] ?? '') === 'login') {
+else if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_GET['action'] ?? '') === 'login') {
     $email = trim($_POST['email'] ?? '');
     $password = $_POST['password'] ?? '';
 
@@ -168,7 +144,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_GET['action'] ?? '') === 'login'
         $user = $stmt->fetch();
 
         if ($user && password_verify($password, $user['Password'])) {
-            if ((int)($user['email_verified'] ?? 0) !== 1) {
+            if ((int) ($user['email_verified'] ?? 0) !== 1) {
                 $_SESSION['login_error'] = 'Veuillez vérifier votre adresse email avant de vous connecter.';
                 header('Location: index.php?action=loginPage');
                 exit;
@@ -192,8 +168,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_GET['action'] ?? '') === 'login'
         exit;
     }
 }
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_GET['action'] ?? '') === 'register') {
+else if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_GET['action'] ?? '') === 'register') {
     $username = trim($_POST['username'] ?? '');
     $email = trim($_POST['email'] ?? '');
     $password = $_POST['password'] ?? '';
@@ -242,7 +217,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_GET['action'] ?? '') === 'regist
         exit;
     }
 }
-
+else if ($action !== 'dashboard') {
+    http_response_code(404);
+    $pageTitle = 'Page introuvable | NovaBank';
+    require __DIR__ . '/views/errors/404.php';
+    exit;
+}
 $pageTitle = 'NovaBank | Banque virtuelle & Simulateur de Bourse';
 $pageStylesheets = [empty($_SESSION['user']) ? 'home.css' : 'dashboard.css'];
 require __DIR__ . '/views/layout/header.php';
@@ -250,13 +230,13 @@ require __DIR__ . '/views/layout/header.php';
 ?>
 
 <?php if ($isLoggedIn): ?>
-  <div class="dashboard-layout">
-    <?php require __DIR__ . '/views/layout/sidebar.php'; ?>
+    <div class="dashboard-layout">
+        <?php require __DIR__ . '/views/layout/sidebar.php'; ?>
 
-    <main class="dashboard-main" aria-label="Espace principal vide">
-      <div class="dashboard-empty-panel"></div>
-    </main>
-  </div>
+        <main class="dashboard-main" aria-label="Espace principal vide">
+            <div class="dashboard-empty-panel"></div>
+        </main>
+    </div>
 <?php else: ?>
   <main class="main-content">
     <section class="home-hero" aria-labelledby="hero-title" style="position: relative; width: 100vw; margin-left: calc(-50vw + 50%); min-height: 85vh; display: flex; align-items: center; justify-content: space-between; padding: 60px 8%; box-sizing: border-box; overflow: hidden;">
@@ -268,7 +248,9 @@ require __DIR__ . '/views/layout/header.php';
         Votre navigateur ne supporte pas la lecture vidéo.
       </video>
 
-      <div style="position: absolute; inset: 0; background: rgba(10, 15, 29, 0.65); z-index: 2; pointer-events: none;"></div>
+            <div
+                style="position: absolute; inset: 0; background: rgba(10, 15, 29, 0.65); z-index: 2; pointer-events: none;">
+            </div>
 
       <div class="home-copy" style="position: relative; z-index: 10; max-width: 580px; color: #ffffff;">
         
