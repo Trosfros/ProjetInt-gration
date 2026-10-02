@@ -1,4 +1,5 @@
 <?php
+$pageStylesheets = ['errors.css'];
 require __DIR__ . '/../layout/header.php';
 ?>
 

@@ -11,14 +11,13 @@ if (empty($_SESSION['user'])) {
 }
 
 $pageTitle = 'NovaBank | Marché';
+$pageStylesheets = ['dashboard.css', 'market.css'];
 $activePage = 'market';
 $marketData = $marketData ?? [];
 
 
 require $projectRoot . '/views/layout/header.php';
 ?>
-
-<link rel="stylesheet" href="public/css/market.css">
 
 <div class="dashboard-layout">
   <?php require $projectRoot . '/views/layout/sidebar.php'; ?>

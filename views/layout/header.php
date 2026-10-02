@@ -82,8 +82,17 @@ if (file_exists($cacheFile) && (time() - filemtime($cacheFile) <$cacheLifetime))
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><?= htmlspecialchars($pageTitle) ?></title>
   <link rel="stylesheet" href="public/css/main.css">
+  <?php
+    $availablePageStylesheets = ['home.css', 'dashboard.css', 'auth.css', 'errors.css', 'market.css'];
+    foreach (($pageStylesheets ?? []) as $pageStylesheet):
+      if (in_array($pageStylesheet, $availablePageStylesheets, true)):
+  ?>
+    <link rel="stylesheet" href="public/css/<?= htmlspecialchars($pageStylesheet, ENT_QUOTES, 'UTF-8') ?>">
+  <?php
+      endif;
+    endforeach;
+  ?>
   <link rel="stylesheet" href="public/css/investment.css">
-  <link rel="stylesheet" href="public/css/marcher.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">

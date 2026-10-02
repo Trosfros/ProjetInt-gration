@@ -16,6 +16,7 @@ if (!function_exists('getPDO')) {
 }
 
 $pageTitle = 'NovaBank | Investissements';
+$pageStylesheets = ['dashboard.css'];
 $activePage = 'investment';
 require $projectRoot . '/views/layout/header.php';
 ?>

@@ -12,66 +12,9 @@ $success = $_SESSION['register_success'] ?? ($_SESSION['verify_success'] ?? null
 unset($_SESSION['login_error'], $_SESSION['verify_error'], $_SESSION['register_success'], $_SESSION['verify_success']);
 
 $pageTitle = 'Connexion | NovaBank';
+$pageStylesheets = ['auth.css'];
 require $projectRoot . '/views/layout/header.php';
 ?>
-
-<style>
-  .loading-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(10, 15, 29, 0.85);
-    backdrop-filter: blur(8px);
-    display: none;
-    align-items: center;
-    justify-content: center;
-    z-index: 99999;
-  }
-
-  .loading-box {
-    background: rgba(15, 23, 42, 0.95);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 16px;
-    padding: 36px 32px;
-    text-align: center;
-    max-width: 400px;
-    width: 90%;
-    box-shadow: 0 20px 45px rgba(0, 0, 0, 0.6);
-    color: #ffffff;
-    animation: fadeIn 0.25s ease-out;
-  }
-
-  .loading-spinner {
-    width: 48px;
-    height: 48px;
-    margin: 0 auto 16px;
-    border: 4px solid rgba(56, 189, 248, 0.2);
-    border-top-color: #38bdf8;
-    border-radius: 50%;
-    animation: spin 0.85s linear infinite;
-  }
-
-  .loading-box h3 {
-    margin: 0 0 8px;
-    font-size: 1.25rem;
-    color: #38bdf8;
-  }
-
-  .loading-box p {
-    margin: 0;
-    font-size: 0.9rem;
-    color: #94a3b8;
-    line-height: 1.5;
-  }
-
-  @keyframes spin {
-    to { transform: rotate(360deg); }
-  }
-
-  @keyframes fadeIn {
-    from { opacity: 0; transform: scale(0.96); }
-    to { opacity: 1; transform: scale(1); }
-  }
-</style>
 
 <div id="loadingOverlay" class="loading-overlay" aria-hidden="true" role="status">
   <div class="loading-box">

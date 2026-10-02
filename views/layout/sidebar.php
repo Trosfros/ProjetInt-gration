@@ -6,7 +6,7 @@
       </span>
       <span>Tableau de bord</span>
     </a>
-    <a class="sidebar-link" href="index.php">
+    <a class="sidebar-link" href="index.php?action=accounts">
       <span class="sidebar-icon">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7.5A2.5 2.5 0 0 1 6.5 5h11A2.5 2.5 0 0 1 20 7.5v9A2.5 2.5 0 0 1 17.5 19h-11A2.5 2.5 0 0 1 4 16.5v-9Zm3 2h10M8 15h5"/></svg>
       </span>

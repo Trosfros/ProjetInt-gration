@@ -12,6 +12,7 @@ echo json_encode(['running'=> $finnhub->isRunning()]);
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
+
 function sendVerificationEmail(string $email, string $username, string $token): void {
     $config = require __DIR__ . '/configs/config.php';
     $mail = new PHPMailer(true);
@@ -243,6 +244,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_GET['action'] ?? '') === 'regist
 }
 
 $pageTitle = 'NovaBank | Banque virtuelle & Simulateur de Bourse';
+$pageStylesheets = [empty($_SESSION['user']) ? 'home.css' : 'dashboard.css'];
 require __DIR__ . '/views/layout/header.php';
 
 ?>
@@ -258,6 +260,9 @@ require __DIR__ . '/views/layout/header.php';
 <?php else: ?>
   <main class="main-content">
     <section class="home-hero" aria-labelledby="hero-title" style="position: relative; width: 100vw; margin-left: calc(-50vw + 50%); min-height: 85vh; display: flex; align-items: center; justify-content: space-between; padding: 60px 8%; box-sizing: border-box; overflow: hidden;">
+      
+      <!-- Fond Vidéo -->
+      <!-- https://www.youtube.com/watch?v=NHxmQizvxvQ -->
       <video autoplay muted loop playsinline style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; object-position: center; z-index: 1; pointer-events: none;">
         <source src="public/video/invest.mp4" type="video/mp4">
         Votre navigateur ne supporte pas la lecture vidéo.
@@ -266,26 +271,63 @@ require __DIR__ . '/views/layout/header.php';
       <div style="position: absolute; inset: 0; background: rgba(10, 15, 29, 0.65); z-index: 2; pointer-events: none;"></div>
 
       <div class="home-copy" style="position: relative; z-index: 10; max-width: 580px; color: #ffffff;">
-        <span class="home-eyebrow" style="color: #60a5fa; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; display: inline-block; margin-bottom: 8px;">NovaBank</span>
-        <h1 id="hero-title" style="color: #ffffff; font-size: 2.75rem; line-height: 1.2; margin-bottom: 16px;">La banque simple, <span style="color: #38bdf8;">pour votre quotidien.</span></h1>
-        <p class="hero-lead" style="color: #e2e8f0; font-size: 1.15rem; line-height: 1.6; margin-bottom: 24px;">
-          Gérez votre compte, suivez vos finances et découvrez l'investissement depuis un seul espace.
-        </p>
-        <div class="hero-buttons" style="display: flex; gap: 14px; margin-bottom: 20px;">
+        
+        <div class="reveal-wrapper">
+          <span class="home-eyebrow reveal-text delay-1" style="font-weight: 600; text-transform: uppercase; letter-spacing: 1px; display: inline-block; margin-bottom: 8px;">
+            NovaBank
+          </span>
+        </div>
+
+<h1 id="hero-title" style="color: #ffffff; font-size: 2.75rem; line-height: 1.25; margin-bottom: 16px;">
+  <span class="reveal-wrapper">
+    <span class="reveal-text delay-2" style="color: #ffffff;">La banque simple,</span>
+  </span>
+  <br>
+  <span class="reveal-wrapper">
+    <span class="reveal-text delay-3" style="color: #38bdf8;">pour votre quotidien.</span>
+  </span>
+</h1>
+
+        <div class="reveal-wrapper">
+          <p class="hero-lead reveal-text delay-4" style="color: #e2e8f0; font-size: 1.15rem; line-height: 1.6; margin-bottom: 24px;">
+            Gérez votre compte, suivez vos finances et découvrez l'investissement depuis un seul espace.
+          </p>
+        </div>
+
+        <!-- 4. Boutons CTA -->
+        <div class="hero-buttons reveal-fade delay-5" style="display: flex; gap: 14px; margin-bottom: 20px;">
           <a href="index.php?action=registerPage" class="btn-primary btn-large">Ouvrir un compte</a>
           <a href="index.php?action=loginPage" class="btn-secondary btn-large">Se connecter</a>
         </div>
-        <p class="home-note" style="color: #94a3b8; font-size: 0.9rem;">Simple à utiliser · Accessible en ligne · Pensée pour apprendre</p>
+
+        <!-- 5. Note de bas d'accroche -->
+        <div class="reveal-wrapper">
+          <p class="home-note reveal-text delay-6" style="color: #94a3b8; font-size: 0.9rem;">
+            Simple à utiliser · Accessible en ligne · Pensée pour apprendre
+          </p>
+        </div>
       </div>
 
-      <!-- 4. Panneau des marchés au-dessus de la vidéo -->
-      <aside class="home-side-panel" aria-label="Marchés en direct" style="position: relative; z-index: 10; background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(10px); padding: 24px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.1); width: 340px;">
-        <span class="side-panel-label" style="color: #94a3b8; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px;">Marchés en direct</span>
-        <h2 style="color: #ffffff; font-size: 1.3rem; margin: 6px 0 16px;">Les valeurs du moment</h2>
+      <!-- Panneau des marchés latéraux (apparition en fondu avec léger délai) -->
+      <aside class="home-side-panel reveal-fade delay-4" aria-label="Marchés en direct" style="position: relative; z-index: 10; background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(10px); padding: 24px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.1); width: 340px;">
+        
+        <div class="reveal-wrapper">
+          <span class="side-panel-label reveal-text delay-5" style="color: #94a3b8; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; display: inline-block;">
+            Marchés en direct
+          </span>
+        </div>
+
+        <div class="reveal-wrapper" style="display: block;">
+          <h2 class="reveal-text delay-6" style="color: #ffffff; font-size: 1.3rem; margin: 6px 0 16px;">
+            Les valeurs du moment
+          </h2>
+        </div>
+
         <div class="market-preview-list">
           <?php if (!empty($marketData)): ?>
+            <?php $delayIndex = 7; ?>
             <?php foreach (array_slice($marketData, 0, 3) as $stock): ?>
-              <div class="market-preview-row" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.08); color: #ffffff;">
+              <div class="market-preview-row reveal-fade delay-<?= min($delayIndex++, 7) ?>" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.08); color: #ffffff;">
                 <strong><?= htmlspecialchars($stock['symbol']) ?></strong>
                 <span>$<?= htmlspecialchars($stock['price']) ?></span>
                 <span class="market-preview-change <?= $stock['change'] >= 0 ? 'up' : 'down' ?>" style="color: <?= $stock['change'] >= 0 ? '#4ade80' : '#f87171' ?>; font-weight: 600;">
@@ -294,29 +336,93 @@ require __DIR__ . '/views/layout/header.php';
               </div>
             <?php endforeach; ?>
           <?php else: ?>
-            <p class="market-preview-empty" style="color: #94a3b8; font-size: 0.9rem;">Les données de marché seront disponibles après la configuration de l'API.</p>
+            <p class="market-preview-empty reveal-fade delay-6" style="color: #94a3b8; font-size: 0.9rem;">
+              Les données de marché seront disponibles après la configuration de l'API.
+            </p>
           <?php endif; ?>
         </div>
-        <p class="security-note" style="margin-top: 16px; color: #94a3b8; font-size: 0.85rem;"><span class="security-dot" style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: #22c55e; margin-right: 6px;"></span> Vos données restent protégées.</p>
+
+        <p class="security-note reveal-fade delay-7" style="margin-top: 16px; color: #94a3b8; font-size: 0.85rem;">
+          <span class="security-dot" style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: #22c55e; margin-right: 6px;"></span> Serveur opérationnel.
+        </p>
       </aside>
     </section>
 
-    <section class="home-basics" id="home-basics" aria-label="Services NovaBank">
-      <article>
-        <strong>Compte bancaire</strong>
-        <span>Un aperçu clair de votre solde et de vos opérations.</span>
-      </article>
-      <article>
-        <strong>Suivi des marchés</strong>
-        <span>Les principales valeurs accessibles en quelques secondes.</span>
-      </article>
-      <article>
-        <strong>Éducation financière</strong>
-        <span>Des ressources pour avancer à votre rythme.</span>
-      </article>
-    </section>
+<section class="features" id="home-basics" aria-label="Services NovaBank">
+  <!-- En-tête de section -->
+  <div class="features-head">
+    <div class="features-head-left">
+      <h2 class="scroll-reveal delay-2">
+        Tout ce qu'il vous faut pour <br>
+        <span style="color: #0284c7;">maîtriser votre capital.</span>
+      </h2>
+    </div>
+    <p class="scroll-reveal delay-3">
+      Une interface conçue pour combiner la simplicité d'un compte courant moderne et la puissance d'un terminal d'apprentissage boursier.
+    </p>
+  </div>
+
+  <!-- Grille de 3 cartes -->
+  <!-- Le css et les icones sont généré par l'IA -->
+
+  <div class="features-grid">
+    
+    <!-- Banque -->
+    <article class="feat-card scroll-reveal delay-1">
+      <div class="feat-icon ic-bank">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="5" width="20" height="14" rx="2"/>
+          <line x1="2" y1="10" x2="22" y2="10"/>
+        </svg>
+      </div>
+      <div class="feat-content">
+        <h3>Compte & Solde en direct</h3>
+        <p>Gardez un œil sur votre solde virtuel de départ (1 500 $ offerts), effectuez des virements et suivez l'historique complet de vos opérations en temps réel.</p>
+      </div>
+      <a href="index.php?action=registerPage" class="feat-link">
+        Ouvrir un compte 
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </a>
+    </article>
+
+    <!-- Marchés -->
+    <article class="feat-card scroll-reveal delay-2">
+      <div class="feat-icon ic-market">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
+          <polyline points="17 6 23 6 23 12"/>
+        </svg>
+      </div>
+      <div class="feat-content">
+        <h3>Simulateur de Bourse</h3>
+        <p>Achetez et vendez des actions avec les cotations réelles de Wall Street. Testez vos stratégies d'investissement sans risquer le moindre dollar réel.</p>
+      </div>
+      <a href="index.php?action=registerPage" class="feat-link">
+        Explorer le marché 
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </a>
+    </article>
+
+    <!--  Sécurité & Apprentissage -->
+    <article class="feat-card scroll-reveal delay-3">
+      <div class="feat-icon ic-shield">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        </svg>
+      </div>
+      <div class="feat-content">
+        <h3>Sécurité & Éducation</h3>
+        <p>Comprenez la volatilité, la composition d'un portefeuille et les bases de la finance dans un environnement totalement sécurisé et authentifié.</p>
+      </div>
+      <a href="index.php?action=registerPage" class="feat-link">
+        En savoir plus 
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </a>
+    </article>
+
+  </div>
+</section>
   </main>
-  
 <?php endif; ?>
 
 <?php require __DIR__ . '/views/layout/footer.php'; ?>
