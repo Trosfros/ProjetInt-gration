@@ -15,8 +15,7 @@ if(!is_array($input)){
     respond(400, ['success' => false, 'message' => 'Requête invalide']);
 }
 $side = $input['side'];
-
-
+$idStock = $input['idStock'];
 $amount = $input['amount'];
 $unit = $input['unit'] ?? 'shares';
 
@@ -25,10 +24,10 @@ if (!in_array($side, ['buy', 'sell'], true) || !$idStock || !$amount || $amount 
 }
 
 $alias = $_SESSION['alias'] ?? respond(422, ['success' => false, 'message' => 'Remplissez au complet le formulaire']);
-
 try 
 {
     $dal = new StockDAL();
+   
     if ($side ==='sell'){
         //no dal procedure for this yet do nothing
         respond(501, [

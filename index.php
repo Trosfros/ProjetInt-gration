@@ -4,13 +4,10 @@ require __DIR__ . '/vendor/autoload.php';
 require __DIR__ . '/configs/database.php';
 require_once __DIR__. '/configs/constants.php';
 /*
-require __DIR__ . '/src/Middlewares/FinnhubMiddleware.php';
+require __DIR__ . '/src/controllers/finnhubcontroller.php';
 
-
-$finnhub = new FinnhubMiddleware();
-//interaval in seconds
-
-$finnhub->startPolling(60);
+startBackground(dirname(__DIR__,2). "/src/workers/finnhubworker.php");
+echo json_encode(['running'=> $finnhub->isRunning()]);
 */
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;

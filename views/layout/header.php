@@ -23,7 +23,7 @@ $marketData = [];
 
 // --- SYSTÈME DE CACHE FINNHUB ---
 $cacheFile = dirname(__DIR__, 2) . '/storage/market_cache.json';$cacheLifetime = 60; // 60 secondes
-
+$stockId = 0;
 if (file_exists($cacheFile) && (time() - filemtime($cacheFile) <$cacheLifetime)) {
     $cachedContent = file_get_contents($cacheFile);
     $marketData = json_decode($cachedContent, true) ?? [];
@@ -44,10 +44,10 @@ if (file_exists($cacheFile) && (time() - filemtime($cacheFile) <$cacheLifetime))
         $res = curl_exec($ch);
         $httpStatus = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
-
+        $stockId += 1;
         $quote = json_decode($res, true);
-
-        if ($httpStatus === 200 && $quote && isset($quote['c'], $quote['dp'])) {$stockId = null;
+        
+        if ($httpStatus === 200 && $quote && isset($quote['c'], $quote['dp'])) {
             $priceFormatted = number_format($quote['c'], 2, '.', '');
             $changeFormatted = round($quote['dp'], 2);
 

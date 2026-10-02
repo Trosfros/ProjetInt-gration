@@ -14,6 +14,7 @@ $pageTitle = 'NovaBank | Marché';
 $activePage = 'market';
 $marketData = $marketData ?? [];
 
+
 require $projectRoot . '/views/layout/header.php';
 ?>
 
@@ -48,43 +49,9 @@ require $projectRoot . '/views/layout/header.php';
 
       <!-- GRAPHIQUE TRADINGVIEW -->
       <section class="market-widget-card">
-        <!-- TradingView Widget BEGIN -->
-        <div class="tradingview-widget-container" style="height:100%;width:100%">
-          <div class="tradingview-widget-container__widget" style="height:calc(100% - 32px);width:100%"></div>
-          <div class="tradingview-widget-copyright">
-            <a href="https://www.tradingview.com/symbols/NASDAQ-AAPL/" rel="noopener nofollow" target="_blank">
-              <span class="blue-text">AAPL stock chart</span>
-            </a>
-            <span class="trademark">&nbsp;by TradingView</span>
-          </div>
-          <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js" async>
-          {
-            "allow_symbol_change": true,
-            "calendar": false,
-            "details": false,
-            "hide_side_toolbar": true,
-            "hide_top_toolbar": false,
-            "hide_legend": false,
-            "hide_volume": false,
-            "hotlist": false,
-            "interval": "D",
-            "locale": "fr",
-            "save_image": true,
-            "style": "1",
-            "symbol": "NASDAQ:AAPL",
-            "theme": "dark",
-            "timezone": "Etc/UTC",
-            "backgroundColor": "#0F0F0F",
-            "gridColor": "rgba(255, 255, 255, 0.2)",
-            "watchlist": [],
-            "withdateranges": false,
-            "compareSymbols": [],
-            "support_host": "https://www.tradingview.com",
-            "studies": [],
-            "autosize": true
-          }
-          </script>
-        </div>
+       
+       
+  
         <!-- TradingView Widget END -->
       </section>
 
@@ -92,37 +59,36 @@ require $projectRoot . '/views/layout/header.php';
       <section class="trade-panel-card">
         <div class="trade-panel-title">Passer un ordre sur le marché</div>
         
-        <form action="index.php?action=transaction" method="POST" class="trade-form-grid">
+        <form action="" method="POST" class="trade-form-grid">
           
           <!-- BARRE DE RECHERCHE / CHOIX DE L'ACTION (A GAUCHE) -->
           <div class="trade-field-group">
             <label for="trade-symbol-input">Rechercher ou sélectionner une action</label>
             <div class="trade-input-wrapper">
-              <input 
-                type="text" 
-                name="stock_symbol" 
-                id="trade-symbol-input" 
-                class="trade-input" 
-                list="stocks-datalist" 
-                placeholder="Ex: AAPL, TSLA, NVDA..." 
-                value="AAPL"
-                autocomplete="off"
+             <select
+                name="stock_symbol"
+                id="trade-symbol-select"
+                class="trade-input"
                 required
-              >
-              <datalist id="stocks-datalist">
+                onchange="updateTab(this.value)">
                 <?php if (!empty($marketData)): ?>
                   <?php foreach ($marketData as $stock): ?>
-                    <option value="<?= htmlspecialchars($stock['symbol']) ?>" data-price="<?= htmlspecialchars($stock['price'] ?? 0) ?>">
+                    <option
+                     data-id-stock="<?= htmlspecialchars($stock['id'] ?? '') ?>"
+                     value="<?= htmlspecialchars($stock['symbol']) ?>" 
+                     data-price="<?= htmlspecialchars($stock['price'] ?? 0) ?>"
+                      <?= $stock['symbol'] === 'AAPL' ? 'selected' : '' ?>>
                       <?= htmlspecialchars($stock['symbol']) ?> - $<?= htmlspecialchars($stock['price'] ?? 0) ?>
                     </option>
                   <?php endforeach; ?>
                 <?php else: ?>
-                  <option value="AAPL" data-price="180.00">Apple Inc.</option>
-                  <option value="TSLA" data-price="240.00">Tesla Inc.</option>
-                  <option value="NVDA" data-price="120.00">NVIDIA Corp.</option>
-                  <option value="MSFT" data-price="410.00">Microsoft Corp.</option>
-                  <option value="AMZN" data-price="175.00">Amazon.com Inc.</option>
+                  <option value="AAPL" data-price="180.00" selected>AAPL - Apple Inc.</option>
+                  <option value="TSLA" data-price="240.00">TSLA - Tesla Inc.</option>
+                  <option value="NVDA" data-price="120.00">NVDA - NVIDIA Corp.</option>
+                  <option value="MSFT" data-price="410.00">MSFT - Microsoft Corp.</option>
+                  <option value="AMZN" data-price="175.00">AMZN - Amazon.com Inc.</option>
                 <?php endif; ?>
+              </select>
               </datalist>
             </div>
           </div>
@@ -138,6 +104,7 @@ require $projectRoot . '/views/layout/header.php';
               step="1" 
               min="1" 
               value="1" 
+              onchange="updateTotal()"
               required
             >
           </div>
@@ -156,10 +123,10 @@ require $projectRoot . '/views/layout/header.php';
 
           <!-- BOUTONS ACHAT ET VENTE -->
           <div class="trade-action-btns">
-            <button type="submit" name="type" value="buy" class="btn-trade btn-trade-buy">
+            <button type="submit" name="type" value="buy" class="btn-trade btn-trade-buy" onclick="doPayment('buy')">
               Acheter
             </button>
-            <button type="submit" name="type" value="sell" class="btn-trade btn-trade-sell">
+            <button type="submit" name="type" value="sell" class="btn-trade btn-trade-sell" onclick="doPayment('sell')">
               Vendre
             </button>
           </div>
@@ -187,40 +154,148 @@ document.addEventListener('DOMContentLoaded', () => {
     'MSFT': 410.00,
     'AMZN': 175.00
   };
-
+                });
   function getSelectedStockPrice(symbol) {
     const cleanSym = symbol.trim().toUpperCase();
-    
-    // Chercher dans les options du datalist BDD
-    for (const opt of datalistOptions) {
+    const selectOptions = document.querySelectorAll('#trade-symbol-select option');
+ 
+    for (const opt of selectOptions) {
       if (opt.value.toUpperCase() === cleanSym) {
         const p = parseFloat(opt.dataset.price);
         if (!isNaN(p) && p > 0) return p;
       }
     }
-
-    // Fallback sur le dictionnaire par défaut
+ 
     if (defaultPrices[cleanSym]) {
       return defaultPrices[cleanSym];
     }
-
-    return 150.00; // Prix estimé générique si inconnu
+ 
+    return 150.00; 
   }
 
-  function updateTotal() {
-    const symbol = symbolInput.value;
+  
+ function updateTab(symbol) {
+   
+    const tabsec = document.querySelector(".market-widget-card");
+ 
+    if (!tabsec) {
+        console.error("market-widget-card element not found");
+        return;
+    }
+ 
+
+    tabsec.innerHTML = "";
+ 
+    const container = document.createElement("div");
+    container.className = "tradingview-widget-container";
+    container.style.height = "100%";
+    container.style.width = "100%";
+ 
+    const widgetDiv = document.createElement("div");
+    widgetDiv.className = "tradingview-widget-container__widget";
+    widgetDiv.style.height = "calc(100% - 32px)";
+    widgetDiv.style.width = "100%";
+ 
+    const copyrightDiv = document.createElement("div");
+    copyrightDiv.className = "tradingview-widget-copyright";
+    copyrightDiv.innerHTML = `
+        <a href="https://www.tradingview.com/symbols/NASDAQ-${symbol}/" rel="noopener nofollow" target="_blank">
+            <span class="blue-text">${symbol} stock chart</span>
+        </a>
+        <span class="trademark">&nbsp;by TradingView</span>
+    `;
+ 
+    
+    const script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src = "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";
+    script.async = true;
+    script.textContent = JSON.stringify({
+        allow_symbol_change: false,
+        calendar: false,
+        details: false,
+        hide_side_toolbar: true,
+        hide_top_toolbar: false,
+        hide_legend: false,
+        hide_volume: false,
+        hotlist: false,
+        interval: "D",
+        locale: "fr",
+        save_image: true,
+        style: "1",
+        symbol: symbol, 
+        theme: "dark",
+        timezone: "Etc/UTC",
+        backgroundColor: "#0F0F0F",
+        gridColor: "rgba(255, 255, 255, 0.2)",
+        watchlist: [],
+        withdateranges: false,
+        compareSymbols: [],
+        support_host: "https://www.tradingview.com",
+        studies: [],
+        autosize: true,
+    });
+ 
+    container.appendChild(widgetDiv);
+    container.appendChild(copyrightDiv);
+    container.appendChild(script);
+ 
+    tabsec.appendChild(container);
+
+  
+
+ 
+  updateTotal();
+}
+ function updateTotal() {
+    const symbolSelect = document.getElementById('trade-symbol-select');
+    const qtyInput = document.getElementById('trade-qty-input');
+    const totalDisplay = document.getElementById('trade-total-display');
+ 
+    const symbol = symbolSelect.value;
     const qty = parseFloat(qtyInput.value) || 0;
     const unitPrice = getSelectedStockPrice(symbol);
     const total = qty * unitPrice;
-
+ 
     totalDisplay.value = '$' + total.toFixed(2);
   }
-
-  symbolInput.addEventListener('input', updateTotal);
-  qtyInput.addEventListener('input', updateTotal);
-
+   async function doPayment(side) {
+    const symbolSelect = document.getElementById('trade-symbol-select');
+    const qtyInput = document.getElementById('trade-qty-input');
+ 
+    const selectedOption = symbolSelect.options[symbolSelect.selectedIndex];
+    const idStock = parseInt(selectedOption.dataset.idStock, 10);
+    const amount = parseFloat(qtyInput.value);
+ 
+    if (!idStock) {
+      alert("Cette action n'a pas d'identifiant valide en base de données.");
+      
+      return;
+    }
+    if (!amount || amount <= 0) {
+      alert('Entrez une quantité valide.');
+      return;
+    }
+ 
+    try {
+      const res = await fetch('\ProjetInt-gration\src\DAL\placeOrder.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ side, idStock, amount, unit: 'shares' }),
+      });
+ 
+      const data = await res.json();
+      alert(data.message);
+ 
+      if (data.success) {
+        updateTotal();
+      }
+    } catch (err) {
+      alert('Erreur réseau lors de la commande.'+ err);
+    }
+  }
   updateTotal();
-});
+  updateTab("NASDAQ:AAPL");
 </script>
 
 <?php require $projectRoot . '/views/layout/footer.php'; ?>

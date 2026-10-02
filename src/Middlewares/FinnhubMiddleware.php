@@ -6,8 +6,8 @@ use GuzzleHttp\Client;
 use GuzzleHttp\Psr7\Query;
 use Dotenv\Dotenv;
 
-require_once __DIR__ . '/../../configs/database.php';
-require_once __DIR__ . '/../../vendor/autoload.php';
+require_once dirname(__DIR__ ,2) . '/configs/database.php';
+require_once dirname(__DIR__ ,2) .'/vendor/autoload.php';
 //this is a very complicated class to handle please bring a lot of coffee if you do want to touch it
 class FinnhubMiddleware
 {
@@ -26,17 +26,17 @@ class FinnhubMiddleware
     public function __construct()
     {
         $this->dotenv = Dotenv::createImmutable(dirname(__DIR__,2));
-        $this->dotenv->load(__DIR__ . '/../../.env');
+        $this->dotenv->load();
 
         $this->apiKey = $_ENV['FINNHUB_API_KEY'] ?? getenv('FINNHUB_API_KEY') ?? '';
         $this->config = Configuration::getDefaultConfiguration()->setApiKey('token', $this->apiKey);
         $this->client = new DefaultApi(new Client(), $this->config);
         $this->pdo = getPDO();
  
-        $this->lockPath = __DIR__ . '/worker.lock';
-        $this->logPath = __DIR__ . '/logs/finnlog.log';
-        $this->pidPath = __DIR__ . '/worker.pid';
-        $this->stopPath = __DIR__ . '/worker.stop';
+        $this->lockPath = dirname(__DIR__,2). '/storage/worker.lock';
+        $this->logPath = dirname(__DIR__,2). '/storage/finnlog.log';
+        $this->pidPath = dirname(__DIR__,2). '/storage/worker.pid';
+        $this->stopPath = dirname(__DIR__,2). '/storage/worker.stop';
     }
 
     // this should call the other function in there to update our database
@@ -102,6 +102,7 @@ class FinnhubMiddleware
         return $results;
     }
     public function startPolling(int $intervalseconds = 3): void {
+        echo "work";
         if (PHP_SAPI !== 'cli')
         {
             throw new RuntimeException('must run startPolling() from CLI not a web request');
@@ -137,6 +138,7 @@ class FinnhubMiddleware
                         $this->pdo = getPDO(); //reconnecting
                         $failure = 0;
                         $this->log("reconnected to the DB");
+
                     }
                 }
                 $timer = $start + $intervalseconds;

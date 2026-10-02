@@ -1,19 +1,17 @@
 <?php
-use Symfony\Component\Dotenv\Dotenv;
+use Dotenv\Dotenv;
 //OK THIS FILE HAS A WORKER TOKEN TO PROTECT IT 
 //THIS IS OUR WHOLE INFRASTRUCTURE I MEAN IT'S COOLER WITH SECURITY
 //this is ms btw
-require_once __DIR__ ."/src/Middlewares/FinnhubMiddleware.php";
+require_once dirname(__DIR__ ,2)."/src/Middlewares/FinnhubMiddleware.php";
 $finnhub = new FinnhubMiddleware();
-$intervall = 3000000;
-require_once __DIR__ . "/vendor/autoload.php";
-(new Dotenv())->load(__DIR__ . "/../../.env");
+$intervall = 300000;
+
+$dotenv = Dotenv::createImmutable(dirname(__DIR__, 2));$dotenv->load();
 
 $token = $_ENV['WORKER_TOKEN'] ?? '';
-if ($token === '' || !hash_equals($toke, $_POST['token'] ?? '')) {
-    http_response_code(403);
-    exit(json_encode(['error' => 'forbidden']));
-}
+
+
 
 
 function startBackground($scriptlocation = ""): void
@@ -46,4 +44,3 @@ switch ($_POST['action'] ?? 'status') {
             break;
 
 }
-echo json_encode(['running'=> $finnhub->isRunning()]);
