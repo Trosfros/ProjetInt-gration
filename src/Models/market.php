@@ -56,11 +56,13 @@ require $projectRoot . '/views/layout/header.php';
       </section>
 
       <!-- PANNEAU D'ACHAT / VENTE D'ACTIONS -->
+       
       <section class="trade-panel-card">
+       
         <div class="trade-panel-title">Passer un ordre sur le marché</div>
         
-        <form action="" method="POST" class="trade-form-grid">
-          
+       
+          <div class="trade-form-grid">
           <!-- BARRE DE RECHERCHE / CHOIX DE L'ACTION (A GAUCHE) -->
           <div class="trade-field-group">
             <label for="trade-symbol-input">Rechercher ou sélectionner une action</label>
@@ -130,8 +132,8 @@ require $projectRoot . '/views/layout/header.php';
               Vendre
             </button>
           </div>
-
-        </form>
+                   <p id="trade-feedback" class="trade-feedback" hidden></p>
+        </div>
       </section>
 
     </div>
@@ -247,6 +249,22 @@ document.addEventListener('DOMContentLoaded', () => {
  
   updateTotal();
 }
+function showTradeFeedback(message, isSuccess) {
+    const feedback = document.getElementById('trade-feedback');
+    if (!feedback) return;
+ 
+    if (!message) {
+      feedback.hidden = true;
+      feedback.textContent = '';
+      feedback.classList.remove('is-success', 'is-error');
+      return;
+    }
+ 
+    feedback.textContent = message;
+    feedback.classList.remove('is-success', 'is-error');
+    feedback.classList.add(isSuccess ? 'is-success' : 'is-error');
+    feedback.hidden = false;
+  }
  function updateTotal() {
     const symbolSelect = document.getElementById('trade-symbol-select');
     const qtyInput = document.getElementById('trade-qty-input');
@@ -266,7 +284,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const selectedOption = symbolSelect.options[symbolSelect.selectedIndex];
     const idStock = parseInt(selectedOption.dataset.idStock, 10);
     const amount = parseFloat(qtyInput.value);
- 
+                  
     if (!idStock) {
       alert("Cette action n'a pas d'identifiant valide en base de données.");
       
@@ -276,24 +294,26 @@ document.addEventListener('DOMContentLoaded', () => {
       alert('Entrez une quantité valide.');
       return;
     }
- 
+  showTradeFeedback(null);
     try {
-      const res = await fetch('\ProjetInt-gration\src\DAL\placeOrder.php', {
+      const res = await fetch('/src/DAL/placeOrder.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ side, idStock, amount, unit: 'shares' }),
+        body: JSON.stringify({ side:side, idStock:idStock, amount:amount, unit: 'shares' }),
+        
       });
  
       const data = await res.json();
-      alert(data.message);
- 
       if (data.success) {
         updateTotal();
+   
       }
+      showTradeFeedback(data['message'], data.success);
     } catch (err) {
       alert('Erreur réseau lors de la commande.'+ err);
     }
   }
+  
   updateTotal();
   updateTab("NASDAQ:AAPL");
 </script>
