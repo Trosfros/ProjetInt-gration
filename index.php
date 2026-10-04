@@ -217,7 +217,7 @@ else if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_GET['action'] ?? '') === 'r
         exit;
     }
 }
-else if ($action !== 'dashboard') {
+else if ($action !== '' && $action !== 'dashboard') {
     http_response_code(404);
     $pageTitle = 'Page introuvable | NovaBank';
     require __DIR__ . '/views/errors/404.php';
