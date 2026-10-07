@@ -21,6 +21,10 @@ $apiKey = $_ENV['FinnhubKey'] ?? $_ENV['API_KEY'] ?? '';
 
 $marketData = [];
 
+if (!isset($symbols) || !is_array($symbols) || empty($symbols)) {
+    $symbols = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'META', 'TSLA'];
+}
+
 // --- SYSTÈME DE CACHE FINNHUB ---
 $cacheFile = dirname(__DIR__, 2) . '/storage/market_cache.json';$cacheLifetime = 60; // 60 secondes
 $stockId = 0;
@@ -120,9 +124,9 @@ if (file_exists($cacheFile) && (time() - filemtime($cacheFile) <$cacheLifetime))
         <a href="index.php?action=education">Éducation</a>
       <?php else: ?>
         <a href="index.php#simulator">Simulateur Bourse</a>
-        <a href="index.php#banking">Gestion Bancaire</a>
         <a href="index.php#leaderboard">Classement</a>
         <a href="index.php#features">Fonctionnalités</a>
+        <a href="index.php#about">À propos</a>
       <?php endif; ?>
     </nav>
 

@@ -30,9 +30,7 @@ body {
   flex-direction: column;
 }
 
-/* ============================================================
-   BARRE DE DÉFILEMENT MODERNE ET ANIMÉE
-   ============================================================ */
+/* Défilement fluide */
 
 /* 1. Prise en charge standard (Firefox) */
 html {
@@ -89,13 +87,7 @@ html {
   }
 }
 
-/* ============================================================
-   COLLAGE DU HEADER / TICKER / MAIN (SUPPRESSION BANDE NOIRE)
-   ============================================================ */
 
-/* ============================================================
-   COLLAGE DU TICKER & HERO (HEADER PRÉSERVÉ)
-   ============================================================ */
 
 /* On supprime les marges extérieures pour éviter les trous, mais on garde le padding du header */
 header,
@@ -150,9 +142,7 @@ main,
   opacity: 0.15;
 }
 
-/* ============================================================
-   HERO AVEC VIDÉO DE FOND CENTRÉE
-   ============================================================ */
+/* Décor d'arrière-plan pour la page d'accueil */
 
 /* Navbar */
 .navbar {
