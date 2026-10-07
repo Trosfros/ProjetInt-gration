@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS `User` (
   `PFP` BLOB NULL,
   `Password` VARCHAR(255) NOT NULL,
   `Balance` DECIMAL(65,2) NULL DEFAULT 1500,
+  `RealizedPnl` decimal(65,2) NOT NULL DEFAULT 0.00,
   PRIMARY KEY (`idUser`)
 );
 
