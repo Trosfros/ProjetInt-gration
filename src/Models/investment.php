@@ -245,7 +245,7 @@ require $projectRoot . '/views/layout/header.php';
         <?php else: ?>
           <div class="empty-state">
             <p>Vous n’avez pas encore d’action dans votre portefeuille.</p>
-            <a href="index.php?action=marketPage" class="btn-discover">Découvrir le marché</a>
+            <a href="index.php?action=marketPage" class="btn-discover">Découvrir le marché.</a>
           </div>
         <?php endif; ?>
 
