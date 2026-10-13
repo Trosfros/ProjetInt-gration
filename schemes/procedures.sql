@@ -288,8 +288,29 @@ CREATE PROCEDURE updateUserAvatar(
 BEGIN
     UPDATE `User` SET idAvatar = pidAvatar WHERE idUser = pidUser;
 END //
+ -- this refers to bank accounts not user accounts
+CREATE PROCEDURE createAccount(
+    in PuserId INT
+)
+Begin
+    INSERT INTO Account (idUser,Money)
+    VALUES (PuserId,0);
+END //
+CREATE PROCEDURE deleteAccount(
+    in AccountId INT
+)
+BEGIN 
+    DECLARE accountExists INT; 
+    SELECT COUNT(AccountId) into accountExists FROM Account where idAccount = AccountId;
 
+    if accountExists = 0 THEN    
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Account not found.';
+    END IF;
 
+    DELETE FROM Account
+    WHERE idAccount = AccountId;
+END //
 CREATE FUNCTION verifyUser(
     palias VARCHAR(45),
     ppassword VARCHAR(255)
@@ -327,3 +348,4 @@ BEGIN
 END //
 
 DELIMITER ;
+

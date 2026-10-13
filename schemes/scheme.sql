@@ -103,3 +103,12 @@ CREATE TABLE IF NOT EXISTS `CryptoInvest` (
     ON UPDATE NO ACTION
 );
 
+CREATE TABLE IF NOT EXISTS `Account` (
+  `idAccount` INT NOT NULL AUTO_INCREMENT,
+  `idUser` INT NOT NULL,
+  `Money` DECIMAL(65,2) DEFAULT 0,
+  PRIMARY KEY (`idAccount`),
+  CONSTRAINT `FK_idUser2`
+    FOREIGN KEY (`idUser`)
+    REFERENCES `User` (`idUser`)
+);
