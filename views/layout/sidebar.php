@@ -14,19 +14,41 @@
     </a>
     <a class="sidebar-link" href="index.php">
       <span class="sidebar-icon">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M7 4v6M17 4v6M5 13h14a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2a2 2 0 0 1 2-2Z"/></svg>
+        <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M17 3 21 7l-4 4" />
+          <path d="M3 7h18" />
+          <path d="m7 21-4-4 4-4" />
+          <path d="M21 17H3" />
+        </svg>
       </span>
       <span>Virements</span>
     </a>
+    <a class="sidebar-link<?= ($activePage ?? '') === 'education' ? ' active' : '' ?>" href="index.php?action=education"<?= ($activePage ?? '') === 'education' ? ' aria-current="page"' : '' ?>>
+      <span class="sidebar-icon">
+        <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
+          <path d="M6 12v5c3 3 9 3 12 0v-5" />
+        </svg>
+      </span>
+      <span>Éducation</span>
+    </a>
     <a class="sidebar-link" href="index.php?action=investment">
       <span class="sidebar-icon">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 18V9m7 9V5m7 13v-7"/></svg>
+        <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M11 15h2a2 2 0 1 0 0-4h-3c-.6 0-1.1.2-1.4.6L3 17" />
+          <path d="m7 21 1.6-1.4c.3-.4.8-.6 1.4-.6h4c1.1 0 2.1-.4 2.8-1.2l4.6-4.4a2 2 0 0 0-2.75-2.91l-4.2 3.9" />
+          <path d="m2 16 6 6" />
+          <circle cx="16" cy="6" r="3" />
+        </svg>
       </span>
       <span>Vos Investissements</span>
     </a>
     <a class="sidebar-link" href="index.php?action=marketPage">
       <span class="sidebar-icon">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 18V8m7 10V4m7 14v-8"/></svg>
+        <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
+          <polyline points="16 7 22 7 22 13" />
+        </svg>
       </span>
       <span>Marché</span>
     </a>
@@ -44,7 +66,10 @@
     </a>
     <a class="sidebar-link" href="index.php">
       <span class="sidebar-icon">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v3m0 12v3m9-9h-3M6 12H3m15.5 6.5-2.1-2.1M8.6 8.6 6.5 6.5m11 0-2.1 2.1M8.6 15.4l-2.1 2.1"/></svg>
+        <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+          <circle cx="12" cy="12" r="3" />
+        </svg>
       </span>
       <span>Paramètres</span>
     </a>
