@@ -296,21 +296,46 @@ Begin
     INSERT INTO Account (idUser,Money)
     VALUES (PuserId,0);
 END //
+DROP PROCEDURE deleteAccount;
 CREATE PROCEDURE deleteAccount(
     in AccountId INT
 )
 BEGIN 
-    DECLARE accountExists INT; 
+    DECLARE accountExists INT;
+    DECLARE moneyInAcc DECIMAL(65,2); 
     SELECT COUNT(AccountId) into accountExists FROM Account where idAccount = AccountId;
+   
 
     if accountExists = 0 THEN    
         SIGNAL SQLSTATE '45000'
         SET MESSAGE_TEXT = 'Account not found.';
     END IF;
+     SELECT Money into moneyInAcc FROM Account where AccountId = idAccount;
+    IF moneyInAcc != 0 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'cannot delete account if there is still money in it, please remove it from the account';
+    END IF;
 
     DELETE FROM Account
     WHERE idAccount = AccountId;
 END //
+Create Procedure AddMoneyToAccount(
+    in AccountId INT, 
+    in Ammount decimal(65,2)
+)
+BEGIN
+    DECLARE accountExists INT;
+    SELECT COUNT(AccountId) into accountExists FROM Account where idAccount = AccountId;
+   
+    if accountExists = 0 THEN    
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Account not found.';
+    END IF;
+  
+    UPDATE Account
+    SET Money = Money + Ammount
+    where idAccount = AccountId;
+END;
 CREATE FUNCTION verifyUser(
     palias VARCHAR(45),
     ppassword VARCHAR(255)

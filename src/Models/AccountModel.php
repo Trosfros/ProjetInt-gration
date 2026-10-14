@@ -20,11 +20,18 @@ require $projectRoot . '/views/layout/header.php';
 ?>
 
 <div class="dashboard-layout">
-  <?php require $projectRoot . '/views/layout/sidebar.php'; ?>
+    <?php require $projectRoot . '/views/layout/sidebar.php'; ?>
 
-  <main class="dashboard-main investment-page" aria-label="Page marché">
-   <a>Allo</a>
-  </main>
+    <main class="dashboard-main investment-page" aria-label="Page marché">
+        <div class="investment-shell">
+            <header class="investment-header">
+                <div>
+                    <p class="investment-kicker"><?= $_SESSION['user']['username']?></p>
+                    <h1>Comptes</h1>
+                </div>
+        </div>
+        </header>
+    </main>
 </div>
 
 
