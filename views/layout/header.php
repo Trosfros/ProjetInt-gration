@@ -25,58 +25,115 @@ if (!isset($symbols) || !is_array($symbols) || empty($symbols)) {$symbols = ['AA
 }
 
 // --- SYSTÈME DE CACHE FINNHUB ---
-$cacheFile = dirname(__DIR__, 2) . '/storage/market_cache.json';$cacheLifetime = 60; // 60 secondes
-
-if (file_exists($cacheFile) && (time() - filemtime($cacheFile) <$cacheLifetime)) {
-    $cachedContent = file_get_contents($cacheFile);
-    $marketData = json_decode($cachedContent, true) ?? [];
-} else {
-    $caBundle = CaBundle::getSystemCaRootBundlePath();$stockId = 0; // Fixed: Initialisation avant le foreach
-
-    foreach ($symbols as $sym) {$url = 'https://finnhub.io/api/v1/quote?' . http_build_query([
-            'symbol' => $sym,
-            'token'  => $apiKey,
-        ]);
-
-        $ch = curl_init($url);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 3);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 5);
-        curl_setopt($ch, CURLOPT_CAINFO,$caBundle);
-
-        $res = curl_exec($ch);
-        $httpStatus = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
-
-        $stockId += 1;
-        $quote = json_decode($res, true);
-
-        if ($httpStatus === 200 &&$quote && isset($quote['c'],$quote['dp'])) {
-            $priceFormatted = number_format($quote['c'], 2, '.', '');
-            $changeFormatted = round($quote['dp'], 2);
-
-            if (isset($stockDal)) {
-                $stockDal->AddStock($sym, $priceFormatted,$changeFormatted);
-            }
-
-            $marketData[] = [
-                'id'     => $stockId, 
-                'symbol' => $sym,
-                'price'  => $priceFormatted,
-                'change' => $changeFormatted
-            ];
-        }
+$cacheFile = dirname(__DIR__, 2) . '/storage/market_cache.json';
+$cacheLockFile = dirname(__DIR__, 2) . '/storage/market_cache.lock';
+$cacheLifetime = 60;
+$loadCachedMarketData = static function () use ($cacheFile): array {
+    if (!is_file($cacheFile)) {
+        return [];
     }
 
-    // Sauvegarde dans le cache local
-    if (!empty($marketData)) {
-        $cacheDir = dirname($cacheFile);
-        if (!is_dir($cacheDir)) {
-            @mkdir($cacheDir, 0755, true);
+    $cacheHandle = fopen($cacheFile, 'r');
+    if ($cacheHandle === false) {
+        throw new RuntimeException('Impossible d’ouvrir le cache des cours.');
+    }
+    if (!flock($cacheHandle, LOCK_SH)) {
+        fclose($cacheHandle);
+        throw new RuntimeException('Impossible de verrouiller la lecture du cache des cours.');
+    }
+
+    try {
+        $cachedContent = stream_get_contents($cacheHandle);
+        if ($cachedContent === false) {
+            throw new RuntimeException('Impossible de lire le cache des cours.');
         }
-        file_put_contents($cacheFile, json_encode($marketData));
-    } else if (file_exists($cacheFile)) {
-        $marketData = json_decode(file_get_contents($cacheFile), true) ?? [];
+
+        $cachedData = json_decode($cachedContent, true);
+        return is_array($cachedData) ? $cachedData : [];
+    } finally {
+        flock($cacheHandle, LOCK_UN);
+        fclose($cacheHandle);
+    }
+};
+
+if (file_exists($cacheFile) && (time() - filemtime($cacheFile) <$cacheLifetime)) {
+    $marketData = $loadCachedMarketData();
+} else {
+    $cacheDirectory = dirname($cacheFile);
+    if (!is_dir($cacheDirectory) && !mkdir($cacheDirectory, 0755, true) && !is_dir($cacheDirectory)) {
+        throw new RuntimeException('Impossible de créer le dossier du cache des cours.');
+    }
+
+    $lockHandle = fopen($cacheLockFile, 'c');
+    if ($lockHandle === false) {
+        throw new RuntimeException('Impossible d’ouvrir le verrou du cache des cours.');
+    }
+    if (!flock($lockHandle, LOCK_EX)) {
+        fclose($lockHandle);
+        throw new RuntimeException('Impossible de verrouiller le cache des cours.');
+    }
+
+    try {
+        if (is_file($cacheFile) && (time() - filemtime($cacheFile) < $cacheLifetime)) {
+            $marketData = $loadCachedMarketData();
+        } else {
+            $cachedMarketData = $loadCachedMarketData();
+            if (!touch($cacheFile)) {
+                throw new RuntimeException('Impossible d’actualiser la limite du cache des cours.');
+            }
+
+            $marketData = [];
+            $caBundle = CaBundle::getSystemCaRootBundlePath();
+            $stockId = 0;
+
+            foreach ($symbols as $sym) {
+                $url = 'https://finnhub.io/api/v1/quote?' . http_build_query([
+                    'symbol' => $sym,
+                    'token'  => $apiKey,
+                ]);
+
+                $ch = curl_init($url);
+                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 3);
+                curl_setopt($ch, CURLOPT_TIMEOUT, 5);
+                curl_setopt($ch, CURLOPT_CAINFO, $caBundle);
+
+                $res = curl_exec($ch);
+                $httpStatus = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                curl_close($ch);
+
+                $stockId += 1;
+                $quote = json_decode($res, true);
+
+                if ($httpStatus === 200 && $quote && isset($quote['c'], $quote['dp'])) {
+                    $priceFormatted = number_format($quote['c'], 2, '.', '');
+                    $changeFormatted = round($quote['dp'], 2);
+
+                    if (isset($stockDal)) {
+                        $stockDal->AddStock($sym, $priceFormatted, $changeFormatted);
+                    }
+
+                    $marketData[] = [
+                        'id' => $stockId,
+                        'symbol' => $sym,
+                        'price' => $priceFormatted,
+                        'change' => $changeFormatted,
+                    ];
+                }
+            }
+
+            if (!empty($marketData)) {
+                $encodedMarketData = json_encode($marketData);
+                if ($encodedMarketData === false || file_put_contents($cacheFile, $encodedMarketData, LOCK_EX) === false) {
+                    throw new RuntimeException('Impossible d’enregistrer le cache des cours.');
+                }
+            } else {
+                $marketData = $cachedMarketData;
+            }
+        }
+    } finally {
+        flock($lockHandle, LOCK_UN);
+        fclose($lockHandle);
     }
 }
 ?>

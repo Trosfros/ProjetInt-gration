@@ -13,6 +13,12 @@ if (empty($_SESSION['user'])) {
 require_once $projectRoot . '/vendor/autoload.php';
 require_once $projectRoot . '/configs/database.php';
 
+$pageTitle = 'NovaBank | Investissements';
+$pageStylesheets = ['dashboard.css', 'investment.css'];
+$activePage = 'investment';
+
+require $projectRoot . '/views/layout/header.php';
+
 $portfolio = null;
 $portfolioError = null;
 try {
@@ -92,13 +98,6 @@ $formatShares = static function (float $shares): string {
     return $formatted === '' ? '0' : $formatted;
 };
 
-$pageTitle = 'NovaBank | Investissements';
-
-// Inclusion de dashboard.css + investment.css
-$pageStylesheets = ['dashboard.css', 'investment.css'];
-$activePage = 'investment';
-
-require $projectRoot . '/views/layout/header.php';
 ?>
 
 <?php if (!empty($_SESSION['user'])): ?>
@@ -367,6 +366,15 @@ sellConfirmButton.addEventListener('click', async () => {
     sellConfirmButton.textContent = 'Confirmer la vente';
   }
 });
+
+window.setInterval(() => {
+  const activeElement = document.activeElement;
+  const editingPosition = activeElement instanceof HTMLInputElement;
+
+  if (document.visibilityState === 'visible' && !sellDialog.open && !editingPosition) {
+    window.location.reload();
+  }
+}, 60_000);
 </script>
 
 <?php require $projectRoot . '/views/layout/footer.php'; ?>

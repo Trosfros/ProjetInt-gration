@@ -217,6 +217,70 @@ $pageStylesheets = !$isLoggedIn
     : ($action === 'education' ? ['dashboard.css', 'education.css'] : ['dashboard.css']);
 $activePage = $action === 'education' ? 'education' : 'dashboard';
 require __DIR__ . '/views/layout/header.php';
+
+$dashboardData = null;
+$dashboardError = null;
+if ($isLoggedIn && ($action === '' || $action === 'dashboard')) {
+    try {
+        $pdo = getPDO();
+        $stmt = $pdo->prepare(
+            'SELECT u.Balance, si.idStock, si.Shares, si.Investement, s.Name, s.LastPrice
+             FROM `User` u
+             LEFT JOIN StockInvest si ON si.IdUser = u.idUser
+             LEFT JOIN Stock s ON s.idStock = si.idStock
+             WHERE u.idUser = :userId
+             ORDER BY si.idStock'
+        );
+        $stmt->execute(['userId' => (int) $_SESSION['user']['id']]);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $stmt->closeCursor();
+
+        if (!$rows) {
+            throw new RuntimeException('No user found for the current session.');
+        }
+
+        $dashboardData = [
+            'balance' => (float) $rows[0]['Balance'],
+            'investmentValue' => 0.0,
+            'investedAmount' => 0.0,
+            'pricesAvailable' => true,
+        ];
+        $marketPriceBySymbol = [];
+        foreach ($marketData as $stock) {
+            if (isset($stock['symbol'], $stock['price']) && is_numeric($stock['price']) && (float) $stock['price'] > 0) {
+                $marketPriceBySymbol[strtoupper((string) $stock['symbol'])] = (float) $stock['price'];
+            }
+        }
+
+        foreach ($rows as $row) {
+            if ($row['idStock'] === null) {
+                continue;
+            }
+
+            $dashboardData['investedAmount'] += (float) $row['Investement'];
+            $symbol = strtoupper((string) $row['Name']);
+            $currentPrice = $marketPriceBySymbol[$symbol] ?? (
+                $row['LastPrice'] === null ? null : (float) $row['LastPrice']
+            );
+            if ($currentPrice === null || $currentPrice <= 0) {
+                $dashboardData['pricesAvailable'] = false;
+                continue;
+            }
+
+            $dashboardData['investmentValue'] += (float) $row['Shares'] * $currentPrice;
+        }
+
+        $dashboardData['performance'] = $dashboardData['pricesAvailable'] && $dashboardData['investedAmount'] > 0
+            ? (($dashboardData['investmentValue'] - $dashboardData['investedAmount']) / $dashboardData['investedAmount']) * 100
+            : null;
+        $dashboardData['unrealizedPnl'] = $dashboardData['pricesAvailable']
+            ? $dashboardData['investmentValue'] - $dashboardData['investedAmount']
+            : null;
+    } catch (Throwable $e) {
+        error_log('index.php failed to load dashboard data: ' . $e->getMessage());
+        $dashboardError = 'Impossible de charger les données du compte pour le moment.';
+    }
+}
 ?>
 
 <?php if ($isLoggedIn): ?>
@@ -241,20 +305,42 @@ require __DIR__ . '/views/layout/header.php';
                 <section class="dashboard-summary-cards" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; margin-bottom: 30px;">
                     <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 20px;">
                         <span style="color: #94a3b8; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px;">Solde disponible</span>
-                        <div style="color: #38bdf8; font-size: 2rem; font-weight: 700; margin-top: 6px;">1 500,00 $</div>
-                        <span style="color: #22c55e; font-size: 0.85rem; font-weight: 500;">Solde initial virtuel</span>
+                        <div style="color: #38bdf8; font-size: 2rem; font-weight: 700; margin-top: 6px;">
+                            <?= $dashboardData === null ? '—' : htmlspecialchars(number_format($dashboardData['balance'], 2, ',', ' ') . ' $', ENT_QUOTES, 'UTF-8') ?>
+                        </div>
+                        <span style="color: #94a3b8; font-size: 0.85rem; font-weight: 500;">Solde actuel du compte</span>
                     </div>
 
                     <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 20px;">
                         <span style="color: #94a3b8; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px;">Investissements en cours</span>
-                        <div style="color: #ffffff; font-size: 2rem; font-weight: 700; margin-top: 6px;">0,00 $</div>
-                        <span style="color: #94a3b8; font-size: 0.85rem;">Aucune position ouverte</span>
+                        <div style="color: #ffffff; font-size: 2rem; font-weight: 700; margin-top: 6px;">
+                            <?php if ($dashboardData === null || !$dashboardData['pricesAvailable']): ?>
+                                <?= $dashboardData === null ? '—' : 'Indisponible' ?>
+                            <?php else: ?>
+                                <?= htmlspecialchars(number_format($dashboardData['investmentValue'], 2, ',', ' ') . ' $', ENT_QUOTES, 'UTF-8') ?>
+                            <?php endif; ?>
+                        </div>
+                        <span style="color: #94a3b8; font-size: 0.85rem;">
+                            <?= $dashboardData !== null && !$dashboardData['pricesAvailable'] ? 'Cours manquant pour une ou plusieurs positions' : 'Valeur actuelle des positions ouvertes' ?>
+                        </span>
                     </div>
 
                     <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 20px;">
-                        <span style="color: #94a3b8; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px;">Performance globale</span>
-                        <div style="color: #22c55e; font-size: 2rem; font-weight: 700; margin-top: 6px;">0,00 %</div>
-                        <span style="color: #94a3b8; font-size: 0.85rem;">Prêt à trader</span>
+                        <span style="color: #94a3b8; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px;">Performance des positions</span>
+                        <div style="color: <?= $dashboardData !== null && $dashboardData['performance'] !== null && $dashboardData['performance'] < 0 ? '#f87171' : '#22c55e' ?>; font-size: 2rem; font-weight: 700; margin-top: 6px;">
+                            <?= $dashboardData === null || $dashboardData['performance'] === null ? '—' : htmlspecialchars(number_format($dashboardData['performance'], 2, ',', ' ') . ' %', ENT_QUOTES, 'UTF-8') ?>
+                        </div>
+                        <span style="color: #94a3b8; font-size: 0.85rem;">
+                            <?php if ($dashboardError !== null): ?>
+                                <?= htmlspecialchars($dashboardError, ENT_QUOTES, 'UTF-8') ?>
+                            <?php elseif ($dashboardData !== null && $dashboardData['unrealizedPnl'] !== null && $dashboardData['investedAmount'] > 0): ?>
+                                Gain/perte latent(e) : <?= htmlspecialchars(number_format($dashboardData['unrealizedPnl'], 2, ',', ' ') . ' $', ENT_QUOTES, 'UTF-8') ?>
+                            <?php elseif ($dashboardData !== null && !$dashboardData['pricesAvailable']): ?>
+                                Performance indisponible : cours manquant
+                            <?php else: ?>
+                                Aucune position ouverte
+                            <?php endif; ?>
+                        </span>
                     </div>
                 </section>
 
