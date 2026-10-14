@@ -336,6 +336,30 @@ BEGIN
     SET Money = Money + Ammount
     where idAccount = AccountId;
 END;
+Create Procedure  RemoveMoneyFromAccount(
+    in AccountId INT, 
+    in Ammount decimal(65,2)
+)
+BEGIN
+    DECLARE accountExists INT;
+    DECLARE moneyInAcc DECIMAL(65,2); 
+    SELECT COUNT(AccountId) into accountExists FROM Account where idAccount = AccountId;
+   
+    if accountExists = 0 THEN    
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Account not found.';
+    END IF;
+    SELECT Money into moneyInAcc FROM Account where AccountId = idAccount;
+    if moneyInAcc < Ammount THEN
+       SIGNAL SQLSTATE '45000'
+       SET MESSAGE_TEXT = 'cannot remove more than what is in the account';
+    END IF;   
+    
+    UPDATE Account
+    SET Money = Money - Ammount
+    where idAccount = AccountId;
+END;
+
 CREATE FUNCTION verifyUser(
     palias VARCHAR(45),
     ppassword VARCHAR(255)

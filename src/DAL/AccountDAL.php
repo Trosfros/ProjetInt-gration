@@ -1,4 +1,7 @@
 <?php
+require_once dirname(__DIR__,2) . "/configs/database.php";
+require_once dirname(__DIR__,2) . "/vendor/autoload.php";
+
 class AccountDAL
 {
     private PDO $pdo;
@@ -26,11 +29,62 @@ class AccountDAL
     }
     public function AddMoneyToAccount(int $idAccount, float $money): array
     {
-        try {
-            $stmt = $this->pdo->prepare("CALL ");
-        }catch (PDOException $e ) {
-            
+        if ($money < 0 )
+        {
+            return ["success" => false,"message"=> "Ne peut pas ajouter 0 dollar au compte ou même moins"];
         }
+
+        try {
+            $stmt = $this->pdo->prepare("CALL AddMoneyToAccount(?,?)");
+            $stmt->bindParam(1, $idAccount, PDO::PARAM_INT);
+            $stmt->bindParam(2, $money);
+            $stmt->execute();
+
+            return ["success"=> true,"message"=> "Ajout de l'argent au compte avec succès!"];
+        }catch (PDOException $e ) {
+            if ($e->errorInfo[0] == '45000')
+            {
+                return ['success'=> false,'message'=> $e->getMessage()];
+            }            
+            throw $e;
+        }
+    }
+  public function RemoveMoneyToAccount(int $idAccount, float $money): array
+    {
+        if ($money < 0 )
+        {
+            return ["success" => false,"message"=> "Ne peut pas retirer un montant négatif de dollar au compte"];
+        }
+
+        try {
+            $stmt = $this->pdo->prepare("CALL RemoveMoneyFromAccount(?,?)");
+            $stmt->bindParam(1, $idAccount, PDO::PARAM_INT);
+            $stmt->bindParam(2, $money);
+            $stmt->execute();
+
+            return ["success"=> true,"message"=> "Ajout de l'argent au compte avec succès!"];
+        }catch (PDOException $e ) {
+            if ($e->errorInfo[0] == '45000')
+            {
+                return ['success'=> false,'message'=> $e->getMessage()];
+            }            
+            throw $e;
+        }
+    }
+    public function GetUserAccounts(int $Alias): array
+    {
+        $idUser = $this->GetActiveUserID($Alias);
+
+        try {
+            $stmt = $this->pdo->prepare("SELECT * FROM Account WHERE ? = idUser");
+            $stmt->bindParam(1, $idUser, PDO::PARAM_INT);
+            $stmt->execute();
+
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        }catch (PDOException $e) {
+            return ['success'=> false,'message'=> $e->getMessage()];
+        }
+
     }
     public function DeleteAccount(int $accountId): array
     {
