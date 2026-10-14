@@ -7,8 +7,8 @@ $pageTitle =$pageTitle ?? 'NovaBank | Banque virtuelle & Simulateur de Bourse';
 $isLoggedIn = !empty($_SESSION['user']);
 
 require_once dirname(__DIR__, 2) . '/vendor/autoload.php';
-require_once dirname(__DIR__,2) .'/src/DAL/stockDAL.php';
-require_once dirname(__DIR__,2) .'/configs/database.php';
+require_once dirname(__DIR__, 2) . '/src/DAL/stockDAL.php';
+require_once dirname(__DIR__, 2) . '/configs/database.php';
 
 use Dotenv\Dotenv;
 use Composer\CaBundle\CaBundle;
@@ -21,18 +21,17 @@ $apiKey = $_ENV['FinnhubKey'] ?? $_ENV['API_KEY'] ?? '';
 
 $marketData = [];
 
-if (!isset($symbols) || !is_array($symbols) || empty($symbols)) {
-    $symbols = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'META', 'TSLA'];
+if (!isset($symbols) || !is_array($symbols) || empty($symbols)) {$symbols = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'META', 'TSLA'];
 }
 
 // --- SYSTÈME DE CACHE FINNHUB ---
 $cacheFile = dirname(__DIR__, 2) . '/storage/market_cache.json';$cacheLifetime = 60; // 60 secondes
-$stockId = 0;
+
 if (file_exists($cacheFile) && (time() - filemtime($cacheFile) <$cacheLifetime)) {
     $cachedContent = file_get_contents($cacheFile);
     $marketData = json_decode($cachedContent, true) ?? [];
 } else {
-    $caBundle = CaBundle::getSystemCaRootBundlePath();
+    $caBundle = CaBundle::getSystemCaRootBundlePath();$stockId = 0; // Fixed: Initialisation avant le foreach
 
     foreach ($symbols as $sym) {$url = 'https://finnhub.io/api/v1/quote?' . http_build_query([
             'symbol' => $sym,
@@ -48,14 +47,16 @@ if (file_exists($cacheFile) && (time() - filemtime($cacheFile) <$cacheLifetime))
         $res = curl_exec($ch);
         $httpStatus = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
+
         $stockId += 1;
         $quote = json_decode($res, true);
-        
-        if ($httpStatus === 200 && $quote && isset($quote['c'], $quote['dp'])) {
+
+        if ($httpStatus === 200 &&$quote && isset($quote['c'],$quote['dp'])) {
             $priceFormatted = number_format($quote['c'], 2, '.', '');
             $changeFormatted = round($quote['dp'], 2);
 
-            $stockDal->AddStock($sym, $priceFormatted, $changeFormatted);
+            if (isset($stockDal)) {
+                $stockDal->AddStock($sym, $priceFormatted,$changeFormatted);
             }
 
             $marketData[] = [
@@ -77,7 +78,7 @@ if (file_exists($cacheFile) && (time() - filemtime($cacheFile) <$cacheLifetime))
     } else if (file_exists($cacheFile)) {
         $marketData = json_decode(file_get_contents($cacheFile), true) ?? [];
     }
-
+}
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -89,7 +90,7 @@ if (file_exists($cacheFile) && (time() - filemtime($cacheFile) <$cacheLifetime))
   <?php
     $availablePageStylesheets = ['home.css', 'dashboard.css', 'auth.css', 'errors.css', 'market.css'];
     foreach (($pageStylesheets ?? []) as $pageStylesheet):
-      if (in_array($pageStylesheet, $availablePageStylesheets, true)):
+      if (in_array($pageStylesheet,$availablePageStylesheets, true)):
   ?>
     <link rel="stylesheet" href="public/css/<?= htmlspecialchars($pageStylesheet, ENT_QUOTES, 'UTF-8') ?>">
   <?php
@@ -100,6 +101,178 @@ if (file_exists($cacheFile) && (time() - filemtime($cacheFile) <$cacheLifetime))
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+
+  <style>
+    /* Bouton Loupe dans la Navbar */
+    .nav-search-btn {
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      padding: 8px;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+      margin-left: auto;
+      margin-right: 12px;
+    }
+
+    .nav-search-btn:hover {
+      color: #7dd3fc;
+      background: rgba(14, 165, 233, 0.1);
+    }
+
+    /* Panneau Dropdown Déroulant Style Desjardins (Dark Glow) */
+    .desjardins-search-panel {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      background: rgba(10, 16, 28, 0.98);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(125, 211, 252, 0.2);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+      z-index: 99999;
+      transform: translateY(-100%);
+      transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+      padding: 30px 0 40px;
+    }
+
+    .desjardins-search-panel.active {
+      transform: translateY(0);
+    }
+
+    .search-panel-container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 0 20px;
+    }
+
+    /* Barre de saisie principale */
+    .search-input-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+
+    .search-field-box {
+      flex: 1;
+      position: relative;
+      display: flex;
+      align-items: center;
+      background: rgba(15, 23, 42, 0.8);
+      border: 2px solid rgba(148, 163, 184, 0.25);
+      border-radius: 40px;
+      padding: 8px 24px;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .search-field-box:focus-within {
+      border-color: #38bdf8;
+      box-shadow: 0 0 15px rgba(56, 189, 248, 0.25);
+    }
+
+    .search-field-box input {
+      width: 100%;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: #f8fafc;
+      font-size: 1.25rem;
+      font-family: inherit;
+      padding-right: 40px;
+    }
+
+    .btn-clear-input {
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      font-size: 1.2rem;
+      cursor: pointer;
+      padding: 4px;
+      display: none;
+    }
+
+    .btn-clear-input.visible {
+      display: block;
+    }
+
+    .search-icon-inside {
+      color: #38bdf8;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .btn-close-panel {
+      background: transparent;
+      border: none;
+      color: #cbd5e1;
+      font-size: 1.1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: color 0.2s ease;
+    }
+
+    .btn-close-panel:hover {
+      color: #38bdf8;
+    }
+
+    /* Section Recherches populaires & Résultats */
+    .search-section-title {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #7dd3fc;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 16px;
+    }
+
+    .popular-searches-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .popular-item, .result-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: #e2e8f0;
+      text-decoration: none;
+      font-size: 1.05rem;
+      font-weight: 500;
+      padding: 8px 12px;
+      border-radius: 8px;
+      transition: all 0.2s ease;
+    }
+
+    .popular-item:hover, .result-item:hover {
+      background: rgba(56, 189, 248, 0.1);
+      color: #38bdf8;
+      transform: translateX(4px);
+    }
+
+    .popular-item svg, .result-item svg {
+      color: #64748b;
+    }
+
+    .popular-item:hover svg, .result-item:hover svg {
+      color: #38bdf8;
+    }
+
+    .result-item-badge {
+      margin-left: auto;
+      font-size: 0.75rem;
+      background: rgba(51, 65, 85, 0.6);
+      color: #94a3b8;
+      padding: 2px 8px;
+      border-radius: 6px;
+    }
+  </style>
 </head>
 
 <body>
@@ -130,6 +303,11 @@ if (file_exists($cacheFile) && (time() - filemtime($cacheFile) <$cacheLifetime))
       <?php endif; ?>
     </nav>
 
+    <!-- BOUTON LOUPE POUR OUVRIR LE PANNEAU -->
+    <button type="button" class="nav-search-btn" id="openSearchBtn" aria-label="Rechercher">
+      <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+    </button>
+
     <div class="nav-actions">
       <?php if ($isLoggedIn): ?>
         <span class="user-greeting" style="color: var(--text-muted); font-size: 0.9rem; margin-right: 1rem;">
@@ -142,6 +320,47 @@ if (file_exists($cacheFile) && (time() - filemtime($cacheFile) <$cacheLifetime))
       <?php endif; ?>
     </div>
   </header>
+
+  <!-- PANNEAU DÉROULANT STYLE DESJARDINS -->
+  <div class="desjardins-search-panel" id="desjardinsSearchPanel">
+    <div class="search-panel-container">
+      
+      <div class="search-input-wrapper">
+        <div class="search-field-box">
+          <input type="text" id="desjardinsSearchInput" placeholder="Rechercher sur NovaBank..." autocomplete="off">
+          <button type="button" class="btn-clear-input" id="clearSearchInput">&times;</button>
+          <div class="search-icon-inside">
+            <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+          </div>
+        </div>
+        <button type="button" class="btn-close-panel" id="closeSearchBtn">Fermer</button>
+      </div>
+
+      <!-- Zone dynamique (Populaires / Résultats) -->
+      <div id="searchDynamicContent">
+        <div class="search-section-title">Recherches populaires</div>
+        <div class="popular-searches-list">
+          <a href="index.php?action=marketPage" class="popular-item">
+            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+            Acheter des actions Apple (AAPL)
+          </a>
+          <a href="index.php?action=investment" class="popular-item">
+            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+            Consulter mon portefeuille
+          </a>
+          <a href="index.php?action=accounts" class="popular-item">
+            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+            Solde des comptes
+          </a>
+          <a href="index.php?action=education" class="popular-item">
+            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+            Guides & Éducation financière
+          </a>
+        </div>
+      </div>
+
+    </div>
+  </div>
 
   <div class="market-ticker">
     <div class="ticker-track">
@@ -170,3 +389,102 @@ if (file_exists($cacheFile) && (time() - filemtime($cacheFile) <$cacheLifetime))
       <?php endif; ?>
     </div>
   </div>
+
+  <script type="text/javascript">
+  document.addEventListener('DOMContentLoaded', () => {
+    const openBtn = document.getElementById('openSearchBtn');
+    const closeBtn = document.getElementById('closeSearchBtn');
+    const panel = document.getElementById('desjardinsSearchPanel');
+    const input = document.getElementById('desjardinsSearchInput');
+    const clearBtn = document.getElementById('clearSearchInput');
+    const dynamicContent = document.getElementById('searchDynamicContent');
+
+    const searchIndex = [
+      { title: "Tableau de bord", category: "Navigation", url: "index.php?action=dashboard", badge: "Page" },
+      { title: "Marché & Bourse (TradingView)", category: "Bourse", url: "index.php?action=marketPage", badge: "Achat / Vente" },
+      { title: "Portefeuille d'investissements", category: "Bourse", url: "index.php?action=investment", badge: "Actifs" },
+      { title: "Comptes bancaires & Solde", category: "Banque", url: "index.php?action=accounts", badge: "Comptes" },
+      { title: "Espace Éducation & Guides", category: "Éducation", url: "index.php?action=education", badge: "Apprentissage" },
+      { title: "Comprendre les ordres d'achat à terme", category: "Éducation", url: "index.php?action=education#orders", badge: "Article" },
+      { title: "Analyse technique & Graphiques", category: "Éducation", url: "index.php?action=education#analysis", badge: "Tutoriel" },
+      { title: "Gestion des risques et diversification", category: "Éducation", url: "index.php?action=education#risk", badge: "Guide" }
+    ];
+
+    const defaultPopularHTML = dynamicContent.innerHTML;
+
+    function openPanel() {
+      panel.classList.add('active');
+      setTimeout(() => input.focus(), 150);
+    }
+
+    function closePanel() {
+      panel.classList.remove('active');
+      input.value = '';
+      clearBtn.classList.remove('visible');
+      dynamicContent.innerHTML = defaultPopularHTML;
+    }
+
+    if (openBtn) openBtn.addEventListener('click', openPanel);
+    if (closeBtn) closeBtn.addEventListener('click', closePanel);
+
+    if (clearBtn) {
+      clearBtn.addEventListener('click', () => {
+        input.value = '';
+        clearBtn.classList.remove('visible');
+        dynamicContent.innerHTML = defaultPopularHTML;
+        input.focus();
+      });
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && panel.classList.contains('active')) {
+        closePanel();
+      }
+    });
+
+    if (input) {
+      input.addEventListener('input', (e) => {
+        const query = e.target.value.toLowerCase().trim();
+
+        if (query.length > 0) {
+          clearBtn.classList.add('visible');
+        } else {
+          clearBtn.classList.remove('visible');
+          dynamicContent.innerHTML = defaultPopularHTML;
+          return;
+        }
+
+        const results = searchIndex.filter(item =>
+          item.title.toLowerCase().includes(query) ||
+          item.category.toLowerCase().includes(query)
+        );
+
+        renderResults(results, query);
+      });
+    }
+
+    function renderResults(items, query) {
+      if (items.length === 0) {
+        dynamicContent.innerHTML = `
+          <div class="search-section-title">Résultats pour "${query}"</div>
+          <div style="color: #64748b; padding: 12px 0;">Aucun résultat correspondant trouvé.</div>
+        `;
+        return;
+      }
+
+      let html = `<div class="search-section-title">Résultats (${items.length})</div><div class="popular-searches-list">`;
+      items.forEach(item => {
+        html += `
+          <a href="${item.url}" class="result-item">
+            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+            <span>${item.title}</span>
+            <span class="result-item-badge">${item.badge}</span>
+          </a>
+        `;
+      });
+      html += `</div>`;
+
+      dynamicContent.innerHTML = html;
+    }
+  });
+  </script>
