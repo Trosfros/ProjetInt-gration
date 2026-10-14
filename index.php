@@ -100,6 +100,12 @@ else if (($_GET['action'] ?? '') === 'investment') {
     require __DIR__ . '/src/Models/investment.php';
     exit;
 }
+else if (($_GET['action'] ?? '') === 'accounts')
+{
+  require __DIR__ . '/src/Models/AccountModel.php';
+  exit;
+
+}
 else if (($_GET['action'] ?? '') === 'verify') {
     $token = trim($_GET['token'] ?? '');
 
