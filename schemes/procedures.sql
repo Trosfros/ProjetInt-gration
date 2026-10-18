@@ -396,5 +396,136 @@ BEGIN
     RETURN vMatch > 0;
 END //
 
-DELIMITER ;
 
+
+
+CREATE PROCEDURE GetEducationModules(
+    IN pidUser INT
+)
+BEGIN
+    SELECT
+        m.idModule,
+        m.ModuleKey,
+        m.ModuleNumber,
+        m.Title,
+        m.Badge,
+        m.Summary,
+        COALESCE(p.IsCompleted, 0) AS IsCompleted,
+        COALESCE(p.BestScore, 0.00) AS BestScore,
+        COALESCE(p.AttemptCount, 0) AS AttemptCount
+    FROM `EducationModule` m
+    LEFT JOIN `EducationProgress` p
+      ON p.idModule = m.idModule AND p.idUser = pidUser
+    WHERE m.IsPublished = 1
+    ORDER BY m.DisplayOrder, m.idModule;
+END //
+
+
+
+
+
+CREATE PROCEDURE GetEducationModule(
+    IN pidModule INT,
+    IN pidUser INT
+)
+BEGIN
+    SELECT idModule, ModuleKey, ModuleNumber, Title, Badge, Summary
+    FROM `EducationModule`
+    WHERE idModule = pidModule AND IsPublished = 1;
+
+    SELECT idLesson, idModule, Title, Content, LessonOrder
+    FROM `EducationLesson`
+    WHERE idModule = pidModule
+    ORDER BY LessonOrder, idLesson;
+
+    SELECT q.idQuiz, q.idModule, q.Question, q.Explanation,
+           o.idOption, o.OptionText, o.OptionOrder
+    FROM `EducationQuiz` q
+    INNER JOIN `EducationQuizOption` o ON o.idQuiz = q.idQuiz
+    WHERE q.idModule = pidModule
+    ORDER BY o.OptionOrder, o.idOption;
+
+    SELECT idProgress, idUser, idModule, IsCompleted, BestScore,
+           AttemptCount, StartedAt, CompletedAt, UpdatedAt
+    FROM `EducationProgress`
+    WHERE idUser = pidUser AND idModule = pidModule;
+END //
+
+
+
+
+CREATE PROCEDURE StartEducationModule(
+    IN pidUser INT,
+    IN pidModule INT
+)
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM `User` WHERE idUser = pidUser) THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'User not found.';
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM `EducationModule` WHERE idModule = pidModule AND IsPublished = 1) THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Education module not found.';
+    END IF;
+
+    INSERT INTO `EducationProgress` (idUser, idModule, StartedAt)
+    VALUES (pidUser, pidModule, CURRENT_TIMESTAMP)
+    ON DUPLICATE KEY UPDATE StartedAt = COALESCE(StartedAt, CURRENT_TIMESTAMP);
+END //
+
+
+
+
+CREATE PROCEDURE RecordEducationQuizAnswer(
+    IN pidUser INT,
+    IN pidQuiz INT,
+    IN pidOption INT
+)
+BEGIN
+    DECLARE vModule INT;
+    DECLARE vCorrect TINYINT;
+    DECLARE vAttemptCount INT DEFAULT 0;
+    DECLARE vBestScore DECIMAL(5,2) DEFAULT 0.00;
+
+    IF NOT EXISTS (SELECT 1 FROM `User` WHERE idUser = pidUser) THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'User not found.';
+    END IF;
+
+    SELECT q.idModule, o.IsCorrect
+      INTO vModule, vCorrect
+    FROM `EducationQuiz` q
+    INNER JOIN `EducationQuizOption` o ON o.idQuiz = q.idQuiz
+    WHERE q.idQuiz = pidQuiz AND o.idOption = pidOption;
+
+    IF vModule IS NULL THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Quiz option not found.';
+    END IF;
+
+    INSERT INTO `EducationQuizAttempt` (idUser, idQuiz, idOption, IsCorrect)
+    VALUES (pidUser, pidQuiz, pidOption, vCorrect);
+
+    SELECT COALESCE(AttemptCount, 0), COALESCE(BestScore, 0.00)
+      INTO vAttemptCount, vBestScore
+    FROM `EducationProgress`
+    WHERE idUser = pidUser AND idModule = vModule
+    FOR UPDATE;
+
+    SET vAttemptCount = vAttemptCount + 1;
+    IF vCorrect = 1 AND vBestScore < 100.00 THEN
+        SET vBestScore = 100.00;
+    END IF;
+
+    INSERT INTO `EducationProgress`
+      (idUser, idModule, IsCompleted, BestScore, AttemptCount, StartedAt, CompletedAt)
+    VALUES
+      (pidUser, vModule, vCorrect, vBestScore, vAttemptCount, CURRENT_TIMESTAMP,
+       CASE WHEN vCorrect = 1 THEN CURRENT_TIMESTAMP ELSE NULL END)
+    ON DUPLICATE KEY UPDATE
+      IsCompleted = GREATEST(IsCompleted, VALUES(IsCompleted)),
+      BestScore = GREATEST(COALESCE(BestScore, 0.00), VALUES(BestScore)),
+      AttemptCount = VALUES(AttemptCount),
+      CompletedAt = CASE
+        WHEN IsCompleted = 1 OR VALUES(IsCompleted) = 1 THEN COALESCE(CompletedAt, CURRENT_TIMESTAMP)
+        ELSE CompletedAt
+      END;
+END //
+
+DELIMITER ;
