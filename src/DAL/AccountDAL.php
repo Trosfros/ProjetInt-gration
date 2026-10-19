@@ -1,6 +1,6 @@
 <?php
-require_once dirname(__DIR__,2) . "/configs/database.php";
-require_once dirname(__DIR__,2) . "/vendor/autoload.php";
+require_once dirname(__DIR__, 2) . "/configs/database.php";
+require_once dirname(__DIR__, 2) . "/vendor/autoload.php";
 
 class AccountDAL
 {
@@ -12,62 +12,63 @@ class AccountDAL
         $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     }
 
-    public function createAccount(string $Alias): array
-    {
+    public function createAccount( string $Alias, string $accountName, ?string $accountType = 'checking', ?string $currency = 'CAD' ): array {
         try {
             $userId = $this->GetActiveUserID($Alias);
-            $stmt = $this->pdo->prepare("CALL createAccount(?)");
+
+            $stmt = $this->pdo->prepare("CALL createAccount(?, ?, ?, ?)");
             $stmt->bindParam(1, $userId, PDO::PARAM_INT);
+            $stmt->bindParam(2, $accountName, PDO::PARAM_STR);
+            $stmt->bindParam(3, $accountType, PDO::PARAM_STR);
+            $stmt->bindParam(4, $currency, PDO::PARAM_STR);
             $stmt->execute();
 
-            return ['success' => true, 'message' => "Compte créer avec succès"];
+            return ['success' => true, 'message' => "Compte créé avec succès"];
 
         } catch (PDOException $e) {
-            return ["success"=> false,"message"=> $e->getMessage()];
-
+            if ($e->errorInfo[0] === '45000') {
+                return ['success' => false, 'message' => $e->errorInfo[2]];
+            }
+            throw $e;
         }
     }
-    public function AddMoneyToAccount(int $idAccount, float $money): array
+    public function AddMoneyToAccount(int $accountName, string $username, float $money): array
     {
-        if ($money < 0 )
-        {
-            return ["success" => false,"message"=> "Ne peut pas ajouter 0 dollar au compte ou même moins"];
+        if ($money < 0) {
+            return ["success" => false, "message" => "Ne peut pas ajouter 0 dollar au compte ou même moins"];
         }
-
+            $idAccount = $this->GetAccountID($accountName, $username);
         try {
             $stmt = $this->pdo->prepare("CALL AddMoneyToAccount(?,?)");
             $stmt->bindParam(1, $idAccount, PDO::PARAM_INT);
             $stmt->bindParam(2, $money);
             $stmt->execute();
 
-            return ["success"=> true,"message"=> "Ajout de l'argent au compte avec succès!"];
-        }catch (PDOException $e ) {
-            if ($e->errorInfo[0] == '45000')
-            {
-                return ['success'=> false,'message'=> $e->getMessage()];
-            }            
+            return ["success" => true, "message" => "Ajout de l'argent au compte avec succès!"];
+        } catch (PDOException $e) {
+            if ($e->errorInfo[0] == '45000') {
+                return ['success' => false, 'message' => $e->getMessage()];
+            }
             throw $e;
         }
     }
-  public function RemoveMoneyToAccount(int $idAccount, float $money): array
+    public function RemoveMoneyToAccount(int $accountName, string $username, float $money): array
     {
-        if ($money < 0 )
-        {
-            return ["success" => false,"message"=> "Ne peut pas retirer un montant négatif de dollar au compte"];
+        if ($money < 0) {
+            return ["success" => false, "message" => "Ne peut pas retirer un montant négatif de dollar au compte"];
         }
-
+              $idAccount = $this->GetAccountID($accountName, $username);
         try {
             $stmt = $this->pdo->prepare("CALL RemoveMoneyFromAccount(?,?)");
             $stmt->bindParam(1, $idAccount, PDO::PARAM_INT);
             $stmt->bindParam(2, $money);
             $stmt->execute();
 
-            return ["success"=> true,"message"=> "Ajout de l'argent au compte avec succès!"];
-        }catch (PDOException $e ) {
-            if ($e->errorInfo[0] == '45000')
-            {
-                return ['success'=> false,'message'=> $e->getMessage()];
-            }            
+            return ["success" => true, "message" => "Ajout de l'argent au compte avec succès!"];
+        } catch (PDOException $e) {
+            if ($e->errorInfo[0] == '45000') {
+                return ['success' => false, 'message' => $e->getMessage()];
+            }
             throw $e;
         }
     }
@@ -81,8 +82,8 @@ class AccountDAL
             $stmt->execute();
 
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
-        }catch (PDOException $e) {
-            return ['success'=> false,'message'=> $e->getMessage()];
+        } catch (PDOException $e) {
+            return ['success' => false, 'message' => $e->getMessage()];
         }
 
     }
@@ -116,14 +117,31 @@ class AccountDAL
         }
         return (int) $result["idUser"];
     }
-
-    public function AddAccount(string $name, string $price, string $change): void
+    public function GetAccountID(string $accName, $username): int 
     {
-        $stmt = $this->pdo->prepare('call addStock(?,?,?)');
-        $stmt->bindParam(1, $name, PDO::PARAM_STR);
-        $stmt->bindParam(2, $price);
-        $stmt->bindParam(3, $change);
+        $userid = $this->GetActiveUserID($username);
+        $stmt = $this->pdo->prepare("SELECT idAccount from Account where AccountName = ? and idUser = ? ");
+        $stmt->bindParam(1, $accName, PDO::PARAM_STR);
+        $stmt->bindParam(2, $userid, PDO::PARAM_INT);
         $stmt->execute();
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
         $stmt->closeCursor();
+         if (!$result) {
+            throw new RuntimeException("no user found under the username " . $username);
+        }
+        return (int) $result["idAccount"];
     }
+    public function GetAccounts(string $username):array
+    {
+       $idUser =  $this->GetActiveUserID($username);
+        $stmt = $this->pdo->prepare("SELECT * FROM Account WHERE idUser = ?");
+        $stmt->bindParam(1, $idUser, PDO::PARAM_INT);
+        $stmt->execute();
+        $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $stmt->closeCursor();
+
+        return $result;
+
+    } 
+   
 }

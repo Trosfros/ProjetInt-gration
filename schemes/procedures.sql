@@ -288,77 +288,141 @@ CREATE PROCEDURE updateUserAvatar(
 BEGIN
     UPDATE `User` SET idAvatar = pidAvatar WHERE idUser = pidUser;
 END //
- -- this refers to bank accounts not user accounts
+DELIMITER //
+
 CREATE PROCEDURE createAccount(
-    in PuserId INT
+    IN PuserId INT,
+    IN paccountName VARCHAR(50),
+    IN accountType VARCHAR(20),
+    IN currency CHAR(3)
 )
-Begin
-    INSERT INTO Account (idUser,Money)
-    VALUES (PuserId,0);
+BEGIN
+    DECLARE vAccountNumber VARCHAR(34);
+
+    IF NOT EXISTS (SELECT 1 FROM `User` WHERE idUser = PuserId) THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'User not found.';
+    END IF;
+    if EXISTS (SELECT 1 FROM `User` WHERE idUser = PuserId and AccountName = paccountName) THEN
+         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Cannot have 2 account with the same name under the same user';
+    END IF;
+    SET vAccountNumber = REPLACE(UUID(), '-', '');
+
+    INSERT INTO `Account`
+      (idUser, Money, AccountName, AccountNumber, AccountType, Currency, Status)
+    VALUES
+      (PuserId, 0, paccountName, vAccountNumber,
+       COALESCE(accountType, 'checking'), COALESCE(currency, 'CAD'), 'active');
 END //
-DROP PROCEDURE deleteAccount;
+
 CREATE PROCEDURE deleteAccount(
-    in AccountId INT
+    IN AccountId INT
 )
-BEGIN 
-    DECLARE accountExists INT;
-    DECLARE moneyInAcc DECIMAL(65,2); 
-    SELECT COUNT(AccountId) into accountExists FROM Account where idAccount = AccountId;
-   
+BEGIN
+    DECLARE vMoney DECIMAL(15,2);
+    DECLARE vStatus VARCHAR(10);
 
-    if accountExists = 0 THEN    
-        SIGNAL SQLSTATE '45000'
-        SET MESSAGE_TEXT = 'Account not found.';
-    END IF;
-     SELECT Money into moneyInAcc FROM Account where AccountId = idAccount;
-    IF moneyInAcc != 0 THEN
-        SIGNAL SQLSTATE '45000'
-        SET MESSAGE_TEXT = 'cannot delete account if there is still money in it, please remove it from the account';
+    SELECT Money, Status INTO vMoney, vStatus
+    FROM `Account`
+    WHERE idAccount = AccountId;
+
+    IF vStatus IS NULL THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Account not found.';
     END IF;
 
-    DELETE FROM Account
+    IF vStatus = 'closed' THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Account is already closed.';
+    END IF;
+
+    IF vMoney != 0 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Cannot delete account if there is still money in it, please remove it from the account.';
+    END IF;
+
+    
+    UPDATE `Account`
+    SET Status = 'closed', ClosedAt = CURRENT_TIMESTAMP
     WHERE idAccount = AccountId;
 END //
-Create Procedure AddMoneyToAccount(
-    in AccountId INT, 
-    in Ammount decimal(65,2)
+
+CREATE PROCEDURE AddMoneyToAccount(
+    IN AccountId INT,
+    IN Ammount DECIMAL(15,2)
 )
 BEGIN
-    DECLARE accountExists INT;
-    SELECT COUNT(AccountId) into accountExists FROM Account where idAccount = AccountId;
-   
-    if accountExists = 0 THEN    
-        SIGNAL SQLSTATE '45000'
-        SET MESSAGE_TEXT = 'Account not found.';
+    DECLARE vStatus VARCHAR(10);
+
+    IF Ammount IS NULL OR Ammount <= 0 THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Amount must be positive.';
     END IF;
-  
-    UPDATE Account
+
+    START TRANSACTION;
+
+    SELECT Status INTO vStatus
+    FROM `Account`
+    WHERE idAccount = AccountId
+    FOR UPDATE;
+
+    IF vStatus IS NULL THEN
+        ROLLBACK;
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Account not found.';
+    END IF;
+
+    IF vStatus != 'active' THEN
+        ROLLBACK;
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Account is not active.';
+    END IF;
+
+    UPDATE `Account`
     SET Money = Money + Ammount
-    where idAccount = AccountId;
-END;
-Create Procedure  RemoveMoneyFromAccount(
-    in AccountId INT, 
-    in Ammount decimal(65,2)
+    WHERE idAccount = AccountId;
+
+    COMMIT;
+END //
+
+CREATE PROCEDURE RemoveMoneyFromAccount(
+    IN AccountId INT,
+    IN Ammount DECIMAL(15,2)
 )
 BEGIN
-    DECLARE accountExists INT;
-    DECLARE moneyInAcc DECIMAL(65,2); 
-    SELECT COUNT(AccountId) into accountExists FROM Account where idAccount = AccountId;
-   
-    if accountExists = 0 THEN    
-        SIGNAL SQLSTATE '45000'
-        SET MESSAGE_TEXT = 'Account not found.';
+    DECLARE vMoney DECIMAL(15,2);
+    DECLARE vOverdraftLimit DECIMAL(15,2);
+    DECLARE vStatus VARCHAR(10);
+
+    IF Ammount IS NULL OR Ammount <= 0 THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Amount must be positive.';
     END IF;
-    SELECT Money into moneyInAcc FROM Account where AccountId = idAccount;
-    if moneyInAcc < Ammount THEN
-       SIGNAL SQLSTATE '45000'
-       SET MESSAGE_TEXT = 'cannot remove more than what is in the account';
-    END IF;   
-    
-    UPDATE Account
+
+    START TRANSACTION;
+
+    SELECT Money, OverdraftLimit, Status INTO vMoney, vOverdraftLimit, vStatus
+    FROM `Account`
+    WHERE idAccount = AccountId
+    FOR UPDATE;
+
+    IF vStatus IS NULL THEN
+        ROLLBACK;
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Account not found.';
+    END IF;
+
+    IF vStatus != 'active' THEN
+        ROLLBACK;
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Account is not active.';
+    END IF;
+
+    IF vMoney - Ammount < -vOverdraftLimit THEN
+        ROLLBACK;
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Cannot remove more than what is available in the account.';
+    END IF;
+
+    UPDATE `Account`
     SET Money = Money - Ammount
-    where idAccount = AccountId;
-END;
+    WHERE idAccount = AccountId;
+
+    COMMIT;
+END //
+
+DELIMITER ;
 
 CREATE FUNCTION verifyUser(
     palias VARCHAR(45),

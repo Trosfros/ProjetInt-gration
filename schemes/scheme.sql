@@ -106,13 +106,25 @@ CREATE TABLE IF NOT EXISTS `CryptoInvest` (
 CREATE TABLE IF NOT EXISTS `Account` (
   `idAccount` INT NOT NULL AUTO_INCREMENT,
   `idUser` INT NOT NULL,
-  `Money` DECIMAL(65,2) DEFAULT 0,
+  `AccountNumber` VARCHAR(34) NOT NULL,
+  `AccountType` ENUM('checking','savings','investment') NOT NULL DEFAULT 'checking',
+  `Status` ENUM('active','frozen','closed') NOT NULL DEFAULT 'active',
+  `Currency` CHAR(3) NOT NULL DEFAULT 'CAD',
+  `Money` DECIMAL(15,2) NOT NULL DEFAULT 0,
+  `OverdraftLimit` DECIMAL(15,2) NOT NULL DEFAULT 0,
+  `AccountName` VARCHAR(50) NOT NULL,
+  `CreatedAt` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `UpdatedAt` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `ClosedAt` TIMESTAMP NULL DEFAULT NULL,
   PRIMARY KEY (`idAccount`),
+  UNIQUE KEY `uq_account_number` (`AccountNumber`),
   CONSTRAINT `FK_idUser2`
     FOREIGN KEY (`idUser`)
     REFERENCES `User` (`idUser`)
+    ON DELETE RESTRICT
+    ON UPDATE CASCADE,
+  CHECK (`Money` >= -`OverdraftLimit`)
 );
-
 CREATE TABLE IF NOT EXISTS `EducationModule` (
   `idModule` INT NOT NULL AUTO_INCREMENT,
   `ModuleKey` VARCHAR(50) NOT NULL,
