@@ -5,7 +5,7 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 require_once __DIR__ . "/AccountDal.php";
-
+require_once dirname(__DIR__,2) ."/configs/utils.php";
 function respond(int $httpCode, array $payload): void
 {
     http_response_code($httpCode);
@@ -37,7 +37,7 @@ try {
     $dal = new AccountDAL();
     $result = $dal->createAccount($username, $accountName, $accountType, $currency);
     respond($result['success'] ? 200 : 400, $result);
-    
+
 } catch (\RuntimeException $e) {
     respond(404, ['success' => false, 'message' => $e->getMessage()]);
 } catch (\Throwable $e) {

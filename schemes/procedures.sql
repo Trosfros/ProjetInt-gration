@@ -345,6 +345,7 @@ BEGIN
 END //
 
 CREATE PROCEDURE AddMoneyToAccount(
+    IN pidUser INT,
     IN AccountId INT,
     IN Ammount DECIMAL(15,2)
 )
@@ -376,10 +377,14 @@ BEGIN
     SET Money = Money + Ammount
     WHERE idAccount = AccountId;
 
+    UPDATE User 
+    SET Balance = Balance - Ammount
+    WHERE idUser = pidUser; 
     COMMIT;
 END //
 
 CREATE PROCEDURE RemoveMoneyFromAccount(
+    IN pidUser INT,
     IN AccountId INT,
     IN Ammount DECIMAL(15,2)
 )
@@ -419,6 +424,9 @@ BEGIN
     SET Money = Money - Ammount
     WHERE idAccount = AccountId;
 
+    UPDATE User 
+    SET Balance = Balance + Ammount
+    WHERE idUser = pidUser; 
     COMMIT;
 END //
 

@@ -5,16 +5,11 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 require_once __DIR__ . "/stockDAL.php";
+require_once dirname(__DIR__,2) ."/configs/utils.php";
 ini_set('display_errors', '0');
 error_reporting(E_ALL);
 ob_start();
 
-function respond(int $httpCode, array $payload): void
-{
-    http_response_code($httpCode);
-    echo json_encode($payload);
-    exit;
-}
 
 $input = json_decode(file_get_contents("php://input"), true);
 

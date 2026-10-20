@@ -12,7 +12,8 @@ class AccountDAL
         $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     }
 
-    public function createAccount( string $Alias, string $accountName, ?string $accountType = 'checking', ?string $currency = 'CAD' ): array {
+    public function createAccount(string $Alias, string $accountName, ?string $accountType = 'checking', ?string $currency = 'CAD'): array
+    {
         try {
             $userId = $this->GetActiveUserID($Alias);
 
@@ -32,16 +33,19 @@ class AccountDAL
             throw $e;
         }
     }
-    public function AddMoneyToAccount(int $accountName, string $username, float $money): array
+    public function AddMoneyToAccount(string $accountName, string $username, float $money): array
     {
+        
         if ($money < 0) {
             return ["success" => false, "message" => "Ne peut pas ajouter 0 dollar au compte ou même moins"];
         }
-            $idAccount = $this->GetAccountID($accountName, $username);
+        $idAccount = $this->GetAccountID($accountName, $username);
+        $idUser = $this->GetActiveUserID($username);
         try {
-            $stmt = $this->pdo->prepare("CALL AddMoneyToAccount(?,?)");
-            $stmt->bindParam(1, $idAccount, PDO::PARAM_INT);
-            $stmt->bindParam(2, $money);
+            $stmt = $this->pdo->prepare("CALL AddMoneyToAccount(?,?,?)");
+              $stmt->bindParam(1, $idUser, PDO::PARAM_INT);
+            $stmt->bindParam(2, $idAccount, PDO::PARAM_INT);
+            $stmt->bindParam(3, $money);
             $stmt->execute();
 
             return ["success" => true, "message" => "Ajout de l'argent au compte avec succès!"];
@@ -52,16 +56,19 @@ class AccountDAL
             throw $e;
         }
     }
-    public function RemoveMoneyToAccount(int $accountName, string $username, float $money): array
+    public function RemoveMoneyFromAccount(string $accountName, string $username, float $money): array
     {
+       
         if ($money < 0) {
             return ["success" => false, "message" => "Ne peut pas retirer un montant négatif de dollar au compte"];
         }
-              $idAccount = $this->GetAccountID($accountName, $username);
+        $idAccount = $this->GetAccountID($accountName, $username);
+        $idUser = $this->GetActiveUserID($username);
         try {
-            $stmt = $this->pdo->prepare("CALL RemoveMoneyFromAccount(?,?)");
-            $stmt->bindParam(1, $idAccount, PDO::PARAM_INT);
-            $stmt->bindParam(2, $money);
+            $stmt = $this->pdo->prepare("CALL RemoveMoneyFromAccount(?,?,?)");
+            $stmt->bindParam(1, $idUser, PDO::PARAM_INT);
+            $stmt->bindParam(2, $idAccount, PDO::PARAM_INT);
+            $stmt->bindParam(3, $money);
             $stmt->execute();
 
             return ["success" => true, "message" => "Ajout de l'argent au compte avec succès!"];
@@ -72,7 +79,7 @@ class AccountDAL
             throw $e;
         }
     }
-    public function GetUserAccounts(int $Alias): array
+    public function GetUserAccounts(string $Alias): array
     {
         $idUser = $this->GetActiveUserID($Alias);
 
@@ -117,7 +124,7 @@ class AccountDAL
         }
         return (int) $result["idUser"];
     }
-    public function GetAccountID(string $accName, $username): int 
+    public function GetAccountID(string $accName, $username): int
     {
         $userid = $this->GetActiveUserID($username);
         $stmt = $this->pdo->prepare("SELECT idAccount from Account where AccountName = ? and idUser = ? ");
@@ -126,14 +133,14 @@ class AccountDAL
         $stmt->execute();
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
         $stmt->closeCursor();
-         if (!$result) {
-            throw new RuntimeException("no user found under the username " . $username);
+        if (!$result) {
+            throw new RuntimeException("no account found under the name " . $accName);
         }
         return (int) $result["idAccount"];
     }
-    public function GetAccounts(string $username):array
+    public function GetAccounts(string $username): array
     {
-       $idUser =  $this->GetActiveUserID($username);
+        $idUser = $this->GetActiveUserID($username);
         $stmt = $this->pdo->prepare("SELECT * FROM Account WHERE idUser = ?");
         $stmt->bindParam(1, $idUser, PDO::PARAM_INT);
         $stmt->execute();
@@ -142,6 +149,20 @@ class AccountDAL
 
         return $result;
 
-    } 
-   
+    }
+    public function GetUserBalance(string $username): float
+    {
+        $idUser = $this->GetActiveUserID($username);
+        $stmt = $this->pdo->prepare("SELECT Balance FROM User WHERE idUser = ?");
+        $stmt->bindParam(1, $idUser, PDO::PARAM_INT);
+        $stmt->execute();
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        $stmt->closeCursor();
+
+        if (!$result) {
+            throw new RuntimeException("User not found while fetching balance.");
+        }
+
+        return (float) $result['Balance'];
+    }
 }

@@ -1,0 +1,375 @@
+.btn-new-account {
+        background: rgba(125, 211, 252, 0.12);
+        color: #7dd3fc;
+        border: 1px solid rgba(125, 211, 252, 0.3);
+        border-radius: 6px;
+        padding: 10px 18px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        cursor: pointer;
+    }
+
+    .account-card-add {
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        border: 1px dashed rgba(125, 211, 252, 0.35);
+        cursor: pointer;
+        color: #7dd3fc;
+    }
+
+    .account-card-add:hover {
+        background: rgba(125, 211, 252, 0.06);
+    }
+
+    .account-add-icon {
+        font-size: 1.8rem;
+        line-height: 1;
+    }
+
+    .account-add-label {
+        font-size: 0.9rem;
+        font-weight: 600;
+    }
+
+    .modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+    }
+
+    .modal-overlay[hidden] {
+        display: none;
+    }
+
+    .modal-card {
+        background: #0f172a;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        padding: 24px;
+        width: 100%;
+        max-width: 400px;
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 18px;
+    }
+
+    .modal-header h2 {
+        margin: 0;
+        color: #e2e8f0;
+        font-size: 1.1rem;
+    }
+
+    .modal-close {
+        background: none;
+        border: none;
+        color: #94a3b8;
+        font-size: 1.4rem;
+        cursor: pointer;
+        line-height: 1;
+    }
+
+    .modal-field {
+        margin-bottom: 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .modal-field label {
+        font-size: 0.82rem;
+        color: #94a3b8;
+    }
+
+    .modal-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 16px;
+    }
+
+    .modal-actions .btn-account {
+        flex: 1;
+    }
+
+    .account-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+    }
+
+    .account-card {
+        background: rgba(15, 23, 42, 0.5);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        padding: 22px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .account-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+    }
+
+    .account-name {
+        margin: 0 0 4px;
+        font-size: 1.05rem;
+        color: #e2e8f0;
+    }
+
+    .account-type {
+        font-size: 0.78rem;
+        color: #94a3b8;
+        text-transform: capitalize;
+    }
+
+    .account-status {
+        font-size: 0.72rem;
+        font-weight: 600;
+        padding: 3px 10px;
+        border-radius: 999px;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+        white-space: nowrap;
+    }
+
+    .account-status-active {
+        color: #4ade80;
+        background: rgba(74, 222, 128, 0.12);
+    }
+
+    .account-status-frozen {
+        color: #facc15;
+        background: rgba(250, 204, 21, 0.12);
+    }
+
+    .account-status-closed {
+        color: #f87171;
+        background: rgba(248, 113, 113, 0.12);
+    }
+
+    .account-balance-block {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    .account-balance-label {
+        font-size: 0.78rem;
+        color: #94a3b8;
+    }
+
+    .account-balance {
+        font-size: 1.6rem;
+        font-weight: 700;
+        color: #7dd3fc;
+    }
+
+    .account-balance.is-negative {
+        color: #f87171;
+    }
+
+    .account-meta {
+        font-size: 0.82rem;
+        color: #64748b;
+    }
+
+    .account-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: auto;
+    }
+
+    .btn-account {
+        flex: 1;
+        text-align: center;
+        padding: 10px 14px;
+        border-radius: 6px;
+        font-weight: 600;
+        font-size: 0.85rem;
+        text-decoration: none;
+    }
+
+    .btn-account-add {
+        background: rgba(74, 222, 128, 0.12);
+        color: #4ade80;
+        border: 1px solid rgba(74, 222, 128, 0.3);
+    }
+
+    .btn-account-remove {
+        background: rgba(248, 113, 113, 0.12);
+        color: #f87171;
+        border: 1px solid rgba(248, 113, 113, 0.3);
+    }
+    .btn-new-account {
+    background: rgba(125, 211, 252, 0.12);
+    color: #7dd3fc;
+    border: 1px solid rgba(125, 211, 252, 0.3);
+    border-radius: 6px;
+    padding: 10px 18px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+.account-card-add {
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border: 1px dashed rgba(125, 211, 252, 0.35);
+    cursor: pointer;
+    color: #7dd3fc;
+}
+
+.account-card-add:hover {
+    background: rgba(125, 211, 252, 0.06);
+}
+
+.account-add-icon {
+    font-size: 1.8rem;
+    line-height: 1;
+}
+
+.account-add-label {
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal-overlay[hidden] {
+    display: none;
+}
+
+.modal-card {
+    background: #0f172a;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 24px;
+    width: 100%;
+    max-width: 400px;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 18px;
+}
+
+.modal-header h2 {
+    margin: 0;
+    color: #e2e8f0;
+    font-size: 1.1rem;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    color: #94a3b8;
+    font-size: 1.4rem;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.modal-field {
+    margin-bottom: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.modal-field label {
+    font-size: 0.82rem;
+    color: #94a3b8;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 16px;
+}
+
+.modal-actions .btn-account {
+    flex: 1;
+}
+.trade-input {
+    width: 100%;
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 6px;
+    padding: 10px 12px;
+    color: #e2e8f0;
+    font-size: 0.9rem;
+}
+
+.trade-input:focus {
+    outline: none;
+    border-color: rgba(125, 211, 252, 0.5);
+}
+
+select.trade-input {
+    appearance: none;
+    cursor: pointer;
+}
+
+.trade-feedback {
+    margin: 0 0 14px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    border: 1px solid transparent;
+}
+
+.trade-feedback[hidden] {
+    display: none;
+}
+
+.trade-feedback.is-success {
+    color: #4ade80;
+    background: rgba(74, 222, 128, 0.12);
+    border-color: rgba(74, 222, 128, 0.35);
+}
+
+.trade-feedback.is-error {
+    color: #f87171;
+    background: rgba(248, 113, 113, 0.12);
+    border-color: rgba(248, 113, 113, 0.35);
+}
+.user-balance {
+    text-align: right;
+}
+
+.user-balance-label {
+    margin: 0;
+    font-size: 0.78rem;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.user-balance-amount {
+    margin: 4px 0 0;
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: #7dd3fc;
+}

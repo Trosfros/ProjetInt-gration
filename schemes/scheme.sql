@@ -108,7 +108,7 @@ CREATE TABLE IF NOT EXISTS `Account` (
   `idUser` INT NOT NULL,
   `AccountNumber` VARCHAR(34) NOT NULL,
   `AccountType` ENUM('checking','savings','investment') NOT NULL DEFAULT 'checking',
-  `Status` ENUM('active','frozen','closed') NOT NULL DEFAULT 'active',
+  `Status` ENUM('actif','Gelée','Fermée') NOT NULL DEFAULT 'active',
   `Currency` CHAR(3) NOT NULL DEFAULT 'CAD',
   `Money` DECIMAL(15,2) NOT NULL DEFAULT 0,
   `OverdraftLimit` DECIMAL(15,2) NOT NULL DEFAULT 0,
