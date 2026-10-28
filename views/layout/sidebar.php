@@ -1,6 +1,6 @@
 <aside class="dashboard-sidebar" aria-label="Menu principal">
   <nav class="sidebar-nav">
-    <a class="sidebar-link" href="index.php">
+    <a class="sidebar-link<?= ($activePage ?? '') === 'dashboard' ? ' active' : '' ?>" href="index.php"<?= ($activePage ?? '') === 'dashboard' ? ' aria-current="page"' : '' ?>>
       <span class="sidebar-icon">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10.5 12 4l8 6.5V18a2 2 0 0 1-2 2h-3v-7H9v7H6a2 2 0 0 1-2-2v-7.5Z"/></svg>
       </span>
@@ -12,7 +12,7 @@
       </span>
       <span>Comptes</span>
     </a>
-    <a class="sidebar-link" href="index.php">
+    <a class="sidebar-link<?= ($activePage ?? '') === 'transfers' ? ' active' : '' ?>" href="index.php?action=transfers"<?= ($activePage ?? '') === 'transfers' ? ' aria-current="page"' : '' ?>>
       <span class="sidebar-icon">
         <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M17 3 21 7l-4 4" />

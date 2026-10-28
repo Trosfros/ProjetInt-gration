@@ -24,6 +24,8 @@ $typeLabels = [
     'withdrawal' => 'Retrait',
     'purchase' => 'Achat',
     'sale' => 'Vente',
+    'transfer_sent' => 'Virement envoyé',
+    'transfer_received' => 'Virement reçu',
 ];
 
 require $projectRoot . '/views/layout/header.php';
@@ -37,7 +39,7 @@ require $projectRoot . '/views/layout/header.php';
             <div>
                 <p class="history-kicker">Votre espace financier</p>
                 <h1>Historique des transactions</h1>
-                <p>Consultez vos achats, ventes, dépôts et retraits récents.</p>
+                <p>Consultez vos achats, ventes, dépôts, retraits et virements récents.</p>
             </div>
         </header>
 
@@ -73,7 +75,7 @@ require $projectRoot . '/views/layout/header.php';
                                 <?php foreach ($transactions as $transaction): ?>
                                     <?php
                                     $type = (string) $transaction['TransactionType'];
-                                    $isIncoming = in_array($type, ['deposit', 'sale'], true);
+                                    $isIncoming = in_array($type, ['deposit', 'sale', 'transfer_received'], true);
                                     $transactionDate = new DateTimeImmutable((string) $transaction['CreatedAt']);
                                     ?>
                                     <tr>

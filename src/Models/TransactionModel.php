@@ -6,9 +6,9 @@ class TransactionModel
 {
     private PDO $pdo;
 
-    public function __construct()
+    public function __construct(?PDO $pdo = null)
     {
-        $this->pdo = getPDO();
+        $this->pdo = $pdo ?? getPDO();
         $this->ensureTransactionTable();
     }
 
@@ -16,7 +16,7 @@ class TransactionModel
     {
         if (
             $userId <= 0
-            || !in_array($type, ['deposit', 'withdrawal', 'purchase', 'sale'], true)
+            || !in_array($type, ['deposit', 'withdrawal', 'purchase', 'sale', 'transfer_sent', 'transfer_received'], true)
             || !is_finite($amount)
             || $amount <= 0
         ) {
@@ -58,7 +58,7 @@ class TransactionModel
             'CREATE TABLE IF NOT EXISTS `BankTransaction` (
                 `idTransaction` INT NOT NULL AUTO_INCREMENT,
                 `idUser` INT NOT NULL,
-                `TransactionType` ENUM(\'deposit\', \'withdrawal\', \'purchase\', \'sale\') NOT NULL,
+                `TransactionType` ENUM(\'deposit\', \'withdrawal\', \'purchase\', \'sale\', \'transfer_sent\', \'transfer_received\') NOT NULL,
                 `Description` VARCHAR(255) NOT NULL,
                 `Amount` DECIMAL(15,2) NOT NULL,
                 `Currency` CHAR(3) NOT NULL DEFAULT \'CAD\',
@@ -70,5 +70,13 @@ class TransactionModel
                     ON DELETE CASCADE ON UPDATE CASCADE
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4'
         );
+
+        $column = $this->pdo->query("SHOW COLUMNS FROM `BankTransaction` LIKE 'TransactionType'")->fetch(PDO::FETCH_ASSOC);
+        if ($column && (strpos((string) $column['Type'], 'transfer_sent') === false || strpos((string) $column['Type'], 'transfer_received') === false)) {
+            $this->pdo->exec(
+                "ALTER TABLE `BankTransaction`
+                 MODIFY `TransactionType` ENUM('deposit', 'withdrawal', 'purchase', 'sale', 'transfer_sent', 'transfer_received') NOT NULL"
+            );
+        }
     }
 }
