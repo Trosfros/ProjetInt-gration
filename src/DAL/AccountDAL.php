@@ -114,7 +114,7 @@ class AccountDAL
 
     public function GetActiveUserID(string $username): int
     {
-        $stmt = $this->pdo->prepare("SELECT idUser from user where ? = Alias");
+        $stmt = $this->pdo->prepare("SELECT idUser from User where ? = Alias");
         $stmt->bindParam(1, $username);
         $stmt->execute();
         $result = $stmt->fetch(PDO::FETCH_ASSOC);

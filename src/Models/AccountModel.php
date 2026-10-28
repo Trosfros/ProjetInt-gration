@@ -1,6 +1,6 @@
 <?php
 $projectRoot = dirname(__DIR__, 2);
-require_once $projectRoot . "/src/DAL/AccountDal.php";
+require_once $projectRoot . "/src/DAL/AccountDAL.php";
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();

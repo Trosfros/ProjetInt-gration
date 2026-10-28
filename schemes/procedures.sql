@@ -248,7 +248,7 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM `User` WHERE idUser = PuserId) THEN
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'User not found.';
     END IF;
-    IF EXISTS (SELECT 1 FROM `User` WHERE idUser = PuserId AND AccountName = paccountName) THEN
+    if EXISTS (SELECT 1 FROM `Account` WHERE idUser = PuserId and AccountName = paccountName) THEN
          SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Cannot have 2 account with the same name under the same user';
     END IF;
     SET vAccountNumber = REPLACE(UUID(), '-', '');

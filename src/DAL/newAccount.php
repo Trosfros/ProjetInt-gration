@@ -4,15 +4,9 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-require_once __DIR__ . "/AccountDal.php";
+require_once __DIR__ . "/AccountDAL.php";
 require_once dirname(__DIR__,2) ."/configs/utils.php";
-function respond(int $httpCode, array $payload): void
-{
-    http_response_code($httpCode);
-    header('Content-Type: application/json');
-    echo json_encode($payload);
-    exit;
-}
+
 
 $rawBody = file_get_contents("php://input");
 $input = json_decode($rawBody, true);
