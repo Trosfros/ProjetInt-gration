@@ -4,7 +4,7 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-require_once __DIR__ . "/AccountDal.php";
+require_once __DIR__ . "/AccountDAL.php";
 require_once dirname(__DIR__,2) ."/configs/utils.php";
  
 $rawBody = file_get_contents("php://input");

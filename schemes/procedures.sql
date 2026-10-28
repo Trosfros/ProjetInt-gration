@@ -275,7 +275,7 @@ BEGIN
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Account not found.';
     END IF;
 
-    IF vStatus = 'closed' THEN
+    IF vStatus = 'Fermée' THEN
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Account is already closed.';
     END IF;
 
@@ -313,7 +313,7 @@ BEGIN
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Account not found.';
     END IF;
 
-    IF vStatus != 'active' THEN
+    IF vStatus != 'actif' THEN
         ROLLBACK;
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Account is not active.';
     END IF;
@@ -355,7 +355,7 @@ BEGIN
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Account not found.';
     END IF;
 
-    IF vStatus != 'active' THEN
+    IF vStatus != 'actif' THEN
         ROLLBACK;
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Account is not active.';
     END IF;
