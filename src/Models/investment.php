@@ -162,7 +162,26 @@ $formatShares = static function (float $shares): string {
             <p><?= htmlspecialchars($portfolioError, ENT_QUOTES, 'UTF-8') ?></p>
           </div>
         <?php elseif ($portfolio && !empty($portfolio['positions'])): ?>
-          <div class="stocks-grid">
+          <div class="portfolio-filter">
+            <label class="portfolio-filter-label" for="portfolio-stock-filter">Rechercher une action</label>
+            <div class="portfolio-filter-control">
+              <svg aria-hidden="true" width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <circle cx="11" cy="11" r="7" stroke-width="2"></circle>
+                <path stroke-linecap="round" stroke-width="2" d="m20 20-4-4"></path>
+              </svg>
+              <input
+                id="portfolio-stock-filter"
+                class="portfolio-filter-input"
+                type="search"
+                placeholder="Nom ou symbole"
+                autocomplete="off"
+                aria-controls="portfolio-stocks-grid"
+              >
+            </div>
+            <p id="portfolio-filter-status" class="portfolio-filter-status" aria-live="polite"></p>
+          </div>
+
+          <div class="stocks-grid" id="portfolio-stocks-grid">
             <?php foreach ($portfolio['positions'] as $position):
               $symbol = htmlspecialchars($position['name'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
               $name = $symbol;
@@ -175,7 +194,7 @@ $formatShares = static function (float $shares): string {
               $pnlPercent = $position['pnlPercent'];
               $isPositive = $hasPrice && $pnl >= 0;
             ?>
-              <div class="stock-card <?= $hasPrice ? ($isPositive ? 'card-positive' : 'card-negative') : '' ?>">
+              <div class="stock-card <?= $hasPrice ? ($isPositive ? 'card-positive' : 'card-negative') : '' ?>" data-stock-search="<?= $symbol ?>">
                 <div class="stock-card-header">
                   <div>
                     <h3 class="stock-name"><?= $name ?></h3>
@@ -241,6 +260,9 @@ $formatShares = static function (float $shares): string {
               </div>
             <?php endforeach; ?>
           </div>
+          <div id="portfolio-filter-empty" class="empty-state portfolio-filter-empty" hidden>
+            <p>Aucune action ne correspond à votre recherche.</p>
+          </div>
         <?php else: ?>
           <div class="empty-state">
             <p>Vous n’avez pas encore d’action dans votre portefeuille.</p>
@@ -277,6 +299,39 @@ const sellDialog = document.getElementById('sell-confirm-dialog');
 const sellConfirmButton = document.getElementById('sell-dialog-confirm');
 const sellFeedback = document.getElementById('investment-feedback');
 let pendingSale = null;
+
+const portfolioFilter = document.getElementById('portfolio-stock-filter');
+const portfolioFilterStatus = document.getElementById('portfolio-filter-status');
+const portfolioFilterEmpty = document.getElementById('portfolio-filter-empty');
+const portfolioStockCards = [...document.querySelectorAll('[data-stock-search]')];
+
+const normalizeSearchText = (value) => value
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .toLocaleLowerCase();
+
+const updatePortfolioFilter = () => {
+  const search = normalizeSearchText(portfolioFilter?.value || '');
+  let visibleCount = 0;
+
+  portfolioStockCards.forEach((card) => {
+    const matches = normalizeSearchText(card.dataset.stockSearch || '').includes(search);
+    card.hidden = !matches;
+    if (matches) visibleCount += 1;
+  });
+
+  if (portfolioFilterStatus) {
+    portfolioFilterStatus.textContent = search
+      ? `${visibleCount} action${visibleCount === 1 ? '' : 's'} trouvée${visibleCount === 1 ? '' : 's'}`
+      : `${visibleCount} action${visibleCount === 1 ? '' : 's'} dans votre portefeuille`;
+  }
+  if (portfolioFilterEmpty) {
+    portfolioFilterEmpty.hidden = visibleCount > 0;
+  }
+};
+
+portfolioFilter?.addEventListener('input', updatePortfolioFilter);
+updatePortfolioFilter();
 
 document.querySelectorAll('.btn-sell-card').forEach((button) => {
   button.addEventListener('click', () => {
