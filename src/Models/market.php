@@ -276,7 +276,7 @@ async function doPayment(side) {
 
   showTradeFeedback(null);
   try {
-    const res = await fetch('/src/DAL/placeOrder.php', {
+    const res = await fetch('src/DAL/placeOrder.php', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ side: side, idStock: idStock, amount: amount, unit: 'shares' }),

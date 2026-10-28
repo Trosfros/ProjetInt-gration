@@ -15,6 +15,10 @@ if (!is_array($input)) {
     respond(400, ['success' => false, 'message' => 'Requête invalide']);
 }
 
+if (empty($_SESSION['user']['username'])) {
+    respond(401, ['success' => false, 'message' => 'Vous devez être connecté pour créer un compte.']);
+}
+
 $accountName = trim((string) ($input['accountName'] ?? ''));
 $accountType = $input['accountType'] ?? 'checking';
 $currency    = $input['currency'] ?? 'CAD';

@@ -199,7 +199,7 @@ require $projectRoot . '/views/layout/header.php';
         }
 
         try {
-            const res = await fetch('/src/DAL/newAccount.php', {
+            const res = await fetch('src/DAL/newAccount.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
@@ -274,7 +274,7 @@ require $projectRoot . '/views/layout/header.php';
         }
 
         try {
-            const res = await fetch('/src/DAL/updateAccountMoney.php', {
+            const res = await fetch('src/DAL/updateAccountMoney.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ accountName, amount, mode }),

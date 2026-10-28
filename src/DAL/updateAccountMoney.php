@@ -14,14 +14,24 @@ if (!is_array($input)) {
     respond(400, ['success' => false, 'message' => 'Requête invalide']);
 }
 
-$accName = $input['accountName'];
-$amount    = $input['amount'];   
-$mode      = $input['mode'];   
+if (empty($_SESSION['user']['username'])) {
+    respond(401, ['success' => false, 'message' => 'Vous devez être connecté pour effectuer cette opération.']);
+}
 
-if (!in_array($mode, ['add', 'remove'], true) || !$accName || !$amount || $amount <= 0) {
+$accName = trim((string) ($input['accountName'] ?? ''));
+$amount = $input['amount'] ?? null;
+$mode = $input['mode'] ?? '';
+
+if (
+    !in_array($mode, ['add', 'remove'], true)
+    || $accName === ''
+    || !is_numeric($amount)
+    || (float) $amount <= 0
+) {
     respond(422, ['success' => false, 'message' => 'Remplissez au complet le formulaire']);
 }
 
+$amount = (float) $amount;
 
 try {
     $dal = new AccountDAL();

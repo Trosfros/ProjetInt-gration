@@ -2,6 +2,26 @@ CREATE DATABASE IF NOT EXISTS bdnovabank;
 
 USE bdnovabank;
 
+DROP PROCEDURE IF EXISTS addUser;
+DROP PROCEDURE IF EXISTS addStock;
+DROP PROCEDURE IF EXISTS addCrypto;
+DROP PROCEDURE IF EXISTS BuyStockInvestment;
+DROP PROCEDURE IF EXISTS SellStockInvestment;
+DROP PROCEDURE IF EXISTS TOGGLE_STOCK_FAVORITE;
+DROP PROCEDURE IF EXISTS updatePassword;
+DROP PROCEDURE IF EXISTS GetUserStockInvestments;
+DROP PROCEDURE IF EXISTS updateUserAvatar;
+DROP PROCEDURE IF EXISTS createAccount;
+DROP PROCEDURE IF EXISTS deleteAccount;
+DROP PROCEDURE IF EXISTS AddMoneyToAccount;
+DROP PROCEDURE IF EXISTS RemoveMoneyFromAccount;
+DROP PROCEDURE IF EXISTS GetEducationModules;
+DROP PROCEDURE IF EXISTS GetEducationModule;
+DROP PROCEDURE IF EXISTS StartEducationModule;
+DROP PROCEDURE IF EXISTS RecordEducationQuizAnswer;
+DROP FUNCTION IF EXISTS verifyUser;
+DROP FUNCTION IF EXISTS verifyUserEmail;
+
 DELIMITER //
 
 CREATE PROCEDURE addUser(
@@ -64,54 +84,63 @@ END //
 CREATE PROCEDURE BuyStockInvestment(
     IN pidUser INT,
     IN pidStock INT,
-    IN pAmount DECIMAL(65,2)
+    IN pAmount DECIMAL(65,8)
 )
 BEGIN
     DECLARE vBalance DECIMAL(65,2);
     DECLARE vPrice DECIMAL(65,2);
     DECLARE vTotal DECIMAL(65,2);
-    DECLARE vExisting DECIMAL(65,2);
+    DECLARE vInvestId INT DEFAULT NULL;
+    DECLARE vExistingShares DECIMAL(65,8) DEFAULT 0;
+    DECLARE vExistingInvestment DECIMAL(65,2) DEFAULT 0;
     
     IF pidUser IS NULL OR pidStock IS NULL OR pAmount IS NULL OR pAmount <= 0 THEN
         SIGNAL SQLSTATE '45000'
         SET MESSAGE_TEXT = 'Invalid investment parameters.';
     END IF;
 
+    START TRANSACTION;
+
     SELECT Balance INTO vBalance FROM `User` WHERE idUser = pidUser FOR UPDATE;
     SELECT LastPrice INTO vPrice FROM `Stock` WHERE idStock = pidStock FOR UPDATE;
 
     IF vBalance IS NULL THEN
+        ROLLBACK;
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'User not found.';
     END IF;
 
-    IF vPrice IS NULL THEN
+    IF vPrice IS NULL OR vPrice <= 0 THEN
+        ROLLBACK;
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Stock not found or price is invalid.';
     END IF;
 
     SET vTotal = vPrice * pAmount;
 
     IF vBalance < vTotal THEN
+        ROLLBACK;
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Insufficient balance.';
     END IF;
-
-    START TRANSACTION;
 
     UPDATE `User`
     SET Balance = Balance - vTotal
     WHERE idUser = pidUser;
     
-    SELECT Investement INTO vExisting
+    SELECT idInvest, Shares, Investement
+    INTO vInvestId, vExistingShares, vExistingInvestment
     FROM `StockInvest`
     WHERE idUser = pidUser AND idStock = pidStock
+    ORDER BY idInvest
+    LIMIT 1
     FOR UPDATE;
  
-    IF vExisting IS NULL THEN
-        INSERT INTO `StockInvest` (idStock, idUser, Investement)
-        VALUES (pidStock, pidUser, vTotal);
+    IF vInvestId IS NULL THEN
+        INSERT INTO `StockInvest` (idStock, idUser, Investement, Shares)
+        VALUES (pidStock, pidUser, vTotal, pAmount);
     ELSE
         UPDATE `StockInvest`
-        SET Investement = Investement + vTotal
-        WHERE idUser = pidUser AND idStock = pidStock;
+        SET Investement = vExistingInvestment + vTotal,
+            Shares = vExistingShares + pAmount
+        WHERE idInvest = vInvestId;
     END IF;
 
     COMMIT;
@@ -120,54 +149,70 @@ END //
 CREATE PROCEDURE SellStockInvestment(
     IN pidUser INT,
     IN pidStock INT,
-    IN pAmount DECIMAL(65,2)
+    IN pAmount DECIMAL(65,8)
 )
 BEGIN
-    DECLARE vBalance DECIMAL(65,2);
+    DECLARE vUserId INT DEFAULT NULL;
     DECLARE vPrice DECIMAL(65,2);
     DECLARE vTotal DECIMAL(65,2);
-    DECLARE vHeld DECIMAL(65,2);
+    DECLARE vInvestId INT DEFAULT NULL;
+    DECLARE vHeldShares DECIMAL(65,8) DEFAULT 0;
+    DECLARE vHeldInvestment DECIMAL(65,2) DEFAULT 0;
+    DECLARE vSoldInvestment DECIMAL(65,2);
 
     IF pidUser IS NULL OR pidStock IS NULL OR pAmount IS NULL OR pAmount <= 0 THEN
         SIGNAL SQLSTATE '45000'
         SET MESSAGE_TEXT = 'Invalid investment parameters.';
     END IF;
 
-    SELECT Balance INTO vBalance FROM `User` WHERE idUser = pidUser FOR UPDATE;
+    START TRANSACTION;
+
+    SELECT idUser INTO vUserId
+    FROM `User`
+    WHERE idUser = pidUser
+    FOR UPDATE;
+
     SELECT LastPrice INTO vPrice FROM `Stock` WHERE idStock = pidStock FOR UPDATE;
 
-    IF vBalance IS NULL THEN
+    IF vUserId IS NULL THEN
+        ROLLBACK;
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'User not found.';
     END IF;
 
-    IF vPrice IS NULL THEN
+    IF vPrice IS NULL OR vPrice <= 0 THEN
+        ROLLBACK;
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Stock not found or price is invalid.';
     END IF;
 
     SET vTotal = vPrice * pAmount;
 
-    START TRANSACTION;
-    
-    SELECT Investement INTO vHeld
+    SELECT idInvest, Shares, Investement
+    INTO vInvestId, vHeldShares, vHeldInvestment
     FROM `StockInvest`
     WHERE idUser = pidUser AND idStock = pidStock
+    ORDER BY idInvest
+    LIMIT 1
     FOR UPDATE;
  
-    IF vHeld IS NULL THEN
+    IF vInvestId IS NULL OR vHeldShares < pAmount THEN
         ROLLBACK;
-        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'You do not own any shares of this stock.';
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Insufficient shares to sell.';
     END IF;
+
+    SET vSoldInvestment = vHeldInvestment * pAmount / vHeldShares;
     
     UPDATE `User`
-    SET Balance = Balance + vTotal
+    SET Balance = Balance + vTotal,
+        RealizedPnl = RealizedPnl + vTotal - vSoldInvestment
     WHERE idUser = pidUser;
 
-    UPDATE StockInvest
-    SET Investement = Investement - vTotal
-    WHERE idUser = pidUser AND idStock = pidStock;
+    UPDATE `StockInvest`
+    SET Investement = GREATEST(0, vHeldInvestment - vSoldInvestment),
+        Shares = GREATEST(0, vHeldShares - pAmount)
+    WHERE idInvest = vInvestId;
     
-    DELETE FROM StockInvest 
-    WHERE idUser = pidUser AND idStock = pidStock AND Investement <= 0;
+    DELETE FROM `StockInvest`
+    WHERE idInvest = vInvestId AND Shares <= 0;
 
     COMMIT;
 END //
@@ -217,9 +262,9 @@ CREATE PROCEDURE GetUserStockInvestments(
     IN pChange DECIMAL(65,2)
 )
 BEGIN
-    SELECT 
+    SELECT
         si.idInvest, si.IdUser, si.idStock,
-        si.Investement AS AmountInvested,
+        si.Shares, si.Investement AS AmountInvested,
         s.Name AS StockName, s.LastPrice, s.Change
     FROM `StockInvest` si
     INNER JOIN `Stock` s ON si.idStock = s.idStock
@@ -254,10 +299,10 @@ BEGIN
     SET vAccountNumber = REPLACE(UUID(), '-', '');
 
     INSERT INTO `Account`
-      (idUser, Money, AccountName, AccountNumber, AccountType, Currency, Status)
+      (idUser, Money, AccountName, AccountNumber, AccountType, Currency)
     VALUES
       (PuserId, 0, paccountName, vAccountNumber,
-       COALESCE(accountType, 'checking'), COALESCE(currency, 'CAD'), 'active');
+       COALESCE(accountType, 'checking'), COALESCE(currency, 'CAD'));
 END //
 
 CREATE PROCEDURE deleteAccount(
@@ -275,7 +320,7 @@ BEGIN
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Account not found.';
     END IF;
 
-    IF vStatus = 'Fermée' THEN
+    IF vStatus IN ('closed', 'Fermée') THEN
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Account is already closed.';
     END IF;
 
@@ -313,7 +358,7 @@ BEGIN
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Account not found.';
     END IF;
 
-    IF vStatus != 'actif' THEN
+    IF vStatus NOT IN ('active', 'actif') THEN
         ROLLBACK;
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Account is not active.';
     END IF;
@@ -355,7 +400,7 @@ BEGIN
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Account not found.';
     END IF;
 
-    IF vStatus != 'actif' THEN
+    IF vStatus NOT IN ('active', 'actif') THEN
         ROLLBACK;
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Account is not active.';
     END IF;

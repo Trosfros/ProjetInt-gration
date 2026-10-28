@@ -14,12 +14,30 @@ CREATE TABLE IF NOT EXISTS `User` (
   `Password` VARCHAR(255) NOT NULL,
   `Balance` DECIMAL(65,2) NULL DEFAULT 1500,
   `RealizedPnl` decimal(65,2) NOT NULL DEFAULT 0.00,
-  PRIMARY KEY (`idUser`)
+  PRIMARY KEY (`idUser`),
+  UNIQUE KEY `uniq_alias` (`Alias`),
+  UNIQUE KEY `uniq_email` (`Description`)
 );
 
-ALTER TABLE `User`
-  ADD UNIQUE KEY `uniq_alias` (`Alias`),
-  ADD UNIQUE KEY `uniq_email` (`Description`);
+SET @add_alias_index = IF(
+  (SELECT COUNT(*) FROM information_schema.statistics
+   WHERE table_schema = DATABASE() AND table_name = 'User' AND index_name = 'uniq_alias') = 0,
+  'ALTER TABLE `User` ADD UNIQUE KEY `uniq_alias` (`Alias`)',
+  'SELECT 1'
+);
+PREPARE add_alias_index_stmt FROM @add_alias_index;
+EXECUTE add_alias_index_stmt;
+DEALLOCATE PREPARE add_alias_index_stmt;
+
+SET @add_email_index = IF(
+  (SELECT COUNT(*) FROM information_schema.statistics
+   WHERE table_schema = DATABASE() AND table_name = 'User' AND index_name = 'uniq_email') = 0,
+  'ALTER TABLE `User` ADD UNIQUE KEY `uniq_email` (`Description`)',
+  'SELECT 1'
+);
+PREPARE add_email_index_stmt FROM @add_email_index;
+EXECUTE add_email_index_stmt;
+DEALLOCATE PREPARE add_email_index_stmt;
 
 CREATE TABLE IF NOT EXISTS `Stock` (
   `idStock` INT NOT NULL AUTO_INCREMENT,
@@ -34,6 +52,7 @@ CREATE TABLE IF NOT EXISTS `StockInvest` (
   `idStock` INT NOT NULL,
   `IdUser` INT NOT NULL,
   `Investement` DECIMAL(65,2) NOT NULL,
+  `Shares` DECIMAL(65,8) NOT NULL DEFAULT 0,
   PRIMARY KEY (`idInvest`),
   INDEX `FK_idStock_idx` (`idStock`),
   INDEX `FK_idUser_idx` (`IdUser`),
@@ -48,6 +67,23 @@ CREATE TABLE IF NOT EXISTS `StockInvest` (
     ON DELETE NO ACTION
     ON UPDATE NO ACTION
 );
+
+SET @add_stock_shares_column = IF(
+  (SELECT COUNT(*) FROM information_schema.columns
+   WHERE table_schema = DATABASE() AND table_name = 'StockInvest' AND column_name = 'Shares') = 0,
+  'ALTER TABLE `StockInvest` ADD COLUMN `Shares` DECIMAL(65,8) NOT NULL DEFAULT 0 AFTER `Investement`',
+  'SELECT 1'
+);
+PREPARE add_stock_shares_column_stmt FROM @add_stock_shares_column;
+EXECUTE add_stock_shares_column_stmt;
+DEALLOCATE PREPARE add_stock_shares_column_stmt;
+
+UPDATE `StockInvest` si
+INNER JOIN `Stock` s ON s.idStock = si.idStock
+SET si.Shares = ROUND(si.Investement / s.LastPrice, 8)
+WHERE si.Shares = 0
+  AND si.Investement > 0
+  AND s.LastPrice > 0;
 
 CREATE TABLE IF NOT EXISTS `StockFavorite` (
   `idFavorite` INT NOT NULL AUTO_INCREMENT,
@@ -108,7 +144,7 @@ CREATE TABLE IF NOT EXISTS `Account` (
   `idUser` INT NOT NULL,
   `AccountNumber` VARCHAR(34) NOT NULL,
   `AccountType` ENUM('checking','savings','investment') NOT NULL DEFAULT 'checking',
-  `Status` ENUM('actif','Gelée','Fermée') NOT NULL DEFAULT 'actif',
+  `Status` ENUM('active','frozen','closed') NOT NULL DEFAULT 'active',
   `Currency` CHAR(3) NOT NULL DEFAULT 'CAD',
   `Money` DECIMAL(15,2) NOT NULL DEFAULT 0.00,
   `OverdraftLimit` DECIMAL(15,2) NOT NULL DEFAULT 0.00,
@@ -125,6 +161,20 @@ CREATE TABLE IF NOT EXISTS `Account` (
     ON UPDATE CASCADE,
   CONSTRAINT `chk_money_overdraft` CHECK (`Money` >= (-1 * `OverdraftLimit`))
 );
+
+ALTER TABLE `Account`
+  MODIFY `Status` ENUM('actif','Gelée','Fermée','active','frozen','closed') NOT NULL DEFAULT 'active';
+
+UPDATE `Account`
+SET `Status` = CASE `Status`
+  WHEN 'actif' THEN 'active'
+  WHEN 'Gelée' THEN 'frozen'
+  WHEN 'Fermée' THEN 'closed'
+  ELSE `Status`
+END;
+
+ALTER TABLE `Account`
+  MODIFY `Status` ENUM('active','frozen','closed') NOT NULL DEFAULT 'active';
 
 USE bdnovabank;
 
