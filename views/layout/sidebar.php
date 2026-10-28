@@ -58,7 +58,7 @@
       </span>
       <span>Cartes</span>
     </a>
-    <a class="sidebar-link" href="index.php">
+    <a class="sidebar-link<?= ($activePage ?? '') === 'history' ? ' active' : '' ?>" href="index.php?action=history"<?= ($activePage ?? '') === 'history' ? ' aria-current="page"' : '' ?>>
       <span class="sidebar-icon">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 7v5l3 3M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>
       </span>

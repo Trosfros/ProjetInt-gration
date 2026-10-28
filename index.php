@@ -88,6 +88,16 @@ else if ($action === 'accounts') {
     require __DIR__ . '/src/Models/AccountModel.php';
     exit;
 }
+else if ($action === 'history') {
+    if (!$isLoggedIn) {
+        $_SESSION['redirect_after_login'] = $action;
+        header('Location: index.php?action=loginPage');
+        exit;
+    }
+
+    require __DIR__ . '/src/Models/history.php';
+    exit;
+}
 else if ($action === 'education') {
     if (!$isLoggedIn) {
         $_SESSION['redirect_after_login'] = 'education';
@@ -148,7 +158,8 @@ else if ($_SERVER['REQUEST_METHOD'] === 'POST' &&$action === 'login') {
             ];
             $redirectAfterLogin = $_SESSION['redirect_after_login'] ?? null;
             unset($_SESSION['redirect_after_login']);
-            header('Location: ' . ($redirectAfterLogin === 'education' ? 'index.php?action=education' : 'index.php'));
+            $redirectAction = in_array($redirectAfterLogin, ['education', 'history'], true) ? $redirectAfterLogin : '';
+            header('Location: ' . ($redirectAction !== '' ? 'index.php?action=' . $redirectAction : 'index.php'));
             exit;
         }
 

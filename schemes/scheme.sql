@@ -176,6 +176,23 @@ END;
 ALTER TABLE `Account`
   MODIFY `Status` ENUM('active','frozen','closed') NOT NULL DEFAULT 'active';
 
+CREATE TABLE IF NOT EXISTS `BankTransaction` (
+  `idTransaction` INT NOT NULL AUTO_INCREMENT,
+  `idUser` INT NOT NULL,
+  `TransactionType` ENUM('deposit','withdrawal','purchase','sale') NOT NULL,
+  `Description` VARCHAR(255) NOT NULL,
+  `Amount` DECIMAL(15,2) NOT NULL,
+  `Currency` CHAR(3) NOT NULL DEFAULT 'CAD',
+  `CreatedAt` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`idTransaction`),
+  INDEX `idx_bank_transaction_user_date` (`idUser`, `CreatedAt`),
+  CONSTRAINT `FK_BankTransaction_User`
+    FOREIGN KEY (`idUser`)
+    REFERENCES `User` (`idUser`)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE
+);
+
 USE bdnovabank;
 
 -- 1. Table des Modules (Catégories / Chapitres)

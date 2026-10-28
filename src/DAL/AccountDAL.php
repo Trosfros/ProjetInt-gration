@@ -1,6 +1,6 @@
 <?php
 require_once dirname(__DIR__, 2) . "/configs/database.php";
-require_once dirname(__DIR__, 2) . "/vendor/autoload.php";
+require_once dirname(__DIR__, 2) . "/src/Models/TransactionModel.php";
 
 class AccountDAL
 {
@@ -41,6 +41,7 @@ class AccountDAL
         }
         $idAccount = $this->GetAccountID($accountName, $username);
         $idUser = $this->GetActiveUserID($username);
+        $transactionModel = new TransactionModel();
         try {
             $stmt = $this->pdo->prepare("CALL AddMoneyToAccount(?,?,?)");
               $stmt->bindParam(1, $idUser, PDO::PARAM_INT);
@@ -48,6 +49,7 @@ class AccountDAL
             $stmt->bindParam(3, $money);
             $stmt->execute();
 
+            $this->recordAccountTransaction($transactionModel, $idUser, $idAccount, 'deposit', $money);
             return ["success" => true, "message" => "Ajout de l'argent au compte avec succès!"];
         } catch (PDOException $e) {
             if ($e->errorInfo[0] == '45000') {
@@ -64,6 +66,7 @@ class AccountDAL
         }
         $idAccount = $this->GetAccountID($accountName, $username);
         $idUser = $this->GetActiveUserID($username);
+        $transactionModel = new TransactionModel();
         try {
             $stmt = $this->pdo->prepare("CALL RemoveMoneyFromAccount(?,?,?)");
             $stmt->bindParam(1, $idUser, PDO::PARAM_INT);
@@ -71,6 +74,7 @@ class AccountDAL
             $stmt->bindParam(3, $money);
             $stmt->execute();
 
+            $this->recordAccountTransaction($transactionModel, $idUser, $idAccount, 'withdrawal', $money);
             return ["success" => true, "message" => "Ajout de l'argent au compte avec succès!"];
         } catch (PDOException $e) {
             if ($e->errorInfo[0] == '45000') {
@@ -164,5 +168,26 @@ class AccountDAL
         }
 
         return (float) $result['Balance'];
+    }
+
+    private function recordAccountTransaction(TransactionModel $transactionModel, int $userId, int $accountId, string $type, float $amount): void
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT `AccountName`, `Currency` FROM `Account` WHERE `idAccount` = :accountId AND `idUser` = :userId'
+        );
+        $stmt->execute(['accountId' => $accountId, 'userId' => $userId]);
+        $account = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$account) {
+            throw new RuntimeException('Le compte utilisé pour cette opération est introuvable.');
+        }
+
+        $labels = ['deposit' => 'Dépôt', 'withdrawal' => 'Retrait'];
+        $transactionModel->record(
+            $userId,
+            $type,
+            $labels[$type] . ' — ' . $account['AccountName'],
+            $amount,
+            (string) $account['Currency']
+        );
     }
 }
