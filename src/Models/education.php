@@ -86,7 +86,6 @@ $modules = [
 <section class="edu-container" aria-label="Académie NovaBank">
   <!-- En-tête -->
   <header class="edu-top">
-    <span class="edu-tag">Académie NovaBank</span>
     <h1>Parcours d'apprentissage</h1>
     <p>Consultez les notions clés puis validez vos acquis avec le mini-quiz avant de passer vos ordres en simulation.</p>
   </header>

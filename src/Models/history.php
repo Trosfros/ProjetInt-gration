@@ -103,7 +103,6 @@ require $projectRoot . '/views/layout/header.php';
                     </div>
                 <?php endif; ?>
             </section>
-            <p class="history-footnote">L’historique conserve les transactions effectuées depuis l’activation de cette fonctionnalité.</p>
         <?php endif; ?>
     </main>
 </div>
