@@ -323,11 +323,29 @@ if ($isLoggedIn && ($action === '' || $action === 'dashboard')) {
                     </p>
                 </header>
 
-                <section class="dashboard-summary-cards" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; margin-bottom: 30px;">
+                <section class="dashboard-summary-cards" id="dashboard-summary-cards" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; margin-bottom: 30px;">
                     <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 20px;">
-                        <span style="color: #94a3b8; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px;">Solde disponible</span>
-                        <div style="color: #38bdf8; font-size: 2rem; font-weight: 700; margin-top: 6px;">
-                            <?= $dashboardData === null ? '—' : htmlspecialchars(number_format($dashboardData['balance'], 2, ',', ' ') . ' $', ENT_QUOTES, 'UTF-8') ?>
+                        <div class="dashboard-balance-heading">
+                            <span style="color: #94a3b8; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px;">Solde disponible</span>
+                            <button
+                                class="balance-visibility-toggle"
+                                type="button"
+                                aria-label="Masquer les soldes et les investissements"
+                                aria-pressed="false"
+                                aria-controls="dashboard-summary-cards"
+                                data-privacy-storage-key="novabank-dashboard-privacy-<?= (int) $_SESSION['user']['id'] ?>"
+                                title="Masquer les soldes et les investissements"
+                            >
+                                <svg class="balance-eye-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                    <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"></path>
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                    <path class="balance-eye-slash" d="m4 4 16 16"></path>
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="dashboard-balance-value" id="dashboard-balance-value" style="color: #38bdf8; font-size: 2rem; font-weight: 700; margin-top: 6px;">
+                            <span class="privacy-value-visible"><?= $dashboardData === null ? '—' : htmlspecialchars(number_format($dashboardData['balance'], 2, ',', ' ') . ' $', ENT_QUOTES, 'UTF-8') ?></span>
+                            <span class="privacy-value-hidden" aria-label="Solde masqué" hidden>••••••</span>
                         </div>
                         <span style="color: #94a3b8; font-size: 0.85rem; font-weight: 500;">Solde actuel du compte</span>
                     </div>
@@ -335,23 +353,22 @@ if ($isLoggedIn && ($action === '' || $action === 'dashboard')) {
                     <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 20px;">
                         <span style="color: #94a3b8; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px;">Investissements en cours</span>
                         <div style="color: #ffffff; font-size: 2rem; font-weight: 700; margin-top: 6px;">
-                            <?php if ($dashboardData === null || !$dashboardData['pricesAvailable']): ?>
-                                <?= $dashboardData === null ? '—' : 'Indisponible' ?>
-                            <?php else: ?>
-                                <?= htmlspecialchars(number_format($dashboardData['investmentValue'], 2, ',', ' ') . ' $', ENT_QUOTES, 'UTF-8') ?>
-                            <?php endif; ?>
+                            <span class="privacy-value-visible"><?php if ($dashboardData === null || !$dashboardData['pricesAvailable']): ?><?= $dashboardData === null ? '—' : 'Indisponible' ?><?php else: ?><?= htmlspecialchars(number_format($dashboardData['investmentValue'], 2, ',', ' ') . ' $', ENT_QUOTES, 'UTF-8') ?><?php endif; ?></span>
+                            <span class="privacy-value-hidden" aria-label="Investissements masqués" hidden>••••••</span>
                         </div>
-                        <span style="color: #94a3b8; font-size: 0.85rem;">
+                        <span class="privacy-value-visible" style="color: #94a3b8; font-size: 0.85rem;">
                             <?= $dashboardData !== null && !$dashboardData['pricesAvailable'] ? 'Cours manquant pour une ou plusieurs positions' : 'Valeur actuelle des positions ouvertes' ?>
                         </span>
+                        <span class="privacy-value-hidden" style="color: #94a3b8; font-size: 0.85rem;" aria-label="Détails des investissements masqués" hidden>••••••</span>
                     </div>
 
                     <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 20px;">
                         <span style="color: #94a3b8; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px;">Performance des positions</span>
                         <div style="color: <?= $dashboardData !== null && $dashboardData['performance'] !== null && $dashboardData['performance'] < 0 ? '#f87171' : '#22c55e' ?>; font-size: 2rem; font-weight: 700; margin-top: 6px;">
-                            <?= $dashboardData === null || $dashboardData['performance'] === null ? '—' : htmlspecialchars(number_format($dashboardData['performance'], 2, ',', ' ') . ' %', ENT_QUOTES, 'UTF-8') ?>
+                            <span class="privacy-value-visible"><?= $dashboardData === null || $dashboardData['performance'] === null ? '—' : htmlspecialchars(number_format($dashboardData['performance'], 2, ',', ' ') . ' %', ENT_QUOTES, 'UTF-8') ?></span>
+                            <span class="privacy-value-hidden" aria-label="Performance masquée" hidden>••••••</span>
                         </div>
-                        <span style="color: #94a3b8; font-size: 0.85rem;">
+                        <span class="privacy-value-visible" style="color: #94a3b8; font-size: 0.85rem;">
                             <?php if ($dashboardError !== null): ?>
                                 <?= htmlspecialchars($dashboardError, ENT_QUOTES, 'UTF-8') ?>
                             <?php elseif ($dashboardData !== null && $dashboardData['unrealizedPnl'] !== null && $dashboardData['investedAmount'] > 0): ?>
@@ -362,8 +379,43 @@ if ($isLoggedIn && ($action === '' || $action === 'dashboard')) {
                                 Aucune position ouverte
                             <?php endif; ?>
                         </span>
+                        <span class="privacy-value-hidden" style="color: #94a3b8; font-size: 0.85rem;" aria-label="Détails de performance masqués" hidden>••••••</span>
                     </div>
                 </section>
+
+                <script>
+                    const setDashboardPrivacy = (toggle, isHidden) => {
+                        const summary = document.getElementById(toggle.getAttribute('aria-controls'));
+                        summary.querySelectorAll('.privacy-value-visible').forEach((value) => {
+                            value.hidden = isHidden;
+                        });
+                        summary.querySelectorAll('.privacy-value-hidden').forEach((value) => {
+                            value.hidden = !isHidden;
+                        });
+                        toggle.setAttribute('aria-pressed', String(isHidden));
+                        toggle.setAttribute('aria-label', isHidden ? 'Afficher les soldes et les investissements' : 'Masquer les soldes et les investissements');
+                        toggle.setAttribute('title', isHidden ? 'Afficher les soldes et les investissements' : 'Masquer les soldes et les investissements');
+                    };
+
+                    document.querySelectorAll('.balance-visibility-toggle').forEach((toggle) => {
+                        const storageKey = toggle.getAttribute('data-privacy-storage-key');
+                        try {
+                            setDashboardPrivacy(toggle, localStorage.getItem(storageKey) === 'hidden');
+                        } catch (error) {
+                            setDashboardPrivacy(toggle, false);
+                        }
+
+                        toggle.addEventListener('click', () => {
+                            const isHidden = toggle.getAttribute('aria-pressed') !== 'true';
+                            setDashboardPrivacy(toggle, isHidden);
+                            try {
+                                localStorage.setItem(storageKey, isHidden ? 'hidden' : 'visible');
+                            } catch (error) {
+                                // La visibilité reste active même si le navigateur bloque le stockage local.
+                            }
+                        });
+                    });
+                </script>
 
                 <section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
                     <div style="background: rgba(15, 23, 42, 0.5); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 22px;">

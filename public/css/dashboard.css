@@ -27,6 +27,63 @@
   padding: 1rem 0.9rem 0.8rem;
 }
 
+.dashboard-balance-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.balance-visibility-toggle {
+  display: inline-grid;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  place-items: center;
+  color: #94a3b8;
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: color 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+}
+
+.balance-visibility-toggle:hover,
+.balance-visibility-toggle:focus-visible {
+  color: #7dd3fc;
+  background: rgba(56, 189, 248, 0.1);
+  border-color: rgba(56, 189, 248, 0.45);
+}
+
+.balance-visibility-toggle:focus-visible {
+  outline: 2px solid #38bdf8;
+  outline-offset: 2px;
+}
+
+.balance-eye-icon {
+  display: block;
+  width: 19px;
+  height: 19px;
+  overflow: visible;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
+
+.balance-eye-slash {
+  display: none;
+}
+
+.balance-visibility-toggle[aria-pressed="true"] .balance-eye-slash {
+  display: block;
+}
+
+.dashboard-summary-cards [hidden] {
+  display: none;
+}
+
 .edu-container {
   width: 100%;
   max-width: 1100px;
