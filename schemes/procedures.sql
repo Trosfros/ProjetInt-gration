@@ -24,15 +24,12 @@ CREATE PROCEDURE addStock(
 )
 BEGIN
     IF pname IS NOT NULL AND plastprice IS NOT NULL AND pChange IS NOT NULL THEN
-        
         IF EXISTS (SELECT 1 FROM `Stock` WHERE Name = pname) THEN
-           
             UPDATE `Stock`
             SET LastPrice = plastprice,
                 `Change` = pChange
             WHERE Name = pname;
         ELSE
-            
             INSERT INTO `Stock` (Name, LastPrice, `Change`)
             VALUES (pname, plastprice, pChange);
         END IF;
@@ -54,28 +51,12 @@ CREATE PROCEDURE addCrypto(
 BEGIN
     IF pname IS NOT NULL AND pdescription IS NOT NULL AND pmarketCap IS NOT NULL AND ptotalSupply IS NOT NULL AND pmaxSupply IS NOT NULL AND pcirculatingSupply IS NOT NULL AND plogo IS NOT NULL AND plaunchDate IS NOT NULL AND pwebsite IS NOT NULL AND pproofType IS NOT NULL THEN
         INSERT INTO `Crypto` (
-            Name,
-            Description,
-            marketCap,
-            TotalSupply,
-            maxSupply,
-            CirculatingSupply,
-            Logo,
-            LaunchDate,
-            Website,
-            ProofType
+            Name, Description, marketCap, TotalSupply, maxSupply,
+            CirculatingSupply, Logo, LaunchDate, Website, ProofType
         )
         VALUES (
-            pname,
-            pdescription,
-            pmarketCap,
-            ptotalSupply,
-            pmaxSupply,
-            pcirculatingSupply,
-            plogo,
-            plaunchDate,
-            pwebsite,
-            pproofType
+            pname, pdescription, pmarketCap, ptotalSupply, pmaxSupply,
+            pcirculatingSupply, plogo, plaunchDate, pwebsite, pproofType
         );
     END IF;
 END //
@@ -90,38 +71,27 @@ BEGIN
     DECLARE vPrice DECIMAL(65,2);
     DECLARE vTotal DECIMAL(65,2);
     DECLARE vExisting DECIMAL(65,2);
+    
     IF pidUser IS NULL OR pidStock IS NULL OR pAmount IS NULL OR pAmount <= 0 THEN
         SIGNAL SQLSTATE '45000'
         SET MESSAGE_TEXT = 'Invalid investment parameters.';
     END IF;
 
-    SELECT Balance
-    INTO vBalance
-    FROM `User`
-    WHERE idUser = pidUser
-    FOR UPDATE;
-
-    SELECT LastPrice 
-    INTO vPrice
-    FROM `Stock`
-    WHERE idStock = pidStock
-    FOR UPDATE;
+    SELECT Balance INTO vBalance FROM `User` WHERE idUser = pidUser FOR UPDATE;
+    SELECT LastPrice INTO vPrice FROM `Stock` WHERE idStock = pidStock FOR UPDATE;
 
     IF vBalance IS NULL THEN
-        SIGNAL SQLSTATE '45000'
-        SET MESSAGE_TEXT = 'User not found.';
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'User not found.';
     END IF;
 
     IF vPrice IS NULL THEN
-        SIGNAL SQLSTATE '45000'
-        SET MESSAGE_TEXT = 'Stock not found or price is invalid.';
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Stock not found or price is invalid.';
     END IF;
 
     SET vTotal = vPrice * pAmount;
 
     IF vBalance < vTotal THEN
-        SIGNAL SQLSTATE '45000'
-        SET MESSAGE_TEXT = 'Insufficient balance.';
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Insufficient balance.';
     END IF;
 
     START TRANSACTION;
@@ -130,8 +100,6 @@ BEGIN
     SET Balance = Balance - vTotal
     WHERE idUser = pidUser;
     
- 
-    -- Does the user already hold a position in this stock?
     SELECT Investement INTO vExisting
     FROM `StockInvest`
     WHERE idUser = pidUser AND idStock = pidStock
@@ -145,11 +113,9 @@ BEGIN
         SET Investement = Investement + vTotal
         WHERE idUser = pidUser AND idStock = pidStock;
     END IF;
-    
 
     COMMIT;
 END //
-
 
 CREATE PROCEDURE SellStockInvestment(
     IN pidUser INT,
@@ -157,7 +123,6 @@ CREATE PROCEDURE SellStockInvestment(
     IN pAmount DECIMAL(65,2)
 )
 BEGIN
-
     DECLARE vBalance DECIMAL(65,2);
     DECLARE vPrice DECIMAL(65,2);
     DECLARE vTotal DECIMAL(65,2);
@@ -168,32 +133,21 @@ BEGIN
         SET MESSAGE_TEXT = 'Invalid investment parameters.';
     END IF;
 
-    SELECT Balance
-    INTO vBalance
-    FROM `User`
-    WHERE idUser = pidUser
-    FOR UPDATE;
-
-    SELECT LastPrice 
-    INTO vPrice
-    FROM `Stock`
-    WHERE idStock = pidStock
-    FOR UPDATE;
+    SELECT Balance INTO vBalance FROM `User` WHERE idUser = pidUser FOR UPDATE;
+    SELECT LastPrice INTO vPrice FROM `Stock` WHERE idStock = pidStock FOR UPDATE;
 
     IF vBalance IS NULL THEN
-        SIGNAL SQLSTATE '45000'
-        SET MESSAGE_TEXT = 'User not found.';
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'User not found.';
     END IF;
 
     IF vPrice IS NULL THEN
-        SIGNAL SQLSTATE '45000'
-        SET MESSAGE_TEXT = 'Stock not found or price is invalid.';
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Stock not found or price is invalid.';
     END IF;
 
     SET vTotal = vPrice * pAmount;
 
     START TRANSACTION;
-    -- added a small check that was missing
+    
     SELECT Investement INTO vHeld
     FROM `StockInvest`
     WHERE idUser = pidUser AND idStock = pidStock
@@ -203,15 +157,17 @@ BEGIN
         ROLLBACK;
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'You do not own any shares of this stock.';
     END IF;
+    
     UPDATE `User`
     SET Balance = Balance + vTotal
     WHERE idUser = pidUser;
 
-    Update StockInvest
-    Set Investement = Investement - vTotal
+    UPDATE StockInvest
+    SET Investement = Investement - vTotal
     WHERE idUser = pidUser AND idStock = pidStock;
+    
     DELETE FROM StockInvest 
-    where idUser = pidUser AND idStock = pidStock AND Investement <= 0;
+    WHERE idUser = pidUser AND idStock = pidStock AND Investement <= 0;
 
     COMMIT;
 END //
@@ -221,15 +177,12 @@ CREATE PROCEDURE TOGGLE_STOCK_FAVORITE(
     IN pidStock INT
 )
 BEGIN
-
     IF EXISTS (SELECT 1 FROM `StockFavorite` WHERE idStock = pidStock AND IdUser = pidUser) THEN
         DELETE FROM `StockFavorite` WHERE idStock = pidStock AND IdUser = pidUser;
     ELSE
         INSERT INTO `StockFavorite` (idStock, IdUser) VALUES (pidStock, pidUser);
     END IF;
-
 END //
-
 
 CREATE PROCEDURE updatePassword(
     IN pidUser INT,
@@ -258,7 +211,6 @@ BEGIN
     WHERE idUser = pidUser;
 END //
 
-
 CREATE PROCEDURE GetUserStockInvestments(
     IN pidUser INT,
     IN plastPrice DECIMAL(65,2),
@@ -266,20 +218,15 @@ CREATE PROCEDURE GetUserStockInvestments(
 )
 BEGIN
     SELECT 
-        si.idInvest,
-        si.IdUser,
-        si.idStock,
+        si.idInvest, si.IdUser, si.idStock,
         si.Investement AS AmountInvested,
-        s.Name AS StockName,
-        s.LastPrice,
-        s.Change
+        s.Name AS StockName, s.LastPrice, s.Change
     FROM `StockInvest` si
     INNER JOIN `Stock` s ON si.idStock = s.idStock
     WHERE si.IdUser = pidUser
       AND (plastPrice IS NULL OR s.LastPrice = plastPrice)
       AND (pChange IS NULL OR s.Change = pChange);
 END //
-
 
 CREATE PROCEDURE updateUserAvatar(
     IN pidUser INT,
@@ -288,7 +235,6 @@ CREATE PROCEDURE updateUserAvatar(
 BEGIN
     UPDATE `User` SET idAvatar = pidAvatar WHERE idUser = pidUser;
 END //
-DELIMITER //
 
 CREATE PROCEDURE createAccount(
     IN PuserId INT,
@@ -302,7 +248,7 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM `User` WHERE idUser = PuserId) THEN
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'User not found.';
     END IF;
-    if EXISTS (SELECT 1 FROM `User` WHERE idUser = PuserId and AccountName = paccountName) THEN
+    IF EXISTS (SELECT 1 FROM `User` WHERE idUser = PuserId AND AccountName = paccountName) THEN
          SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Cannot have 2 account with the same name under the same user';
     END IF;
     SET vAccountNumber = REPLACE(UUID(), '-', '');
@@ -338,7 +284,6 @@ BEGIN
         SET MESSAGE_TEXT = 'Cannot delete account if there is still money in it, please remove it from the account.';
     END IF;
 
-    
     UPDATE `Account`
     SET Status = 'closed', ClosedAt = CURRENT_TIMESTAMP
     WHERE idAccount = AccountId;
@@ -380,6 +325,7 @@ BEGIN
     UPDATE User 
     SET Balance = Balance - Ammount
     WHERE idUser = pidUser; 
+    
     COMMIT;
 END //
 
@@ -427,10 +373,9 @@ BEGIN
     UPDATE User 
     SET Balance = Balance + Ammount
     WHERE idUser = pidUser; 
+    
     COMMIT;
 END //
-
-DELIMITER ;
 
 CREATE FUNCTION verifyUser(
     palias VARCHAR(45),
@@ -449,10 +394,9 @@ BEGIN
     RETURN userCount > 0;
 END //
 
-
 CREATE FUNCTION verifyUserEmail(
-    IN pidUser INT,
-    IN pToken VARCHAR(255)
+    pidUser INT,
+    pToken VARCHAR(255)
 )
 RETURNS TINYINT
 DETERMINISTIC
@@ -468,20 +412,12 @@ BEGIN
     RETURN vMatch > 0;
 END //
 
-
-
-
 CREATE PROCEDURE GetEducationModules(
     IN pidUser INT
 )
 BEGIN
     SELECT
-        m.idModule,
-        m.ModuleKey,
-        m.ModuleNumber,
-        m.Title,
-        m.Badge,
-        m.Summary,
+        m.idModule, m.ModuleKey, m.ModuleNumber, m.Title, m.Badge, m.Summary,
         COALESCE(p.IsCompleted, 0) AS IsCompleted,
         COALESCE(p.BestScore, 0.00) AS BestScore,
         COALESCE(p.AttemptCount, 0) AS AttemptCount
@@ -491,10 +427,6 @@ BEGIN
     WHERE m.IsPublished = 1
     ORDER BY m.DisplayOrder, m.idModule;
 END //
-
-
-
-
 
 CREATE PROCEDURE GetEducationModule(
     IN pidModule INT,
@@ -523,9 +455,6 @@ BEGIN
     WHERE idUser = pidUser AND idModule = pidModule;
 END //
 
-
-
-
 CREATE PROCEDURE StartEducationModule(
     IN pidUser INT,
     IN pidModule INT
@@ -542,9 +471,6 @@ BEGIN
     VALUES (pidUser, pidModule, CURRENT_TIMESTAMP)
     ON DUPLICATE KEY UPDATE StartedAt = COALESCE(StartedAt, CURRENT_TIMESTAMP);
 END //
-
-
-
 
 CREATE PROCEDURE RecordEducationQuizAnswer(
     IN pidUser INT,
