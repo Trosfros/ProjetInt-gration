@@ -35,7 +35,7 @@ class AccountDAL
     }
     public function AddMoneyToAccount(string $accountName, string $username, float $money): array
     {
-        
+
         if ($money < 0) {
             return ["success" => false, "message" => "Ne peut pas ajouter 0 dollar au compte ou même moins"];
         }
@@ -44,7 +44,7 @@ class AccountDAL
         $transactionModel = new TransactionModel();
         try {
             $stmt = $this->pdo->prepare("CALL AddMoneyToAccount(?,?,?)");
-              $stmt->bindParam(1, $idUser, PDO::PARAM_INT);
+            $stmt->bindParam(1, $idUser, PDO::PARAM_INT);
             $stmt->bindParam(2, $idAccount, PDO::PARAM_INT);
             $stmt->bindParam(3, $money);
             $stmt->execute();
@@ -60,7 +60,7 @@ class AccountDAL
     }
     public function RemoveMoneyFromAccount(string $accountName, string $username, float $money): array
     {
-       
+
         if ($money < 0) {
             return ["success" => false, "message" => "Ne peut pas retirer un montant négatif de dollar au compte"];
         }
@@ -98,13 +98,15 @@ class AccountDAL
         }
 
     }
-    public function DeleteAccount(int $accountId): array
+    public function GetAccount(int $accountId, string $username): array
     {
+         $idUser = $this->GetActiveUserID($username);
         try {
-            $stmt = $this->pdo->prepare("CALL deleteAccount(?)");
-            $stmt->bindParam(1, $accountId, PDO::PARAM_INT);
+            $stmt = $this->pdo->prepare("Select * from Account where idUser =? and idAccount = ? ");
+            $stmt->bindParam(1, $idUser, PDO::PARAM_INT);
+            $stmt->bindParam(2, $accountId, PDO::PARAM_INT);
             $stmt->execute();
-            return ['success' => true, 'message' => "Compte suprimmé avec succès... "];
+            return $stmt->fetch();
         } catch (PDOException $e) {
             if ($e->errorInfo[0] == '450000') {
                 return ['success' => false, 'message' => $e->errorInfo[2]];
@@ -113,6 +115,26 @@ class AccountDAL
             throw $e;
         }
     }
+   public function DeleteAccount(int $accountId, string $username): array
+{
+    try {
+        $acc = $this->GetAccount($accountId, $username);
+
+        if ((float) $acc["Money"] > 0) {
+            return ['success' => false, 'message' => "Vous ne pouvez pas fermer un compte s'il reste de l'argent dedans."];
+        }
+
+        $stmt = $this->pdo->prepare("CALL deleteAccount(?)");
+        $stmt->bindParam(1, $accountId, PDO::PARAM_INT);
+        $stmt->execute();
+        return ['success' => true, 'message' => "Compte fermé avec succès."];
+    } catch (PDOException $e) {
+        if ($e->errorInfo[0] === '45000') {
+            return ['success' => false, 'message' => $e->errorInfo[2]];
+        }
+        throw $e;
+    }
+}
 
 
 
@@ -145,14 +167,13 @@ class AccountDAL
     public function GetAccounts(string $username): array
     {
         $idUser = $this->GetActiveUserID($username);
-        $stmt = $this->pdo->prepare("SELECT * FROM Account WHERE idUser = ?");
+        $stmt = $this->pdo->prepare("SELECT * FROM Account WHERE idUser = ? AND Status != 'closed'");
         $stmt->bindParam(1, $idUser, PDO::PARAM_INT);
         $stmt->execute();
         $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
         $stmt->closeCursor();
 
         return $result;
-
     }
     public function GetUserBalance(string $username): float
     {

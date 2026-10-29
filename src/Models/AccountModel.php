@@ -39,131 +39,158 @@ require $projectRoot . '/views/layout/header.php';
                 <div class="user-balance">
                     <p class="user-balance-label">Balance</p>
                     <h1 class="user-balance-amount">$<?= number_format($userBalance, 2) ?></h1>
-                </div >
+                </div>
             </header>
-                <section class="account-grid">
-                    <div class="account-card account-card-add" onclick="openNewAccountModal()" role="button"
-                        tabindex="0">
-                        <span class="account-add-icon">+</span>
-                        <span class="account-add-label">Nouveau compte</span>
-                    </div>
-                    <?php foreach ($accountsToShow as $account): ?>
-                        <?php
-                        $status = $account['Status'] ?? 'active';
-                        $balance = (float) ($account['Money'] ?? 0);
-                        $currency = $account['Currency'] ?? 'CAD';
-                        $rawNumber = (string) ($account['AccountNumber'] ?? '');
-                        $maskedNumber = $rawNumber !== '' ? '•••• ' . substr($rawNumber, -4) : '—';
-                        ?>
-                        <div class="account-card">
-                            <div class="account-card-header">
-                                <div>
-                                    <h3 class="account-name"><?= htmlspecialchars($account['AccountName']) ?></h3>
-                                    <span
-                                        class="account-type"><?= htmlspecialchars($account['AccountType'] ?? 'checking') ?></span>
-                                </div>
-                                <span class="account-status account-status-<?= htmlspecialchars($status) ?>">
-                                    <?= htmlspecialchars(ucfirst($status)) ?>
-                                </span>
-                            </div>
-
-                            <div class="account-balance-block">
-                                <span class="account-balance-label">Solde</span>
-                                <span class="account-balance <?= $balance < 0 ? 'is-negative' : '' ?>">
-                                    <?= htmlspecialchars($currency) ?>     <?= number_format($balance, 2) ?>
-                                </span>
-                            </div>
-
-                            <div class="account-meta">
-                                <span class="account-number">Compte <?= htmlspecialchars($maskedNumber) ?></span>
-                            </div>
-
-                            <div class="account-actions">
-                                <button type="button" class="btn-account btn-account-add"
-                                    onclick="openMoneyModal( 'add', '<?= htmlspecialchars($account['AccountName'], ENT_QUOTES) ?>')">
-                                    Ajouter de l'argent
-                                </button>
-                                <button type="button" class="btn-account btn-account-remove"
-                                    onclick="openMoneyModal( 'remove', '<?= htmlspecialchars($account['AccountName'], ENT_QUOTES) ?>')">
-                                    Retirer de l'argent
-                                </button>
-                            </div>
-                        </div>
-                    <?php endforeach; ?>
-                </section>
-                <div id="newAccountOverlay" class="modal-overlay" hidden>
-                    <div class="modal-card">
-                        <div class="modal-header">
-                            <h2>Nouveau compte</h2>
-                            <button type="button" class="modal-close" onclick="closeNewAccountModal()"
-                                aria-label="Fermer">&times;</button>
-                        </div>
-
-                        <form id="newAccountForm">
-                            <div class="modal-field">
-                                <label for="newAccountName">Nom du compte</label>
-                                <input type="text" id="newAccountName" name="accountName" class="trade-input" required
-                                    maxlength="50">
-                            </div>
-
-                            <div class="modal-field">
-                                <label for="newAccountType">Type de compte</label>
-                                <select id="newAccountType" name="accountType" class="trade-input">
-                                    <option value="checking">Chèque</option>
-                                    <option value="savings">Épargne</option>
-                                    <option value="investment">Investissement</option>
-                                </select>
-                            </div>
-
-                            <div class="modal-field">
-                                <label for="newAccountCurrency">Devise</label>
-                                <select id="newAccountCurrency" name="currency" class="trade-input">
-                                    <?// for the moment only these options are available for simplicity sake ?>
-                                    <option value="CAD">CAD</option>
-                                    <option value="USD">USD</option>
-                                </select>
-                            </div>
-
-                            <p id="newAccountFeedback" class="trade-feedback" hidden></p>
-
-                            <div class="modal-actions">
-                                <button type="button" class="btn-account"
-                                    onclick="closeNewAccountModal()">Annuler</button>
-                                <button type="submit" class="btn-account btn-account-add">Créer</button>
-                            </div>
-                        </form>
-                    </div>
+            <section class="account-grid">
+                <div class="account-card account-card-add" onclick="openNewAccountModal()" role="button" tabindex="0">
+                    <span class="account-add-icon">+</span>
+                    <span class="account-add-label">Nouveau compte</span>
                 </div>
-                <div id="moneyOverlay" class="modal-overlay" hidden>
-                    <div class="modal-card">
-                        <div class="modal-header">
-                            <h2 id="moneyModalTitle">Ajouter de l'argent</h2>
-                            <button type="button" class="modal-close" onclick="closeMoneyModal()"
-                                aria-label="Fermer">&times;</button>
+                <?php foreach ($accountsToShow as $account): ?>
+                    <?php
+                    $status = $account['Status'] ?? 'active';
+                    $balance = (float) ($account['Money'] ?? 0);
+                    $currency = $account['Currency'] ?? 'CAD';
+                    $rawNumber = (string) ($account['AccountNumber'] ?? '');
+                    $maskedNumber = $rawNumber !== '' ? '•••• ' . substr($rawNumber, -4) : '—';
+                    ?>
+                    <div class="account-card">
+                        <div class="account-card-header">
+                            <div>
+                                <h3 class="account-name"><?= htmlspecialchars($account['AccountName']) ?></h3>
+                                <span
+                                    class="account-type"><?= htmlspecialchars($account['AccountType'] ?? 'checking') ?></span>
+                            </div>
+                            <span class="account-status account-status-<?= htmlspecialchars($status) ?>">
+                                <?= htmlspecialchars(ucfirst($status)) ?>
+                            </span>
                         </div>
 
-                        <form id="moneyForm">
-                            <input type="hidden" id="moneyAccountName" name="accountName">
-                            <input type="hidden" id="moneyMode" name="mode">
+                        <div class="account-balance-block">
+                            <span class="account-balance-label">Solde</span>
+                            <span class="account-balance <?= $balance < 0 ? 'is-negative' : '' ?>">
+                                <?= htmlspecialchars($currency) ?>     <?= number_format($balance, 2) ?>
+                            </span>
+                        </div>
 
-                            <p id="moneyAccountLabel" class="account-meta" style="margin: 0 0 14px;"></p>
+                        <div class="account-meta">
+                            <span class="account-number">Compte <?= htmlspecialchars($maskedNumber) ?></span>
+                        </div>
 
-                            <div class="modal-field">
-                                <label for="moneyAmount">Montant</label>
-                                <input type="number" id="moneyAmount" name="amount" class="trade-input" step="0.01"
-                                    min="0.01" required>
-                            </div>
+                        <div class="account-actions">
+                            <button type="button" class="btn-account btn-account-add"
+                                onclick="openMoneyModal( 'add', '<?= htmlspecialchars($account['AccountName'], ENT_QUOTES) ?>')">
+                                Ajouter de l'argent
+                            </button>
+                            <button type="button" class="btn-account btn-account-remove"
+                                onclick="openMoneyModal( 'remove', '<?= htmlspecialchars($account['AccountName'], ENT_QUOTES) ?>')">
+                                Retirer de l'argent
+                            </button>
+                        </div>
+                        <button type="button" class="btn-account btn-account-close"
+                            onclick="openCloseAccountModal(<?= (int) $account['idAccount'] ?>, '<?= htmlspecialchars($account['AccountName'], ENT_QUOTES) ?>')">
+                            Fermer le compte
+                        </button>
 
-                            <p id="moneyFeedback" class="trade-feedback" hidden></p>
-
-                            <div class="modal-actions">
-                                <button type="button" class="btn-account" onclick="closeMoneyModal()">Annuler</button>
-                                <button type="submit" id="moneySubmitBtn"
-                                    class="btn-account btn-account-add">Confirmer</button>
-                            </div>
-                        </form>
                     </div>
+                <?php endforeach; ?>
+            </section>
+            <div id="newAccountOverlay" class="modal-overlay" hidden>
+                <div class="modal-card">
+                    <div class="modal-header">
+                        <h2>Nouveau compte</h2>
+                        <button type="button" class="modal-close" onclick="closeNewAccountModal()"
+                            aria-label="Fermer">&times;</button>
+                    </div>
+
+                    <form id="newAccountForm">
+                        <div class="modal-field">
+                            <label for="newAccountName">Nom du compte</label>
+                            <input type="text" id="newAccountName" name="accountName" class="trade-input" required
+                                maxlength="50">
+                        </div>
+
+                        <div class="modal-field">
+                            <label for="newAccountType">Type de compte</label>
+                            <select id="newAccountType" name="accountType" class="trade-input">
+                                <option value="checking">Chèque</option>
+                                <option value="savings">Épargne</option>
+                                <option value="investment">Investissement</option>
+                            </select>
+                        </div>
+
+                        <div class="modal-field">
+                            <label for="newAccountCurrency">Devise</label>
+                            <select id="newAccountCurrency" name="currency" class="trade-input">
+                                <?// for the moment only these options are available for simplicity sake ?>
+                                <option value="CAD">CAD</option>
+                                <option value="USD">USD</option>
+                            </select>
+                        </div>
+
+                        <p id="newAccountFeedback" class="trade-feedback" hidden></p>
+
+                        <div class="modal-actions">
+                            <button type="button" class="btn-account" onclick="closeNewAccountModal()">Annuler</button>
+                            <button type="submit" class="btn-account btn-account-add">Créer</button>
+                        </div>
+                    </form>
                 </div>
+            </div>
+            <div id="moneyOverlay" class="modal-overlay" hidden>
+                <div class="modal-card">
+                    <div class="modal-header">
+                        <h2 id="moneyModalTitle">Ajouter de l'argent</h2>
+                        <button type="button" class="modal-close" onclick="closeMoneyModal()"
+                            aria-label="Fermer">&times;</button>
+                    </div>
+
+                    <form id="moneyForm">
+                        <input type="hidden" id="moneyAccountName" name="accountName">
+                        <input type="hidden" id="moneyMode" name="mode">
+
+                        <p id="moneyAccountLabel" class="account-meta" style="margin: 0 0 14px;"></p>
+
+                        <div class="modal-field">
+                            <label for="moneyAmount">Montant</label>
+                            <input type="number" id="moneyAmount" name="amount" class="trade-input" step="0.01"
+                                min="0.01" required>
+                        </div>
+
+                        <p id="moneyFeedback" class="trade-feedback" hidden></p>
+
+                        <div class="modal-actions">
+                            <button type="button" class="btn-account" onclick="closeMoneyModal()">Annuler</button>
+                            <button type="submit" id="moneySubmitBtn"
+                                class="btn-account btn-account-add">Confirmer</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <div id="closeAccountOverlay" class="modal-overlay" hidden>
+                <div class="modal-card">
+                    <div class="modal-header">
+                        <h2>Fermer le compte</h2>
+                        <button type="button" class="modal-close" onclick="closeCloseAccountModal()"
+                            aria-label="Fermer">&times;</button>
+                    </div>
+
+                    <form id="closeAccountForm">
+                        <input type="hidden" id="closeAccountId" name="idAccount">
+
+                        <p id="closeAccountMessage"
+                            style="color:#94a3b8; font-size:0.9rem; line-height:1.5; margin:0 0 18px;"></p>
+
+                        <p id="closeAccountFeedback" class="trade-feedback" hidden></p>
+
+                        <div class="modal-actions">
+                            <button type="button" class="btn-account"
+                                onclick="closeCloseAccountModal()">Annuler</button>
+                            <button type="submit" class="btn-account btn-account-remove">Confirmer la fermeture</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
     </main>
 </div>
 <script>
@@ -296,6 +323,52 @@ require $projectRoot . '/views/layout/header.php';
     });
     document.getElementById('moneyOverlay').addEventListener('click', function (e) {
         if (e.target === this) closeMoneyModal();
+    });
+    function openCloseAccountModal(idAccount, accountName) {
+        document.getElementById('closeAccountId').value = idAccount;
+        document.getElementById('closeAccountMessage').textContent =
+            `Êtes-vous sûr de vouloir fermer le compte "${accountName}" ? Cette action est irréversible.`;
+        document.getElementById('closeAccountOverlay').hidden = false;
+    }
+
+    function closeCloseAccountModal() {
+        document.getElementById('closeAccountOverlay').hidden = true;
+        const feedback = document.getElementById('closeAccountFeedback');
+        feedback.hidden = true;
+        feedback.classList.remove('is-success', 'is-error');
+    }
+
+    document.getElementById('closeAccountForm').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        const feedback = document.getElementById('closeAccountFeedback');
+        feedback.hidden = true;
+
+        const idAccount = parseInt(document.getElementById('closeAccountId').value, 10);
+
+        try {
+            const res = await fetch('src/DAL/closeAccount.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ idAccount }),
+            });
+            const data = await res.json();
+
+            feedback.textContent = data.message;
+            feedback.classList.add(data.success ? 'is-success' : 'is-error');
+            feedback.hidden = false;
+
+            if (data.success) {
+                setTimeout(() => window.location.reload(), 800);
+            }
+        } catch (err) {
+            feedback.textContent = 'Erreur réseau lors de la fermeture du compte.';
+            feedback.classList.add('is-error');
+            feedback.hidden = false;
+        }
+    });
+
+    document.getElementById('closeAccountOverlay').addEventListener('click', function (e) {
+        if (e.target === this) closeCloseAccountModal();
     });
 </script>
 <style>
