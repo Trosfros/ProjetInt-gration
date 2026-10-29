@@ -114,6 +114,78 @@ else if ($action === 'education') {
         header('Location: index.php?action=loginPage');
         exit;
     }
+
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        header('Content-Type: application/json; charset=utf-8');
+        require_once __DIR__ . '/src/Controllers/EducationController.php';
+
+        try {
+            $token = (string) ($_SERVER['HTTP_X_CSRF_TOKEN'] ?? '');
+            if (empty($_SESSION['education_csrf_token']) || !hash_equals($_SESSION['education_csrf_token'], $token)) {
+                http_response_code(403);
+                echo json_encode(['error' => 'Session expirée. Rechargez la page et réessayez.']);
+                exit;
+            }
+
+            $payload = json_decode(file_get_contents('php://input'), true, 512, JSON_THROW_ON_ERROR);
+            if (!is_array($payload)) {
+                throw new InvalidArgumentException('Données invalides.');
+            }
+
+            $pdo = getPDO();
+            $userId = (int) $_SESSION['user']['id'];
+            if (($payload['type'] ?? '') === 'unlock') {
+                EducationController::unlockLevel(
+                    $pdo,
+                    $userId,
+                    filter_var($payload['moduleId'] ?? null, FILTER_VALIDATE_INT) ?: 0
+                );
+                $result = ['success' => true];
+            } elseif (($payload['type'] ?? '') === 'lesson') {
+                EducationController::recordLesson(
+                    $pdo,
+                    $userId,
+                    filter_var($payload['moduleId'] ?? null, FILTER_VALIDATE_INT) ?: 0,
+                    filter_var($payload['lessonNumber'] ?? null, FILTER_VALIDATE_INT) ?: 0
+                );
+                $state = EducationController::getLevels($pdo, $userId);
+                $result = ['success' => true, 'progress' => $state['progress'], 'achievements' => $state['achievements']];
+                foreach ($state['levels'] as $level) {
+                    if ((int) $level['id'] === (int) $payload['moduleId']) {
+                        $result['levelProgress'] = $level['progress'];
+                        $result['completedActivities'] = $level['completedActivities'];
+                        $result['totalActivities'] = $level['totalActivities'];
+                        break;
+                    }
+                }
+            } elseif (($payload['type'] ?? '') === 'answer') {
+                $result = EducationController::recordAnswer(
+                    $pdo,
+                    $userId,
+                    filter_var($payload['questionId'] ?? null, FILTER_VALIDATE_INT) ?: 0,
+                    filter_var($payload['optionIndex'] ?? null, FILTER_VALIDATE_INT) !== false
+                        ? (int) $payload['optionIndex']
+                        : -1
+                );
+                $result['success'] = true;
+            } else {
+                throw new InvalidArgumentException('Action invalide.');
+            }
+
+            echo json_encode($result, JSON_THROW_ON_ERROR);
+        } catch (InvalidArgumentException $e) {
+            http_response_code(400);
+            echo json_encode(['error' => $e->getMessage()]);
+        } catch (JsonException $e) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Données invalides.']);
+        } catch (Throwable $e) {
+            error_log('index.php failed to update education progress: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['error' => 'Impossible d’enregistrer votre progression. Réessayez.']);
+        }
+        exit;
+    }
 }
 else if ($action === 'verify') {
     $token = trim($_GET['token'] ?? '');
@@ -230,6 +302,28 @@ else if ($action !== '' && $action !== 'dashboard' &&$action !== 'education') {
     $pageTitle = 'Page introuvable | NovaBank';
     require __DIR__ . '/views/errors/404.php';
     exit;
+}
+
+$educationModules = [];
+$educationError = null;
+$educationProgress = 0;
+$educationAchievements = [];
+$educationCsrfToken = '';
+if ($isLoggedIn && $action === 'education') {
+    require_once __DIR__ . '/src/Controllers/EducationController.php';
+    try {
+        if (empty($_SESSION['education_csrf_token'])) {
+            $_SESSION['education_csrf_token'] = bin2hex(random_bytes(32));
+        }
+        $educationCsrfToken = $_SESSION['education_csrf_token'];
+        $educationState = EducationController::getLevels(getPDO(), (int) $_SESSION['user']['id']);
+        $educationModules = $educationState['levels'];
+        $educationProgress = $educationState['progress'];
+        $educationAchievements = $educationState['achievements'];
+    } catch (Throwable $e) {
+        error_log('index.php failed to load education content: ' . $e->getMessage());
+        $educationError = 'Impossible de charger les parcours éducatifs pour le moment.';
+    }
 }
 
 $pageTitle = ($action === 'education') ? 'Éducation financière | NovaBank' : 'NovaBank | Banque virtuelle & Simulateur de Bourse';

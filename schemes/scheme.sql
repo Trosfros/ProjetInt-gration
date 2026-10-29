@@ -223,31 +223,111 @@ CREATE TABLE IF NOT EXISTS `EducationQuestion` (
     ON UPDATE CASCADE
 );
 
--- Insertion d'un module par défaut
-INSERT INTO `EducationModule` (`ModuleKey`, `Title`, `Badge`, `Summary`, `DisplayOrder`)
-VALUES ('module-1', 'Les bases de la Bourse', 'Débutant', 'Apprenez les principes fondamentaux de l’investissement.', 1)
-ON DUPLICATE KEY UPDATE `Title` = VALUES(`Title`);
+CREATE TABLE IF NOT EXISTS `EducationLevelUnlock` (
+  `idUser` INT NOT NULL,
+  `idModule` INT NOT NULL,
+  `UnlockedAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`idUser`, `idModule`),
+  CONSTRAINT `FK_EducationLevelUnlock_User`
+    FOREIGN KEY (`idUser`) REFERENCES `User` (`idUser`)
+    ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `FK_EducationLevelUnlock_Module`
+    FOREIGN KEY (`idModule`) REFERENCES `EducationModule` (`idModule`)
+    ON DELETE CASCADE ON UPDATE CASCADE
+);
 
--- Insertion de questions avec les choix au format JSON
+CREATE TABLE IF NOT EXISTS `EducationLessonProgress` (
+  `idUser` INT NOT NULL,
+  `idModule` INT NOT NULL,
+  `LessonNumber` SMALLINT UNSIGNED NOT NULL,
+  `CompletedAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`idUser`, `idModule`, `LessonNumber`),
+  CONSTRAINT `FK_EducationLessonProgress_User`
+    FOREIGN KEY (`idUser`) REFERENCES `User` (`idUser`)
+    ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `FK_EducationLessonProgress_Module`
+    FOREIGN KEY (`idModule`) REFERENCES `EducationModule` (`idModule`)
+    ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS `EducationQuestionProgress` (
+  `idUser` INT NOT NULL,
+  `idQuestion` INT NOT NULL,
+  `CompletedAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`idUser`, `idQuestion`),
+  CONSTRAINT `FK_EducationQuestionProgress_User`
+    FOREIGN KEY (`idUser`) REFERENCES `User` (`idUser`)
+    ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `FK_EducationQuestionProgress_Question`
+    FOREIGN KEY (`idQuestion`) REFERENCES `EducationQuestion` (`idQuestion`)
+    ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- Parcours d’apprentissage classés par niveau
+INSERT INTO `EducationModule` (`ModuleKey`, `Title`, `Badge`, `Summary`, `DisplayOrder`)
+VALUES
+  ('module-1', 'Les bases de l’investissement', 'Facile', 'Comprendre les actions, le rendement et les premiers repères pour investir.', 1),
+  ('module-2', 'Risque et diversification', 'Intermédiaire', 'Identifier les risques et apprendre à répartir un portefeuille.', 2),
+  ('module-3', 'Lire le marché et maîtriser ses ordres', 'Expert', 'Analyser les mouvements du marché et comprendre les effets des ordres.', 3)
+ON DUPLICATE KEY UPDATE
+  `Title` = VALUES(`Title`),
+  `Badge` = VALUES(`Badge`),
+  `Summary` = VALUES(`Summary`),
+  `DisplayOrder` = VALUES(`DisplayOrder`);
+
 INSERT INTO `EducationQuestion` (`idModule`, `Question`, `Explanation`, `OptionsJson`)
-VALUES 
-(
-  1, 
-  'Que représente réellement une action en bourse ?', 
-  'Une action est un titre de propriété représentant une fraction du capital de l’entreprise.',
-  '[
-    {"text": "Un prêt accordé à une entreprise avec intérêts garantis.", "isCorrect": false},
-    {"text": "Une fraction du capital et de la propriété d’une entreprise.", "isCorrect": true},
-    {"text": "Une garantie que la valeur va doubler.", "isCorrect": false}
-  ]'
-),
-(
-  1, 
-  'Pourquoi est-il conseillé de diversifier son portefeuille ?', 
-  'La diversification permet de réduire l’impact si une entreprise ou un secteur chute.',
-  '[
-    {"text": "Pour éliminer tout risque sur les marchés.", "isCorrect": false},
-    {"text": "Pour réduire l’impact d’une baisse sur une seule action.", "isCorrect": true},
-    {"text": "Pour réduire les frais de transaction.", "isCorrect": false}
-  ]'
+SELECT m.`idModule`, questions.`Question`, questions.`Explanation`, questions.`OptionsJson`
+FROM (
+  SELECT
+    'module-1' AS `ModuleKey`,
+    'Que représente réellement une action en bourse ?' AS `Question`,
+    'Une action est un titre de propriété représentant une fraction du capital de l’entreprise.' AS `Explanation`,
+    '[{"text":"Un prêt accordé à une entreprise avec intérêts garantis.","isCorrect":false},{"text":"Une fraction du capital et de la propriété d’une entreprise.","isCorrect":true},{"text":"Une garantie que le cours montera.","isCorrect":false}]' AS `OptionsJson`
+  UNION ALL SELECT
+    'module-1',
+    'Pourquoi est-il conseillé de diversifier son portefeuille ?',
+    'La diversification réduit l’impact d’une baisse propre à une entreprise ou à un secteur, sans supprimer le risque de marché.',
+    '[{"text":"Pour éliminer tout risque de perte.","isCorrect":false},{"text":"Pour limiter l’impact d’une baisse isolée sur le portefeuille.","isCorrect":true},{"text":"Pour garantir un rendement fixe.","isCorrect":false}]'
+  UNION ALL SELECT
+    'module-1',
+    'Que signifie le rendement d’un placement ?',
+    'Le rendement mesure le gain ou la perte par rapport au montant investi, sur une période donnée.',
+    '[{"text":"Le gain ou la perte rapporté au montant investi.","isCorrect":true},{"text":"Le montant toujours garanti à l’échéance.","isCorrect":false},{"text":"Le nombre d’actions détenues.","isCorrect":false}]'
+  UNION ALL SELECT
+    'module-2',
+    'Que peut-on attendre d’un portefeuille diversifié ?',
+    'La diversification répartit le risque spécifique, mais ne protège pas contre une baisse générale des marchés.',
+    '[{"text":"Aucune baisse, quelles que soient les conditions du marché.","isCorrect":false},{"text":"Une réduction de l’impact d’un titre ou secteur en difficulté.","isCorrect":true},{"text":"Un rendement supérieur garanti.","isCorrect":false}]'
+  UNION ALL SELECT
+    'module-2',
+    'Un placement promet un rendement élevé sans risque. Quel est le bon réflexe ?',
+    'Tout placement comporte des risques. Une promesse de rendement élevé et garanti doit inciter à vérifier soigneusement les informations.',
+    '[{"text":"Investir immédiatement avant que l’offre disparaisse.","isCorrect":false},{"text":"Vérifier les risques et se méfier de la promesse garantie.","isCorrect":true},{"text":"Emprunter davantage pour profiter de l’occasion.","isCorrect":false}]'
+  UNION ALL SELECT
+    'module-2',
+    'Pourquoi définir son horizon de placement ?',
+    'L’horizon aide à choisir une stratégie cohérente avec ses objectifs et sa capacité à supporter les fluctuations.',
+    '[{"text":"Pour savoir quand les marchés vont monter.","isCorrect":false},{"text":"Pour aligner ses choix avec ses objectifs et sa tolérance aux variations.","isCorrect":true},{"text":"Pour supprimer les frais de transaction.","isCorrect":false}]'
+  UNION ALL SELECT
+    'module-3',
+    'Que se passe-t-il lorsqu’un ordre au marché est exécuté ?',
+    'Un ordre au marché cherche une exécution rapide au meilleur prix disponible, qui peut différer du dernier cours affiché.',
+    '[{"text":"Le prix d’exécution est garanti identique au dernier cours affiché.","isCorrect":false},{"text":"L’ordre est exécuté au meilleur prix disponible, qui peut varier.","isCorrect":true},{"text":"L’ordre attend obligatoirement que le prix choisi soit atteint.","isCorrect":false}]'
+  UNION ALL SELECT
+    'module-3',
+    'Quel est le rôle d’un ordre à cours limité ?',
+    'Un ordre à cours limité fixe un prix maximum à l’achat ou minimum à la vente, sans garantir qu’il sera exécuté.',
+    '[{"text":"Garantir une exécution immédiate.","isCorrect":false},{"text":"Fixer un prix limite sans garantir l’exécution.","isCorrect":true},{"text":"Empêcher toute perte sur le placement.","isCorrect":false}]'
+  UNION ALL SELECT
+    'module-3',
+    'Une action baisse après une annonce économique. Que faut-il considérer avant d’agir ?',
+    'Une variation de cours peut avoir plusieurs causes. Il est utile de revoir ses objectifs, son horizon et sa tolérance au risque avant de décider.',
+    '[{"text":"Vendre automatiquement sans examiner la situation.","isCorrect":false},{"text":"Les causes possibles, ses objectifs et son horizon de placement.","isCorrect":true},{"text":"Acheter davantage car le rebond est garanti.","isCorrect":false}]'
+) AS questions
+INNER JOIN `EducationModule` m ON m.`ModuleKey` = questions.`ModuleKey`
+WHERE NOT EXISTS (
+  SELECT 1
+  FROM `EducationQuestion` existing
+  WHERE existing.`idModule` = m.`idModule`
+    AND existing.`Question` = questions.`Question`
 );
