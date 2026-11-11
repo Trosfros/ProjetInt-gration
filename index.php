@@ -46,11 +46,52 @@ function sendVerificationEmail(string $email, string $username, string$token): v
     }
 }
 
+function sendPasswordChangeCode(string $email, string $username, string $code): void {
+    $config = require __DIR__ . '/configs/config.php';
+    $mail = new PHPMailer(true);
+
+    try {
+        $mail->isSMTP();
+        $mail->Host = $config['mail']['host'];
+        $mail->SMTPAuth = true;
+        $mail->Username = $config['mail']['username'];
+        $mail->Password = $config['mail']['password'];
+        $mail->SMTPSecure = $config['mail']['smtp_secure'];
+        $mail->Port = $config['mail']['port'];
+        $mail->CharSet = 'UTF-8';
+        $mail->setFrom($config['mail']['from_email'], $config['mail']['from_name']);
+        $mail->addAddress($email, $username);
+        $mail->Subject = 'Code de confirmation de votre mot de passe NovaBank';
+        $safeUsername = htmlspecialchars($username, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+
+        $mail->isHTML(true);
+        $mail->Body = "
+            <div style=\"font-family: Arial, sans-serif; color: #1f2937; line-height: 1.6; max-width: 600px; margin: 0 auto;\">
+                <h1 style=\"color: #0f172a; font-size: 24px;\">Bonjour $safeUsername,</h1>
+                <p>Utilisez ce code pour confirmer votre identité et changer votre mot de passe NovaBank :</p>
+                <p style=\"margin: 28px 0; font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #0284c7;\">$code</p>
+                <p>Ce code est valable pendant 10 minutes et ne peut être utilisé qu’une seule fois.</p>
+                <p style=\"color: #64748b; font-size: 14px;\">Si vous n’avez pas demandé ce changement, ignorez ce message et ne partagez pas ce code.</p>
+            </div>";
+        $mail->AltBody = "Bonjour $username,\r\n\r\nVotre code de confirmation NovaBank est : $code\r\n\r\nIl est valable pendant 10 minutes. Si vous n'avez pas demandé ce changement, ignorez ce message.";
+        $mail->send();
+    } catch (Exception $e) {
+        throw new RuntimeException('Impossible d’envoyer le code de confirmation : ' . $e->getMessage(), 0, $e);
+    }
+}
+
 $action =$_GET['action'] ?? '';
 $isLoggedIn = !empty($_SESSION['user']);
 
 if ($action === 'logout') {
-    unset($_SESSION['user']);
+    unset(
+        $_SESSION['user'],
+        $_SESSION['password_change'],
+        $_SESSION['password_code_last_sent_at'],
+        $_SESSION['password_reset'],
+        $_SESSION['password_reset_email'],
+        $_SESSION['password_reset_last_sent_at']
+    );
     header('Location: index.php');
     exit;
 }
@@ -64,6 +105,62 @@ else if ($action === 'loginPage') {
 }
 else if ($action === 'registerPage') {
     require __DIR__ . '/src/Models/register.php';
+    exit;
+}
+else if ($action === 'about') {
+    require __DIR__ . '/src/Models/about.php';
+    exit;
+}
+else if ($action === 'forgotPassword') {
+    if ($isLoggedIn) {
+        header('Location: index.php?action=profile');
+        exit;
+    }
+
+    require __DIR__ . '/src/Models/forgotPassword.php';
+    exit;
+}
+else if ($action === 'profilePhoto') {
+    if (!$isLoggedIn) {
+        http_response_code(404);
+        exit;
+    }
+
+    $pdo = getPDO();
+    $stmt = $pdo->prepare('SELECT `PFP` FROM `User` WHERE `idUser` = :userId LIMIT 1');
+    $stmt->execute(['userId' => (int) $_SESSION['user']['id']]);
+    $photo = $stmt->fetchColumn();
+
+    if (is_resource($photo)) {
+        $photo = stream_get_contents($photo);
+    }
+
+    if (!is_string($photo) || $photo === '') {
+        http_response_code(404);
+        exit;
+    }
+
+    $mimeType = (new finfo(FILEINFO_MIME_TYPE))->buffer($photo);
+    if (!in_array($mimeType, ['image/jpeg', 'image/png', 'image/webp'], true)) {
+        http_response_code(404);
+        exit;
+    }
+
+    header('Content-Type: ' . $mimeType);
+    header('Content-Length: ' . strlen($photo));
+    header('Cache-Control: private, no-store');
+    header('X-Content-Type-Options: nosniff');
+    echo $photo;
+    exit;
+}
+else if ($action === 'profile') {
+    if (!$isLoggedIn) {
+        $_SESSION['redirect_after_login'] = 'profile';
+        header('Location: index.php?action=loginPage');
+        exit;
+    }
+
+    require __DIR__ . '/src/Models/profile.php';
     exit;
 }
 else if ($action === 'marketPage') {
@@ -241,7 +338,7 @@ else if ($_SERVER['REQUEST_METHOD'] === 'POST' &&$action === 'login') {
 
     try {
         $pdo = getPDO();
-        $stmt =$pdo->prepare('SELECT * FROM `User` WHERE `Description` = :email LIMIT 1');
+        $stmt =$pdo->prepare('SELECT `idUser`, `Alias`, `Description`, `Password`, `email_verified` FROM `User` WHERE `Description` = :email LIMIT 1');
         $stmt->execute(['email' =>$email]);
         $user =$stmt->fetch();
 
@@ -257,9 +354,14 @@ else if ($_SERVER['REQUEST_METHOD'] === 'POST' &&$action === 'login') {
                 'email' => $user['Description'],
                 'isAdmin' => (int) ($user['IsAdmin'] ?? 0) === 1,
             ];
+            unset(
+                $_SESSION['password_reset'],
+                $_SESSION['password_reset_email'],
+                $_SESSION['password_reset_last_sent_at']
+            );
             $redirectAfterLogin = $_SESSION['redirect_after_login'] ?? null;
             unset($_SESSION['redirect_after_login']);
-            $redirectAction = in_array($redirectAfterLogin, ['education', 'history', 'transfers', 'admin'], true) ? $redirectAfterLogin : '';
+            $redirectAction = in_array($redirectAfterLogin, ['education', 'history', 'transfers', 'admin', 'profile'], true) ? $redirectAfterLogin : '';
             header('Location: ' . ($redirectAction !== '' ? 'index.php?action=' . $redirectAction : 'index.php'));
             exit;
         }

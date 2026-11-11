@@ -7,9 +7,9 @@ $projectRoot = dirname(__DIR__, 2);
 
 // Gestion des messages de session (erreurs et succès de vérification/création)
 $error = $_SESSION['login_error'] ?? ($_SESSION['verify_error'] ?? null);
-$success = $_SESSION['register_success'] ?? ($_SESSION['verify_success'] ?? null);
+$success = $_SESSION['register_success'] ?? ($_SESSION['verify_success'] ?? ($_SESSION['login_success'] ?? null));
 
-unset($_SESSION['login_error'], $_SESSION['verify_error'], $_SESSION['register_success'], $_SESSION['verify_success']);
+unset($_SESSION['login_error'], $_SESSION['verify_error'], $_SESSION['register_success'], $_SESSION['verify_success'], $_SESSION['login_success']);
 
 $pageTitle = 'Connexion | NovaBank';
 $pageStylesheets = ['auth.css'];
@@ -48,6 +48,11 @@ require $projectRoot . '/views/layout/header.php';
       <div class="form-group">
         <label for="password">Mot de passe</label>
         <input type="password" id="password" name="password" placeholder="••••••••" required autocomplete="current-password">
+      </div>
+
+      <div class="label-wrapper">
+        <span></span>
+        <a class="forgot-link" href="index.php?action=forgotPassword">Mot de passe oublié ?</a>
       </div>
 
       <button type="submit" id="submitBtn" class="btn-primary btn-block">Se connecter</button>

@@ -1,0 +1,34 @@
+.about-page {
+  position: relative;
+  z-index: 1;
+  width: min(100% - 2rem, 1000px);
+  margin: 0 auto;
+  padding: 2.5rem 0 4rem;
+  flex: 1;
+}
+
+.about-page h1 {
+  margin-bottom: 0.75rem;
+  color: var(--text-main);
+  font-size: clamp(1.8rem, 5vw, 2.5rem);
+}
+
+.about-page h2 {
+  margin: 2rem 0 1rem;
+  color: var(--text-main);
+  font-size: 1.35rem;
+}
+
+.about-intro,
+.about-people p {
+  color: var(--text-muted);
+  line-height: 1.7;
+}
+
+.about-people strong {
+  color: var(--text-main);
+}
+
+.about-people a {
+  color: var(--primary);
+}
