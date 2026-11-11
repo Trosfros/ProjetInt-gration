@@ -214,6 +214,47 @@ body::before {
   font-size: 0.95rem;
 }
 
+.user-profile-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin-right: 1rem;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.user-profile-link:hover,
+.user-profile-link:focus-visible {
+  color: var(--text-main);
+}
+
+.user-avatar {
+  position: relative;
+  display: inline-flex;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 1px solid rgba(56, 189, 248, 0.45);
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+  color: #fff;
+  font-weight: 700;
+}
+
+.user-avatar img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  object-fit: cover;
+}
+
 .btn-primary {
   background: linear-gradient(135deg, var(--primary), var(--accent));
   color: #fff;

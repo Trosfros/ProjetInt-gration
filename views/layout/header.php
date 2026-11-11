@@ -59,7 +59,7 @@ try {
 
   <link rel="stylesheet" href="public/css/main.css">
   <?php
-    $availablePageStylesheets = ['home.css', 'dashboard.css', 'auth.css', 'errors.css', 'market.css', 'education.css', 'history.css', 'transfer.css'];
+    $availablePageStylesheets = ['home.css', 'dashboard.css', 'auth.css', 'errors.css', 'market.css', 'education.css', 'history.css', 'transfer.css', 'admin.css', 'profile.css', 'about.css'];
     foreach (($pageStylesheets ?? []) as $pageStylesheet):
       if (in_array($pageStylesheet, $availablePageStylesheets, true)):
   ?>
@@ -435,11 +435,12 @@ try {
         <a href="index.php?action=marketPage">Marché</a>
         <a href="index.php?action=accounts">Comptes</a>
         <a href="index.php?action=education">Éducation</a>
+        <a href="index.php?action=about">À propos</a>
       <?php else: ?>
         <a href="index.php#simulator">Simulateur Bourse</a>
         <a href="index.php#leaderboard">Classement</a>
         <a href="index.php#features">Fonctionnalités</a>
-        <a href="index.php#about">À propos</a>
+        <a href="index.php?action=about">À propos</a>
       <?php endif; ?>
     </nav>
 
@@ -461,9 +462,17 @@ try {
 
     <div class="nav-actions">
       <?php if ($isLoggedIn): ?>
-        <span class="user-greeting" style="color: var(--text-muted); font-size: 0.9rem; margin-right: 1rem;">
-          Bonjour, <?= htmlspecialchars($_SESSION['user']['username'] ?? $_SESSION['user']['Alias'] ?? 'Membre', ENT_QUOTES, 'UTF-8') ?>
-        </span>
+        <?php
+          $headerUserName = trim((string) ($_SESSION['user']['username'] ?? $_SESSION['user']['Alias'] ?? 'Membre'));
+          $headerUserInitial = mb_strtoupper(mb_substr($headerUserName, 0, 1, 'UTF-8'), 'UTF-8');
+        ?>
+        <a href="index.php?action=profile" class="user-profile-link" aria-label="Voir le profil de <?= htmlspecialchars($headerUserName, ENT_QUOTES, 'UTF-8') ?>">
+          <span class="user-avatar" aria-hidden="true">
+            <span class="user-avatar-initial"><?= htmlspecialchars($headerUserInitial, ENT_QUOTES, 'UTF-8') ?></span>
+            <img src="index.php?action=profilePhoto" alt="" onerror="this.style.display='none'">
+          </span>
+          <span class="user-greeting">Bonjour, <?= htmlspecialchars($headerUserName, ENT_QUOTES, 'UTF-8') ?></span>
+        </a>
         <a href="index.php?action=logout" class="btn-ghost">Déconnexion</a>
       <?php else: ?>
         <a href="index.php?action=loginPage" class="btn-ghost">Se connecter</a>
@@ -574,6 +583,7 @@ try {
       { title: "Portefeuille d'investissements", category: "Bourse", url: "index.php?action=investment", badge: "Actifs" },
       { title: "Comptes bancaires & Solde", category: "Banque", url: "index.php?action=accounts", badge: "Comptes" },
       { title: "Espace Éducation & Guides", category: "Éducation", url: "index.php?action=education", badge: "Apprentissage" },
+      { title: "À propos de NovaBank", category: "Informations", url: "index.php?action=about", badge: "Projet" },
       { title: "Comprendre les ordres d'achat à terme", category: "Éducation", url: "index.php?action=education#orders", badge: "Article" },
       { title: "Analyse technique & Graphiques", category: "Éducation", url: "index.php?action=education#analysis", badge: "Tutoriel" },
       { title: "Gestion des risques et diversification", category: "Éducation", url: "index.php?action=education#risk", badge: "Guide" }

@@ -10,6 +10,10 @@ function ensureEmailVerificationColumns(PDO $pdo): void {
     if (!in_array('email_verification_token', $columns, true)) {
         $pdo->exec("ALTER TABLE `User` ADD COLUMN `email_verification_token` VARCHAR(255) NULL AFTER `email_verified`");
     }
+
+    if (!in_array('IsAdmin', $columns, true)) {
+        $pdo->exec("ALTER TABLE `User` ADD COLUMN `IsAdmin` TINYINT(1) NOT NULL DEFAULT 0");
+    }
 }
 
 function getPDO(): PDO {
