@@ -1,34 +1,183 @@
 .about-page {
   position: relative;
   z-index: 1;
-  width: min(100% - 2rem, 1000px);
+  width: min(100% - 2rem, 920px);
   margin: 0 auto;
-  padding: 2.5rem 0 4rem;
+  padding: 3rem 0 5rem !important;
   flex: 1;
 }
 
-.about-page h1 {
-  margin-bottom: 0.75rem;
-  color: var(--text-main);
-  font-size: clamp(1.8rem, 5vw, 2.5rem);
+.about-hero {
+  position: relative;
+  overflow: hidden;
+  padding: clamp(1.75rem, 5vw, 3.25rem);
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  border-radius: 22px;
+  background:
+    radial-gradient(ellipse at 92% 10%, rgba(56, 189, 248, 0.17), transparent 38%),
+    linear-gradient(135deg, rgba(14, 18, 29, 0.96), rgba(15, 23, 42, 0.84));
+  box-shadow: 0 22px 60px rgba(0, 0, 0, 0.22);
 }
 
-.about-page h2 {
-  margin: 2rem 0 1rem;
-  color: var(--text-main);
-  font-size: 1.35rem;
+.about-eyebrow {
+  display: block;
+  margin-bottom: 0.65rem;
+  color: var(--primary);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 
-.about-intro,
-.about-people p {
-  color: var(--text-muted);
+.about-hero h1 {
+  margin-bottom: 1rem;
+  color: var(--text-main);
+  font-size: clamp(2rem, 5vw, 3rem);
+  letter-spacing: -0.04em;
+}
+
+.about-hero h1 span {
+  color: var(--primary);
+}
+
+.about-intro {
+  max-width: 720px;
+  margin: 0 0 0.9rem;
+  color: #cbd5e1;
+  font-size: 1rem;
+  line-height: 1.8;
+}
+
+.about-description-points {
+  display: grid;
+  gap: 0.75rem;
+  max-width: 760px;
+  margin: 0.5rem 0 1rem;
+  padding-left: 1.25rem;
+  color: #cbd5e1;
   line-height: 1.7;
 }
 
-.about-people strong {
+.about-description-points li::marker {
+  color: var(--primary);
+}
+
+.about-description-points strong {
   color: var(--text-main);
 }
 
-.about-people a {
+.about-team {
+  padding-top: 3rem;
+}
+
+.about-section-heading {
+  margin-bottom: 1.2rem;
+}
+
+.about-section-heading .about-eyebrow {
+  margin-bottom: 0.4rem;
+}
+
+.about-section-heading h2 {
+  margin: 0;
+  color: var(--text-main);
+  font-size: 1.7rem;
+}
+
+.about-team-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.about-person {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  min-width: 0;
+  padding: 1.1rem;
+  border: 1px solid var(--card-border);
+  border-radius: 14px;
+  background: rgba(14, 18, 29, 0.78);
+  transition: border-color 180ms ease, transform 180ms ease;
+}
+
+.about-person:hover {
+  transform: translateY(-2px);
+  border-color: rgba(56, 189, 248, 0.35);
+}
+
+.about-person-initials,
+.about-supervisor-mark {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  flex: 0 0 48px;
+  place-items: center;
+  border: 1px solid rgba(56, 189, 248, 0.28);
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.18), rgba(99, 102, 241, 0.2));
+  color: #e0f2fe;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.about-person h3,
+.about-supervisor h3 {
+  margin: 0 0 0.3rem;
+  color: var(--text-main);
+  font-size: 1rem;
+}
+
+.about-person a {
   color: var(--primary);
+  font-size: 0.82rem;
+  overflow-wrap: anywhere;
+  text-decoration: none;
+}
+
+.about-person a:hover {
+  text-decoration: underline;
+}
+
+.about-supervisor {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid rgba(99, 102, 241, 0.24);
+  border-radius: 14px;
+  background: linear-gradient(100deg, rgba(99, 102, 241, 0.08), rgba(14, 18, 29, 0.75));
+}
+
+.about-supervisor-mark {
+  border-color: rgba(129, 140, 248, 0.35);
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.22), rgba(56, 189, 248, 0.12));
+}
+
+.about-supervisor-label {
+  display: block;
+  margin-bottom: 0.3rem;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+}
+
+@media (max-width: 620px) {
+  .about-page {
+    padding-top: 1.5rem !important;
+  }
+
+  .about-team {
+    padding-top: 2rem;
+  }
+
+  .about-team-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .about-person {
+    padding: 0.9rem;
+  }
 }
