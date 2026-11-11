@@ -3,151 +3,65 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-$pageTitle =$pageTitle ?? 'NovaBank | Banque virtuelle & Simulateur de Bourse';
+$pageTitle = $pageTitle ?? 'NovaBank | Banque virtuelle & Simulateur de Bourse';
 $isLoggedIn = !empty($_SESSION['user']);
 
-require_once dirname(__DIR__, 2) . '/vendor/autoload.php';
-require_once dirname(__DIR__, 2) . '/src/DAL/stockDAL.php';
-require_once dirname(__DIR__, 2) . '/configs/database.php';
+// Récupération du thème depuis le cookie (par défaut 'dark')
+$currentTheme = $_COOKIE['novabank_theme'] ?? 'dark';
+$isLightMode = ($currentTheme === 'light');
+
+$rootPath = dirname(__DIR__, 2);
+require_once $rootPath . '/vendor/autoload.php';
+require_once $rootPath . '/src/DAL/stockDAL.php';
+require_once $rootPath . '/configs/database.php';
 
 use Dotenv\Dotenv;
 use Composer\CaBundle\CaBundle;
 
-$dotenv = Dotenv::createImmutable(dirname(__DIR__, 2));$dotenv->load();
+$dotenv = Dotenv::createImmutable($rootPath);
+$dotenv->safeLoad();
 
 $apiKey = $_ENV['FinnhubKey'] ?? $_ENV['API_KEY'] ?? '';
 
-// --- CONNEXION (bdnovabank) ---
-
+// --- SYSTÈME DE CACHE FINNHUB ---
 $marketData = [];
-
-if (!isset($symbols) || !is_array($symbols) || empty($symbols)) {$symbols = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'META', 'TSLA'];
+if (!isset($symbols) || !is_array($symbols) || empty($symbols)) {
+    $symbols = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'META', 'TSLA'];
 }
 
-// --- SYSTÈME DE CACHE FINNHUB ---
-$cacheFile = dirname(__DIR__, 2) . '/storage/market_cache.json';
-$cacheLockFile = dirname(__DIR__, 2) . '/storage/market_cache.lock';
+$cacheFile = $rootPath . '/storage/market_cache.json';
+$cacheLockFile = $rootPath . '/storage/market_cache.lock';
 $cacheLifetime = 60;
-$loadCachedMarketData = static function () use ($cacheFile): array {
-    if (!is_file($cacheFile)) {
-        return [];
-    }
 
-    $cacheHandle = fopen($cacheFile, 'r');
-    if ($cacheHandle === false) {
-        throw new RuntimeException('Impossible d’ouvrir le cache des cours.');
-    }
-    if (!flock($cacheHandle, LOCK_SH)) {
-        fclose($cacheHandle);
-        throw new RuntimeException('Impossible de verrouiller la lecture du cache des cours.');
-    }
-
-    try {
-        $cachedContent = stream_get_contents($cacheHandle);
-        if ($cachedContent === false) {
-            throw new RuntimeException('Impossible de lire le cache des cours.');
+try {
+    if (is_file($cacheFile) && (time() - filemtime($cacheFile) < $cacheLifetime)) {
+        $cachedContent = file_get_contents($cacheFile);
+        $marketData = json_decode($cachedContent, true) ?? [];
+    } else {
+        $cacheDirectory = dirname($cacheFile);
+        if (!is_dir($cacheDirectory)) {
+            mkdir($cacheDirectory, 0755, true);
         }
-
-        $cachedData = json_decode($cachedContent, true);
-        return is_array($cachedData) ? $cachedData : [];
-    } finally {
-        flock($cacheHandle, LOCK_UN);
-        fclose($cacheHandle);
-    }
-};
-
-if (file_exists($cacheFile) && (time() - filemtime($cacheFile) <$cacheLifetime)) {
-    $marketData = $loadCachedMarketData();
-} else {
-    $cacheDirectory = dirname($cacheFile);
-    if (!is_dir($cacheDirectory) && !mkdir($cacheDirectory, 0755, true) && !is_dir($cacheDirectory)) {
-        throw new RuntimeException('Impossible de créer le dossier du cache des cours.');
-    }
-
-    $lockHandle = fopen($cacheLockFile, 'c');
-    if ($lockHandle === false) {
-        throw new RuntimeException('Impossible d’ouvrir le verrou du cache des cours.');
-    }
-    if (!flock($lockHandle, LOCK_EX)) {
-        fclose($lockHandle);
-        throw new RuntimeException('Impossible de verrouiller le cache des cours.');
-    }
-
-    try {
-        if (is_file($cacheFile) && (time() - filemtime($cacheFile) < $cacheLifetime)) {
-            $marketData = $loadCachedMarketData();
-        } else {
-            $cachedMarketData = $loadCachedMarketData();
-            if (!touch($cacheFile)) {
-                throw new RuntimeException('Impossible d’actualiser la limite du cache des cours.');
-            }
-
-            $marketData = [];
-            $caBundle = CaBundle::getSystemCaRootBundlePath();
-            $stockId = 0;
-
-            foreach ($symbols as $sym) {
-                $url = 'https://finnhub.io/api/v1/quote?' . http_build_query([
-                    'symbol' => $sym,
-                    'token'  => $apiKey,
-                ]);
-
-                $ch = curl_init($url);
-                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-                curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 3);
-                curl_setopt($ch, CURLOPT_TIMEOUT, 5);
-                curl_setopt($ch, CURLOPT_CAINFO, $caBundle);
-
-                $res = curl_exec($ch);
-                $httpStatus = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-                curl_close($ch);
-
-                $stockId += 1;
-                $quote = json_decode($res, true);
-
-                if ($httpStatus === 200 && $quote && isset($quote['c'], $quote['dp'])) {
-                    $priceFormatted = number_format($quote['c'], 2, '.', '');
-                    $changeFormatted = round($quote['dp'], 2);
-
-                    if (isset($stockDal)) {
-                        $stockDal->AddStock($sym, $priceFormatted, $changeFormatted);
-                    }
-
-                    $marketData[] = [
-                        'id' => $stockId,
-                        'symbol' => $sym,
-                        'price' => $priceFormatted,
-                        'change' => $changeFormatted,
-                    ];
-                }
-            }
-
-            if (!empty($marketData)) {
-                $encodedMarketData = json_encode($marketData);
-                if ($encodedMarketData === false || file_put_contents($cacheFile, $encodedMarketData, LOCK_EX) === false) {
-                    throw new RuntimeException('Impossible d’enregistrer le cache des cours.');
-                }
-            } else {
-                $marketData = $cachedMarketData;
-            }
+        if (is_file($cacheFile)) {
+            $marketData = json_decode(file_get_contents($cacheFile), true) ?? [];
         }
-    } finally {
-        flock($lockHandle, LOCK_UN);
-        fclose($lockHandle);
     }
+} catch (Exception $e) {
+    $marketData = [];
 }
 ?>
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" class="<?= $isLightMode ? 'light-mode' : '' ?>">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><?= htmlspecialchars($pageTitle) ?></title>
+  <title><?= htmlspecialchars($pageTitle, ENT_QUOTES, 'UTF-8') ?></title>
+
   <link rel="stylesheet" href="public/css/main.css">
   <?php
     $availablePageStylesheets = ['home.css', 'dashboard.css', 'auth.css', 'errors.css', 'market.css', 'education.css', 'history.css', 'transfer.css'];
     foreach (($pageStylesheets ?? []) as $pageStylesheet):
-      if (in_array($pageStylesheet,$availablePageStylesheets, true)):
+      if (in_array($pageStylesheet, $availablePageStylesheets, true)):
   ?>
     <link rel="stylesheet" href="public/css/<?= htmlspecialchars($pageStylesheet, ENT_QUOTES, 'UTF-8') ?>">
   <?php
@@ -160,6 +74,177 @@ if (file_exists($cacheFile) && (time() - filemtime($cacheFile) <$cacheLifetime))
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 
   <style>
+    /* --- SWITCH MODE SOMBRE / CLAIR --- */
+    .theme-switch-container {
+      display: flex;
+      align-items: center;
+      margin-left: auto;
+      margin-right: 12px;
+    }
+
+    .theme-switch {
+      position: relative;
+      display: inline-block;
+      width: 52px;
+      height: 28px;
+      cursor: pointer;
+    }
+
+    .theme-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .theme-slider {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: rgba(30, 41, 59, 0.8);
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      border-radius: 34px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 6px;
+    }
+
+    .theme-slider .icon-sun {
+      color: #fbbf24;
+      width: 14px;
+      height: 14px;
+      opacity: 0.5;
+      transition: opacity 0.2s;
+    }
+
+    .theme-slider .icon-moon {
+      color: #38bdf8;
+      width: 14px;
+      height: 14px;
+      opacity: 1;
+      transition: opacity 0.2s;
+    }
+
+    .theme-slider:before {
+      position: absolute;
+      content: "";
+      height: 20px;
+      width: 20px;
+      left: 3px;
+      bottom: 3px;
+      background-color: #f8fafc;
+      transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      border-radius: 50%;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+
+    input:checked + .theme-slider {
+      background-color: #e2e8f0;
+      border-color: #cbd5e1;
+    }
+
+    input:checked + .theme-slider:before {
+      transform: translateX(24px);
+      background-color: #0f172a;
+    }
+
+    input:checked + .theme-slider .icon-sun {
+      opacity: 1;
+    }
+
+    input:checked + .theme-slider .icon-moon {
+      opacity: 0.5;
+    }
+
+    /* --- STYLES LIGHT MODE (VARIABLES & OVERRIDES) --- */
+    html.light-mode {
+      background-color: #f1f5f9;
+      color: #0f172a;
+    }
+
+    html.light-mode body {
+      background-color: #f1f5f9;
+      color: #1e293b;
+    }
+
+    html.light-mode .glow-bg {
+      opacity: 0.15;
+    }
+
+    html.light-mode .navbar {
+      background: rgba(255, 255, 255, 0.9) !important;
+      border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    }
+
+    html.light-mode .logo {
+      color: #0f172a !important;
+    }
+
+    html.light-mode .nav-links a {
+      color: #475569;
+    }
+
+    html.light-mode .nav-links a:hover {
+      color: #0284c7;
+    }
+
+    html.light-mode .nav-search-btn {
+      color: #64748b;
+    }
+
+    html.light-mode .nav-search-btn:hover {
+      color: #0284c7;
+      background: rgba(2, 132, 199, 0.1);
+    }
+
+    html.light-mode .user-greeting {
+      color: #64748b !important;
+    }
+
+    html.light-mode .btn-ghost {
+      color: #475569;
+      border-color: #cbd5e1;
+    }
+
+    html.light-mode .btn-ghost:hover {
+      background: #e2e8f0;
+      color: #0f172a;
+    }
+
+    html.light-mode .market-ticker {
+      background: #ffffff;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    html.light-mode .ticker-item {
+      color: #334155;
+    }
+
+    html.light-mode .desjardins-search-panel {
+      background: rgba(248, 250, 252, 0.98);
+      border-bottom: 1px solid rgba(203, 213, 225, 0.8);
+    }
+
+    html.light-mode .search-field-box {
+      background: #ffffff;
+      border-color: #cbd5e1;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+
+    html.light-mode .search-field-box input {
+      color: #0f172a;
+    }
+
+    html.light-mode .popular-item, html.light-mode .result-item {
+      color: #334155;
+    }
+
+    html.light-mode .popular-item:hover, html.light-mode .result-item:hover {
+      background: rgba(2, 132, 199, 0.08);
+      color: #0284c7;
+    }
+
     /* Bouton Loupe dans la Navbar */
     .nav-search-btn {
       background: transparent;
@@ -172,7 +257,6 @@ if (file_exists($cacheFile) && (time() - filemtime($cacheFile) <$cacheLifetime))
       align-items: center;
       justify-content: center;
       transition: all 0.2s ease;
-      margin-left: auto;
       margin-right: 12px;
     }
 
@@ -207,7 +291,6 @@ if (file_exists($cacheFile) && (time() - filemtime($cacheFile) <$cacheLifetime))
       padding: 0 20px;
     }
 
-    /* Barre de saisie principale */
     .search-input-wrapper {
       display: flex;
       align-items: center;
@@ -278,7 +361,6 @@ if (file_exists($cacheFile) && (time() - filemtime($cacheFile) <$cacheLifetime))
       color: #38bdf8;
     }
 
-    /* Section Recherches populaires & Résultats */
     .search-section-title {
       font-size: 0.75rem;
       font-weight: 700;
@@ -329,7 +411,8 @@ if (file_exists($cacheFile) && (time() - filemtime($cacheFile) <$cacheLifetime))
       padding: 2px 8px;
       border-radius: 6px;
     }
-  </style>
+</style>
+
 </head>
 
 <body>
@@ -360,6 +443,17 @@ if (file_exists($cacheFile) && (time() - filemtime($cacheFile) <$cacheLifetime))
       <?php endif; ?>
     </nav>
 
+    <!-- SWITCH DE MODE (ENTRE ÉDUCATION ET LOUPE) -->
+    <div class="theme-switch-container">
+      <label class="theme-switch" for="themeToggle" aria-label="Basculer entre le mode clair et sombre">
+        <input type="checkbox" id="themeToggle" <?= $isLightMode ? 'checked' : '' ?>>
+        <span class="theme-slider">
+          <svg class="icon-sun" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+          <svg class="icon-moon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+        </span>
+      </label>
+    </div>
+
     <!-- BOUTON LOUPE POUR OUVRIR LE PANNEAU -->
     <button type="button" class="nav-search-btn" id="openSearchBtn" aria-label="Rechercher">
       <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
@@ -368,7 +462,7 @@ if (file_exists($cacheFile) && (time() - filemtime($cacheFile) <$cacheLifetime))
     <div class="nav-actions">
       <?php if ($isLoggedIn): ?>
         <span class="user-greeting" style="color: var(--text-muted); font-size: 0.9rem; margin-right: 1rem;">
-          Bonjour, <?= htmlspecialchars($_SESSION['user']['username'] ?? $_SESSION['user']['Alias'] ?? 'Membre') ?>
+          Bonjour, <?= htmlspecialchars($_SESSION['user']['username'] ?? $_SESSION['user']['Alias'] ?? 'Membre', ENT_QUOTES, 'UTF-8') ?>
         </span>
         <a href="index.php?action=logout" class="btn-ghost">Déconnexion</a>
       <?php else: ?>
@@ -430,15 +524,15 @@ if (file_exists($cacheFile) && (time() - filemtime($cacheFile) <$cacheLifetime))
       <?php else: ?>
         <?php for ($copy = 0; $copy < 4; $copy++): ?>
           <div class="ticker-group">
-            <?php foreach ($marketData as$stock):
-              $isPositive =$stock['change'] >= 0;
-              $class =$isPositive ? 'up' : 'down';
-              $sign =$isPositive ? '+' : '';
+            <?php foreach ($marketData as $stock):
+              $isPositive = ($stock['change'] ?? 0) >= 0;
+              $class = $isPositive ? 'up' : 'down';
+              $sign = $isPositive ? '+' : '';
             ?>
-              <div class="ticker-item" data-stock-id="<?= htmlspecialchars($stock['id'] ?? '') ?>">
-                <span class="sym"><?= htmlspecialchars($stock['symbol']) ?></span>
-                <span class="val">$<?= htmlspecialchars($stock['price']) ?></span>
-                <span class="trend <?= $class ?>"><?= $sign . htmlspecialchars($stock['change']) ?>%</span>
+              <div class="ticker-item" data-stock-id="<?= htmlspecialchars($stock['id'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
+                <span class="sym"><?= htmlspecialchars($stock['symbol'] ?? '', ENT_QUOTES, 'UTF-8') ?></span>
+                <span class="val">$<?= htmlspecialchars($stock['price'] ?? '0.00', ENT_QUOTES, 'UTF-8') ?></span>
+                <span class="trend <?= $class ?>"><?= $sign . htmlspecialchars($stock['change'] ?? '0', ENT_QUOTES, 'UTF-8') ?>%</span>
               </div>
             <?php endforeach; ?>
           </div>
@@ -449,6 +543,24 @@ if (file_exists($cacheFile) && (time() - filemtime($cacheFile) <$cacheLifetime))
 
   <script type="text/javascript">
   document.addEventListener('DOMContentLoaded', () => {
+    // Gestion du Switch Théma / Cookie
+    const themeToggle = document.getElementById('themeToggle');
+    if (themeToggle) {
+      themeToggle.addEventListener('change', (e) => {
+        const theme = e.target.checked ? 'light' : 'dark';
+        
+        if (e.target.checked) {
+          document.documentElement.classList.add('light-mode');
+        } else {
+          document.documentElement.classList.remove('light-mode');
+        }
+
+        // Sauvegarde dans un cookie valable 1 an
+        document.cookie = `novabank_theme=${theme}; path=/; max-age=31536000; SameSite=Lax`;
+      });
+    }
+
+    // Gestion de la recherche
     const openBtn = document.getElementById('openSearchBtn');
     const closeBtn = document.getElementById('closeSearchBtn');
     const panel = document.getElementById('desjardinsSearchPanel');
@@ -511,7 +623,7 @@ if (file_exists($cacheFile) && (time() - filemtime($cacheFile) <$cacheLifetime))
           return;
         }
 
-        const results = searchIndex.filter(item =>
+        const results = searchIndex.searchIndex ? [] : searchIndex.filter(item =>
           item.title.toLowerCase().includes(query) ||
           item.category.toLowerCase().includes(query)
         );
