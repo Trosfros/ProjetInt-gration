@@ -88,6 +88,24 @@ else if ($action === 'accounts') {
     require __DIR__ . '/src/Models/AccountModel.php';
     exit;
 }
+else if ($action === 'admin') {
+    if (!$isLoggedIn) {
+        $_SESSION['redirect_after_login'] = $action;
+        header('Location: index.php?action=loginPage');
+        exit;
+    }
+
+    require_once __DIR__ . '/src/Middlewares/AdminMiddleware.php';
+    if (!AdminMiddleware::isAdmin(getPDO(), (int) $_SESSION['user']['id'])) {
+        http_response_code(403);
+        $pageTitle = 'Accès refusé | NovaBank';
+        require __DIR__ . '/views/errors/403.php';
+        exit;
+    }
+
+    require __DIR__ . '/src/Models/admin.php';
+    exit;
+}
 else if ($action === 'history') {
     if (!$isLoggedIn) {
         $_SESSION['redirect_after_login'] = $action;
@@ -237,10 +255,11 @@ else if ($_SERVER['REQUEST_METHOD'] === 'POST' &&$action === 'login') {
                 'id' => $user['idUser'],
                 'username' => $user['Alias'],
                 'email' => $user['Description'],
+                'isAdmin' => (int) ($user['IsAdmin'] ?? 0) === 1,
             ];
             $redirectAfterLogin = $_SESSION['redirect_after_login'] ?? null;
             unset($_SESSION['redirect_after_login']);
-            $redirectAction = in_array($redirectAfterLogin, ['education', 'history', 'transfers'], true) ? $redirectAfterLogin : '';
+            $redirectAction = in_array($redirectAfterLogin, ['education', 'history', 'transfers', 'admin'], true) ? $redirectAfterLogin : '';
             header('Location: ' . ($redirectAction !== '' ? 'index.php?action=' . $redirectAction : 'index.php'));
             exit;
         }
