@@ -1,3 +1,4 @@
 .env
 storage/market_cache.json
 storage/market_cache.lock
+configs/database.php
