@@ -338,7 +338,7 @@ else if ($_SERVER['REQUEST_METHOD'] === 'POST' &&$action === 'login') {
 
     try {
         $pdo = getPDO();
-        $stmt =$pdo->prepare('SELECT `idUser`, `Alias`, `Description`, `Password`, `email_verified` FROM `User` WHERE `Description` = :email LIMIT 1');
+        $stmt =$pdo->prepare('SELECT `idUser`, `Alias`, `Description`, `Password`, `email_verified`, `IsAdmin` FROM `User` WHERE `Description` = :email LIMIT 1');
         $stmt->execute(['email' =>$email]);
         $user =$stmt->fetch();
 
