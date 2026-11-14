@@ -1,6 +1,6 @@
 <?php
 if (session_status() === PHP_SESSION_NONE) {
-   
+
 }
 
 $pageTitle = $pageTitle ?? 'NovaBank | Banque virtuelle & Simulateur de Bourse';
@@ -26,7 +26,7 @@ $apiKey = $_ENV['FinnhubKey'] ?? $_ENV['API_KEY'] ?? '';
 // --- SYSTÈME DE CACHE FINNHUB ---
 $marketData = [];
 if (!isset($symbols) || !is_array($symbols) || empty($symbols)) {
-    $symbols = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'META', 'TSLA'];
+  $symbols = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'META', 'TSLA'];
 }
 
 $cacheFile = $rootPath . '/storage/market_cache.json';
@@ -34,24 +34,100 @@ $cacheLockFile = $rootPath . '/storage/market_cache.lock';
 $cacheLifetime = 60;
 
 try {
-    if (is_file($cacheFile) && (time() - filemtime($cacheFile) < $cacheLifetime)) {
-        $cachedContent = file_get_contents($cacheFile);
-        $marketData = json_decode($cachedContent, true) ?? [];
-    } else {
-        $cacheDirectory = dirname($cacheFile);
-        if (!is_dir($cacheDirectory)) {
-            mkdir($cacheDirectory, 0755, true);
-        }
-        if (is_file($cacheFile)) {
-            $marketData = json_decode(file_get_contents($cacheFile), true) ?? [];
-        }
+  clearstatcache();
+
+  if (is_file($cacheFile) && (time() - filemtime($cacheFile) < $cacheLifetime)) {
+    $marketData = json_decode(file_get_contents($cacheFile), true) ?? [];
+  } else {
+    $cacheDirectory = dirname($cacheFile);
+    if (!is_dir($cacheDirectory)) {
+      mkdir($cacheDirectory, 0755, true);
     }
-} catch (Exception $e) {
-    $marketData = [];
+
+    if (is_file($cacheFile)) {
+      $marketData = json_decode(file_get_contents($cacheFile), true) ?? [];
+    }
+
+    
+    if (is_file($cacheLockFile) && (time() - filemtime($cacheLockFile) >= $cacheLifetime)) {
+      @unlink($cacheLockFile);
+    }
+
+  
+    $lockHandle = ($apiKey !== '') ? @fopen($cacheLockFile, 'x') : false;
+
+    if ($lockHandle) {
+      fwrite($lockHandle, (string) time());
+      fclose($lockHandle);
+
+      try {
+        $multi   = curl_multi_init();
+        $handles = [];
+        $caPath  = CaBundle::getSystemCaRootBundlePath();
+
+        foreach ($symbols as $symbol) {
+          $ch = curl_init('https://finnhub.io/api/v1/quote?symbol=' . urlencode($symbol) . '&token=' . urlencode($apiKey));
+          curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_CONNECTTIMEOUT => 3,
+            CURLOPT_TIMEOUT        => 5,
+            CURLOPT_CAINFO         => $caPath,
+          ]);
+          curl_multi_add_handle($multi, $ch);
+          $handles[$symbol] = $ch;
+        }
+
+        do {
+          $status = curl_multi_exec($multi, $running);
+          if ($running) {
+            curl_multi_select($multi, 1.0);
+          }
+        } while ($running && $status === CURLM_OK);
+
+        $freshData = [];
+        $stockId   = 0;
+        foreach ($handles as $symbol => $ch) {
+          $stockId++;
+          $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+          $response = curl_multi_getcontent($ch);
+
+          if ($httpCode !== 200) {
+            error_log("Finnhub $symbol: HTTP $httpCode " . curl_error($ch));
+          }
+
+          $quote = ($httpCode === 200 && $response) ? json_decode($response, true) : null;
+          if (!empty($quote['c'])) {
+            $freshData[] = [
+              'id'     => $stockId,
+              'symbol' => $symbol,
+              'price'  => number_format((float) $quote['c'], 2, '.', ''),
+              'change' => round((float) ($quote['dp'] ?? 0), 2),
+            ];
+          }
+
+          curl_multi_remove_handle($multi, $ch);
+          curl_close($ch);
+        }
+        curl_multi_close($multi);
+
+        if (!empty($freshData)) {
+          $marketData = $freshData;
+          file_put_contents($cacheFile, json_encode($marketData), LOCK_EX);
+        } else {
+          touch($cacheFile); 
+        }
+      } finally {
+        @unlink($cacheLockFile);
+      }
+    }
+  }
+} catch (Throwable $e) {
+  error_log('Market cache error: ' . $e->getMessage());
 }
 ?>
 <!DOCTYPE html>
 <html lang="fr" class="<?= $isLightMode ? 'light-mode' : '' ?>">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -59,19 +135,21 @@ try {
 
   <link rel="stylesheet" href="public/css/main.css">
   <?php
-    $availablePageStylesheets = ['home.css', 'dashboard.css', 'auth.css', 'errors.css', 'market.css', 'education.css', 'history.css', 'transfer.css', 'admin.css', 'profile.css', 'about.css'];
-    foreach (($pageStylesheets ?? []) as $pageStylesheet):
-      if (in_array($pageStylesheet, $availablePageStylesheets, true)):
-  ?>
-    <link rel="stylesheet" href="public/css/<?= htmlspecialchars($pageStylesheet, ENT_QUOTES, 'UTF-8') ?>">
-  <?php
-      endif;
-    endforeach;
+  $availablePageStylesheets = ['home.css', 'dashboard.css', 'auth.css', 'errors.css', 'market.css', 'education.css', 'history.css', 'transfer.css', 'admin.css', 'profile.css', 'about.css'];
+  foreach (($pageStylesheets ?? []) as $pageStylesheet):
+    if (in_array($pageStylesheet, $availablePageStylesheets, true)):
+      ?>
+      <link rel="stylesheet" href="public/css/<?= htmlspecialchars($pageStylesheet, ENT_QUOTES, 'UTF-8') ?>">
+      <?php
+    endif;
+  endforeach;
   ?>
   <link rel="stylesheet" href="public/css/investment.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap"
+    rel="stylesheet">
 
   <style>
     /* --- SWITCH MODE SOMBRE / CLAIR --- */
@@ -98,7 +176,10 @@ try {
 
     .theme-slider {
       position: absolute;
-      top: 0; left: 0; right: 0; bottom: 0;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
       background-color: rgba(30, 41, 59, 0.8);
       border: 1px solid rgba(148, 163, 184, 0.3);
       transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -135,24 +216,24 @@ try {
       background-color: #f8fafc;
       transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       border-radius: 50%;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
     }
 
-    input:checked + .theme-slider {
+    input:checked+.theme-slider {
       background-color: #e2e8f0;
       border-color: #cbd5e1;
     }
 
-    input:checked + .theme-slider:before {
+    input:checked+.theme-slider:before {
       transform: translateX(24px);
       background-color: #0f172a;
     }
 
-    input:checked + .theme-slider .icon-sun {
+    input:checked+.theme-slider .icon-sun {
       opacity: 1;
     }
 
-    input:checked + .theme-slider .icon-moon {
+    input:checked+.theme-slider .icon-moon {
       opacity: 0.5;
     }
 
@@ -229,18 +310,20 @@ try {
     html.light-mode .search-field-box {
       background: #ffffff;
       border-color: #cbd5e1;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
     }
 
     html.light-mode .search-field-box input {
       color: #0f172a;
     }
 
-    html.light-mode .popular-item, html.light-mode .result-item {
+    html.light-mode .popular-item,
+    html.light-mode .result-item {
       color: #334155;
     }
 
-    html.light-mode .popular-item:hover, html.light-mode .result-item:hover {
+    html.light-mode .popular-item:hover,
+    html.light-mode .result-item:hover {
       background: rgba(2, 132, 199, 0.08);
       color: #0284c7;
     }
@@ -376,7 +459,8 @@ try {
       gap: 12px;
     }
 
-    .popular-item, .result-item {
+    .popular-item,
+    .result-item {
       display: flex;
       align-items: center;
       gap: 12px;
@@ -389,17 +473,20 @@ try {
       transition: all 0.2s ease;
     }
 
-    .popular-item:hover, .result-item:hover {
+    .popular-item:hover,
+    .result-item:hover {
       background: rgba(56, 189, 248, 0.1);
       color: #38bdf8;
       transform: translateX(4px);
     }
 
-    .popular-item svg, .result-item svg {
+    .popular-item svg,
+    .result-item svg {
       color: #64748b;
     }
 
-    .popular-item:hover svg, .result-item:hover svg {
+    .popular-item:hover svg,
+    .result-item:hover svg {
       color: #38bdf8;
     }
 
@@ -411,7 +498,7 @@ try {
       padding: 2px 8px;
       border-radius: 6px;
     }
-</style>
+  </style>
 
 </head>
 
@@ -449,24 +536,34 @@ try {
       <label class="theme-switch" for="themeToggle" aria-label="Basculer entre le mode clair et sombre">
         <input type="checkbox" id="themeToggle" <?= $isLightMode ? 'checked' : '' ?>>
         <span class="theme-slider">
-          <svg class="icon-sun" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
-          <svg class="icon-moon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+          <svg class="icon-sun" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+          </svg>
+          <svg class="icon-moon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
+          </svg>
         </span>
       </label>
     </div>
 
     <!-- BOUTON LOUPE POUR OUVRIR LE PANNEAU -->
     <button type="button" class="nav-search-btn" id="openSearchBtn" aria-label="Rechercher">
-      <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+      <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+      </svg>
     </button>
 
     <div class="nav-actions">
       <?php if ($isLoggedIn): ?>
         <?php
-          $headerUserName = trim((string) ($_SESSION['user']['username'] ?? $_SESSION['user']['Alias'] ?? 'Membre'));
-          $headerUserInitial = mb_strtoupper(mb_substr($headerUserName, 0, 1, 'UTF-8'), 'UTF-8');
+        $headerUserName = trim((string) ($_SESSION['user']['username'] ?? $_SESSION['user']['Alias'] ?? 'Membre'));
+        $headerUserInitial = mb_strtoupper(mb_substr($headerUserName, 0, 1, 'UTF-8'), 'UTF-8');
         ?>
-        <a href="index.php?action=profile" class="user-profile-link" aria-label="Voir le profil de <?= htmlspecialchars($headerUserName, ENT_QUOTES, 'UTF-8') ?>">
+        <a href="index.php?action=profile" class="user-profile-link"
+          aria-label="Voir le profil de <?= htmlspecialchars($headerUserName, ENT_QUOTES, 'UTF-8') ?>">
           <span class="user-avatar" aria-hidden="true">
             <span class="user-avatar-initial"><?= htmlspecialchars($headerUserInitial, ENT_QUOTES, 'UTF-8') ?></span>
             <img src="index.php?action=profilePhoto" alt="" onerror="this.style.display='none'">
@@ -484,13 +581,16 @@ try {
   <!-- PANNEAU DÉROULANT STYLE DESJARDINS -->
   <div class="desjardins-search-panel" id="desjardinsSearchPanel">
     <div class="search-panel-container">
-      
+
       <div class="search-input-wrapper">
         <div class="search-field-box">
           <input type="text" id="desjardinsSearchInput" placeholder="Rechercher sur NovaBank..." autocomplete="off">
           <button type="button" class="btn-clear-input" id="clearSearchInput">&times;</button>
           <div class="search-icon-inside">
-            <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+            <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+            </svg>
           </div>
         </div>
         <button type="button" class="btn-close-panel" id="closeSearchBtn">Fermer</button>
@@ -501,19 +601,31 @@ try {
         <div class="search-section-title">Recherches populaires</div>
         <div class="popular-searches-list">
           <a href="index.php?action=marketPage" class="popular-item">
-            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+            </svg>
             Acheter des actions Apple (AAPL)
           </a>
           <a href="index.php?action=investment" class="popular-item">
-            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+            </svg>
             Consulter mon portefeuille
           </a>
           <a href="index.php?action=accounts" class="popular-item">
-            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+            </svg>
             Solde des comptes
           </a>
           <a href="index.php?action=education" class="popular-item">
-            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+            </svg>
             Guides & Éducation financière
           </a>
         </div>
@@ -537,11 +649,12 @@ try {
               $isPositive = ($stock['change'] ?? 0) >= 0;
               $class = $isPositive ? 'up' : 'down';
               $sign = $isPositive ? '+' : '';
-            ?>
+              ?>
               <div class="ticker-item" data-stock-id="<?= htmlspecialchars($stock['id'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
                 <span class="sym"><?= htmlspecialchars($stock['symbol'] ?? '', ENT_QUOTES, 'UTF-8') ?></span>
                 <span class="val">$<?= htmlspecialchars($stock['price'] ?? '0.00', ENT_QUOTES, 'UTF-8') ?></span>
-                <span class="trend <?= $class ?>"><?= $sign . htmlspecialchars($stock['change'] ?? '0', ENT_QUOTES, 'UTF-8') ?>%</span>
+                <span
+                  class="trend <?= $class ?>"><?= $sign . htmlspecialchars($stock['change'] ?? '0', ENT_QUOTES, 'UTF-8') ?>%</span>
               </div>
             <?php endforeach; ?>
           </div>
@@ -551,119 +664,119 @@ try {
   </div>
 
   <script type="text/javascript">
-  document.addEventListener('DOMContentLoaded', () => {
-    // Gestion du Switch Théma / Cookie
-    const themeToggle = document.getElementById('themeToggle');
-    if (themeToggle) {
-      themeToggle.addEventListener('change', (e) => {
-        const theme = e.target.checked ? 'light' : 'dark';
-        
-        if (e.target.checked) {
-          document.documentElement.classList.add('light-mode');
-        } else {
-          document.documentElement.classList.remove('light-mode');
-        }
+    document.addEventListener('DOMContentLoaded', () => {
+      // Gestion du Switch Théma / Cookie
+      const themeToggle = document.getElementById('themeToggle');
+      if (themeToggle) {
+        themeToggle.addEventListener('change', (e) => {
+          const theme = e.target.checked ? 'light' : 'dark';
 
-        // Sauvegarde dans un cookie valable 1 an
-        document.cookie = `novabank_theme=${theme}; path=/; max-age=31536000; SameSite=Lax`;
-      });
-    }
+          if (e.target.checked) {
+            document.documentElement.classList.add('light-mode');
+          } else {
+            document.documentElement.classList.remove('light-mode');
+          }
 
-    // Gestion de la recherche
-    const openBtn = document.getElementById('openSearchBtn');
-    const closeBtn = document.getElementById('closeSearchBtn');
-    const panel = document.getElementById('desjardinsSearchPanel');
-    const input = document.getElementById('desjardinsSearchInput');
-    const clearBtn = document.getElementById('clearSearchInput');
-    const dynamicContent = document.getElementById('searchDynamicContent');
+          // Sauvegarde dans un cookie valable 1 an
+          document.cookie = `novabank_theme=${theme}; path=/; max-age=31536000; SameSite=Lax`;
+        });
+      }
 
-    const searchIndex = [
-      { title: "Tableau de bord", category: "Navigation", url: "index.php?action=dashboard", badge: "Page" },
-      { title: "Marché & Bourse (TradingView)", category: "Bourse", url: "index.php?action=marketPage", badge: "Achat / Vente" },
-      { title: "Portefeuille d'investissements", category: "Bourse", url: "index.php?action=investment", badge: "Actifs" },
-      { title: "Comptes bancaires & Solde", category: "Banque", url: "index.php?action=accounts", badge: "Comptes" },
-      { title: "Espace Éducation & Guides", category: "Éducation", url: "index.php?action=education", badge: "Apprentissage" },
-      { title: "À propos de NovaBank", category: "Informations", url: "index.php?action=about", badge: "Projet" },
-      { title: "Comprendre les ordres d'achat à terme", category: "Éducation", url: "index.php?action=education#orders", badge: "Article" },
-      { title: "Analyse technique & Graphiques", category: "Éducation", url: "index.php?action=education#analysis", badge: "Tutoriel" },
-      { title: "Gestion des risques et diversification", category: "Éducation", url: "index.php?action=education#risk", badge: "Guide" }
-    ];
+      // Gestion de la recherche
+      const openBtn = document.getElementById('openSearchBtn');
+      const closeBtn = document.getElementById('closeSearchBtn');
+      const panel = document.getElementById('desjardinsSearchPanel');
+      const input = document.getElementById('desjardinsSearchInput');
+      const clearBtn = document.getElementById('clearSearchInput');
+      const dynamicContent = document.getElementById('searchDynamicContent');
 
-    const defaultPopularHTML = dynamicContent.innerHTML;
+      const searchIndex = [
+        { title: "Tableau de bord", category: "Navigation", url: "index.php?action=dashboard", badge: "Page" },
+        { title: "Marché & Bourse (TradingView)", category: "Bourse", url: "index.php?action=marketPage", badge: "Achat / Vente" },
+        { title: "Portefeuille d'investissements", category: "Bourse", url: "index.php?action=investment", badge: "Actifs" },
+        { title: "Comptes bancaires & Solde", category: "Banque", url: "index.php?action=accounts", badge: "Comptes" },
+        { title: "Espace Éducation & Guides", category: "Éducation", url: "index.php?action=education", badge: "Apprentissage" },
+        { title: "À propos de NovaBank", category: "Informations", url: "index.php?action=about", badge: "Projet" },
+        { title: "Comprendre les ordres d'achat à terme", category: "Éducation", url: "index.php?action=education#orders", badge: "Article" },
+        { title: "Analyse technique & Graphiques", category: "Éducation", url: "index.php?action=education#analysis", badge: "Tutoriel" },
+        { title: "Gestion des risques et diversification", category: "Éducation", url: "index.php?action=education#risk", badge: "Guide" }
+      ];
 
-    function openPanel() {
-      panel.classList.add('active');
-      setTimeout(() => input.focus(), 150);
-    }
+      const defaultPopularHTML = dynamicContent.innerHTML;
 
-    function closePanel() {
-      panel.classList.remove('active');
-      input.value = '';
-      clearBtn.classList.remove('visible');
-      dynamicContent.innerHTML = defaultPopularHTML;
-    }
+      function openPanel() {
+        panel.classList.add('active');
+        setTimeout(() => input.focus(), 150);
+      }
 
-    if (openBtn) openBtn.addEventListener('click', openPanel);
-    if (closeBtn) closeBtn.addEventListener('click', closePanel);
-
-    if (clearBtn) {
-      clearBtn.addEventListener('click', () => {
+      function closePanel() {
+        panel.classList.remove('active');
         input.value = '';
         clearBtn.classList.remove('visible');
         dynamicContent.innerHTML = defaultPopularHTML;
-        input.focus();
-      });
-    }
-
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && panel.classList.contains('active')) {
-        closePanel();
       }
-    });
 
-    if (input) {
-      input.addEventListener('input', (e) => {
-        const query = e.target.value.toLowerCase().trim();
+      if (openBtn) openBtn.addEventListener('click', openPanel);
+      if (closeBtn) closeBtn.addEventListener('click', closePanel);
 
-        if (query.length > 0) {
-          clearBtn.classList.add('visible');
-        } else {
+      if (clearBtn) {
+        clearBtn.addEventListener('click', () => {
+          input.value = '';
           clearBtn.classList.remove('visible');
           dynamicContent.innerHTML = defaultPopularHTML;
-          return;
+          input.focus();
+        });
+      }
+
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && panel.classList.contains('active')) {
+          closePanel();
         }
-
-        const results = searchIndex.searchIndex ? [] : searchIndex.filter(item =>
-          item.title.toLowerCase().includes(query) ||
-          item.category.toLowerCase().includes(query)
-        );
-
-        renderResults(results, query);
       });
-    }
 
-    function renderResults(items, query) {
-      if (items.length === 0) {
-        dynamicContent.innerHTML = `
+      if (input) {
+        input.addEventListener('input', (e) => {
+          const query = e.target.value.toLowerCase().trim();
+
+          if (query.length > 0) {
+            clearBtn.classList.add('visible');
+          } else {
+            clearBtn.classList.remove('visible');
+            dynamicContent.innerHTML = defaultPopularHTML;
+            return;
+          }
+
+          const results = searchIndex.searchIndex ? [] : searchIndex.filter(item =>
+            item.title.toLowerCase().includes(query) ||
+            item.category.toLowerCase().includes(query)
+          );
+
+          renderResults(results, query);
+        });
+      }
+
+      function renderResults(items, query) {
+        if (items.length === 0) {
+          dynamicContent.innerHTML = `
           <div class="search-section-title">Résultats pour "${query}"</div>
           <div style="color: #64748b; padding: 12px 0;">Aucun résultat correspondant trouvé.</div>
         `;
-        return;
-      }
+          return;
+        }
 
-      let html = `<div class="search-section-title">Résultats (${items.length})</div><div class="popular-searches-list">`;
-      items.forEach(item => {
-        html += `
+        let html = `<div class="search-section-title">Résultats (${items.length})</div><div class="popular-searches-list">`;
+        items.forEach(item => {
+          html += `
           <a href="${item.url}" class="result-item">
             <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
             <span>${item.title}</span>
             <span class="result-item-badge">${item.badge}</span>
           </a>
         `;
-      });
-      html += `</div>`;
+        });
+        html += `</div>`;
 
-      dynamicContent.innerHTML = html;
-    }
-  });
+        dynamicContent.innerHTML = html;
+      }
+    });
   </script>
