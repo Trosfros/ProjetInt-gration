@@ -1,6 +1,6 @@
 <?php
 
-require_once dirname(__DIR__,2) . "/configs/database.php";
+require_once dirname(__DIR__, 2) . "/configs/database.php";
 require_once dirname(__DIR__, 2) . "/src/Models/TransactionModel.php";
 
 class StockDAL
@@ -22,7 +22,7 @@ class StockDAL
         $userId = $this->getActiveUserID($alias);
         $stock = $this->getStockDetails($idStock);
         $transactionModel = new TransactionModel();
-       
+
         try {
             $stmt = $this->pdo->prepare("CALL BuyStockInvestment(?, ?, ?)");
             $stmt->bindParam(1, $userId, PDO::PARAM_INT);
@@ -40,7 +40,7 @@ class StockDAL
             );
             return ['success' => true, 'message' => "Achat passer avec succès!"];
         } catch (PDOException $e) {
-           
+
             if ($e->errorInfo[0] === '45000') {
                 return ['success' => false, 'message' => $e->errorInfo[2]];
             }
@@ -48,9 +48,9 @@ class StockDAL
         }
         return ['success' => false, 'message' => 'Erreur BDD: ' . $e->getMessage()];
     }
-    public function sellStock(string $alias, int $idStock,$shares): array
+    public function sellStock(string $alias, int $idStock, $shares): array
     {
-        
+
         if ($shares <= 0) {
             return ['success' => false, 'message' => 'Share amount must be greater than 0.'];
         }
@@ -75,13 +75,63 @@ class StockDAL
             );
             return ['success' => true, 'message' => "Vendu stock avec succès!"];
         } catch (PDOException $e) {
-           
+
             if ($e->errorInfo[0] === '45000') {
                 return ['success' => false, 'message' => $e->errorInfo[2]];
             }
             throw $e;
         }
         return ['success' => false, 'message' => 'Erreur BDD: ' . $e->getMessage()];
+    }
+    public function getUsersFavorite(string $alias): array
+    {
+        if ($alias == null) {
+            return ['success' => 'false', 'message' => 'username needs to be given to find favorites'];
+        }
+
+        $userId = $this->GetActiveUserID($alias);
+       
+        try 
+        {
+            $stmt = $this->pdo->prepare("select * from StockFavorite WHERE idUser = ?");
+            $stmt->bindParam(1,$userId,PDO::PARAM_INT);
+            $stmt->execute();
+
+            $res = $stmt->fetchAll();
+            $stmt->closeCursor();
+            
+            return $res;
+
+        } 
+        catch(PDOException $e) {
+            return ['success' => false, 'message' => 'impossible de traiter la demande'];
+        }
+
+    }
+    public function ToggleFavorite(string $alias, int $idStock):array
+    {
+        if ($alias == null || $idStock == null)
+            {
+                return ['success' => 'false', 'message' => 'cannot give null information to this func pls'];
+            }
+        $userId = $this->GetActiveUserID($alias);
+
+        try 
+        {
+            $stmt = $this->pdo->prepare("CALL TOGGLE_STOCK_FAVORITE(?,?)");
+            $stmt->bindParam(1,$userId,PDO::PARAM_INT);
+            $stmt->bindParam(2,$idStock,PDO::PARAM_INT);
+            $stmt->execute();
+
+            $stmt->closeCursor();
+
+            return ['success' => true, 'message' => 'ceci à été ajouter dans vos favoris!'];
+        }
+        catch (PDOException $e)
+        {
+            return ['success' => false, 'message' => 'Impossible de traiter la demande' ];
+        }
+
     }
     private function getStockPrice(int $idStock): float
     {
@@ -97,6 +147,7 @@ class StockDAL
 
         return (float) $result['LastPrice'];
     }
+
 
     private function getStockDetails(int $idStock): array
     {
@@ -134,8 +185,8 @@ class StockDAL
 
         return round($amount / $price, 4);
     }
-    public function AddStock(string $name, string $price, string $change):void
-    {   
+    public function AddStock(string $name, string $price, string $change): void
+    {
         $stmt = $this->pdo->prepare('call addStock(?,?,?)');
         $stmt->bindParam(1, $name, PDO::PARAM_STR);
         $stmt->bindParam(2, $price);
