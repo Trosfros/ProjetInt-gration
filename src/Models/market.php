@@ -87,7 +87,7 @@ try {
     cursor: not-allowed;
   }
 </style>
-<div class="dashboard-layout">
+<div class="dashboard-layout market-layout">
   <?php require $projectRoot . '/views/layout/sidebar.php'; ?>
 
   <main class="dashboard-main investment-page" aria-label="Page marché">
