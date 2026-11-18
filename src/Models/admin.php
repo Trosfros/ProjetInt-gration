@@ -10,9 +10,19 @@ $adminError = null;
 $adminActionError = null;
 $adminSuccess = $_SESSION['admin_balance_success'] ?? null;
 $adminMessageSuccess = $_SESSION['admin_message_success'] ?? null;
-unset($_SESSION['admin_balance_success'], $_SESSION['admin_message_success']);
+$adminEducationSuccess = $_SESSION['admin_education_success'] ?? null;
+unset($_SESSION['admin_balance_success'], $_SESSION['admin_message_success'], $_SESSION['admin_education_success']);
 $adminMessageTitle = is_string($_POST['message_title'] ?? null) ? trim($_POST['message_title']) : '';
 $adminMessageBody = is_string($_POST['message_body'] ?? null) ? trim($_POST['message_body']) : '';
+$adminEducationModuleId = is_scalar($_POST['education_module_id'] ?? null) ? (string) $_POST['education_module_id'] : '';
+$adminEducationQuestion = is_string($_POST['education_question'] ?? null) ? trim($_POST['education_question']) : '';
+$adminEducationExplanation = is_string($_POST['education_explanation'] ?? null) ? trim($_POST['education_explanation']) : '';
+$adminEducationOptions = is_array($_POST['education_options'] ?? null)
+    ? array_values($_POST['education_options'])
+    : ['', '', '', ''];
+$adminEducationCorrect = is_scalar($_POST['education_correct'] ?? null) ? (int) $_POST['education_correct'] : 0;
+$educationModules = [];
+$educationQuestions = [];
 $selectedUserId = is_scalar($_POST['user_id'] ?? null) ? (string) $_POST['user_id'] : '';
 $adjustmentDirection = is_scalar($_POST['direction'] ?? null) ? (string) $_POST['direction'] : 'credit';
 $adjustmentAmount = is_scalar($_POST['amount'] ?? null) ? (string) $_POST['amount'] : '';
@@ -30,6 +40,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         try {
             $formAction = (string) ($_POST['form_action'] ?? 'adjust_balance');
+            if ($formAction === 'delete_education_question') {
+                $questionId = filter_var($_POST['education_question_id'] ?? null, FILTER_VALIDATE_INT);
+                if ($questionId === false) {
+                    throw new InvalidArgumentException('Question éducative invalide.');
+                }
+
+                $adminController->deleteEducationQuestion((int) $questionId);
+                $_SESSION['admin_education_success'] = 'La question éducative a été supprimée.';
+                header('Location: index.php?action=admin');
+                exit;
+            }
+
+            if ($formAction === 'add_education_question') {
+                $moduleId = filter_var($_POST['education_module_id'] ?? null, FILTER_VALIDATE_INT);
+                if ($moduleId === false) {
+                    throw new InvalidArgumentException('Veuillez sélectionner un niveau éducatif.');
+                }
+
+                $optionTexts = is_array($_POST['education_options'] ?? null)
+                    ? array_values($_POST['education_options'])
+                    : [];
+                $correctOption = filter_var($_POST['education_correct'] ?? null, FILTER_VALIDATE_INT);
+                if ($correctOption === false) {
+                    throw new InvalidArgumentException('Veuillez indiquer la bonne réponse.');
+                }
+
+                $adminController->addEducationQuestion(
+                    (int) $moduleId,
+                    $adminEducationQuestion,
+                    $adminEducationExplanation,
+                    $optionTexts,
+                    [$correctOption]
+                );
+                $_SESSION['admin_education_success'] = 'La question éducative a été ajoutée au niveau sélectionné.';
+                header('Location: index.php?action=admin');
+                exit;
+            }
+
             if ($formAction === 'publish_admin_message') {
                 if ($adminMessageTitle === '' || $adminMessageBody === '') {
                     throw new InvalidArgumentException('Le titre et le message sont obligatoires.');
@@ -90,6 +138,14 @@ try {
     $adminError = 'Impossible de charger la liste des utilisateurs pour le moment.';
 }
 
+try {
+    $educationModules = $adminController->getEducationModules();
+    $educationQuestions = $adminController->getEducationQuestions();
+} catch (Throwable $e) {
+    error_log('admin.php failed to load education content: ' . $e->getMessage());
+    $adminActionError = $adminActionError ?? 'Impossible de charger la section éducative pour le moment.';
+}
+
 $totalUserBalance = array_sum(array_map(
     static fn (array $user): float => (float) ($user['Balance'] ?? 0),
     $adminUsers
@@ -118,6 +174,9 @@ require $projectRoot . '/views/layout/header.php';
         <?php endif; ?>
         <?php if ($adminMessageSuccess !== null): ?>
             <div class="admin-success" role="status"><?= htmlspecialchars((string) $adminMessageSuccess, ENT_QUOTES, 'UTF-8') ?></div>
+        <?php endif; ?>
+        <?php if ($adminEducationSuccess !== null): ?>
+            <div class="admin-success" role="status"><?= htmlspecialchars((string) $adminEducationSuccess, ENT_QUOTES, 'UTF-8') ?></div>
         <?php endif; ?>
         <?php if ($adminActionError !== null): ?>
             <div class="admin-alert" role="alert"><?= htmlspecialchars($adminActionError, ENT_QUOTES, 'UTF-8') ?></div>
@@ -253,6 +312,146 @@ require $projectRoot . '/views/layout/header.php';
 
                     confirmed = true;
                     form.requestSubmit();
+                });
+            })();
+        </script>
+
+        <section class="admin-adjustment-section admin-education-section" aria-labelledby="admin-education-title">
+            <div class="admin-section-heading admin-education-heading">
+                <div>
+                    <p class="admin-message-kicker">Section éducative</p>
+                    <h2 id="admin-education-title">Ajouter une question au parcours</h2>
+                    <p>Créez une question de quiz avec une explication pour aider les utilisateurs.</p>
+                </div>
+            </div>
+            <form class="admin-education-form" method="post" action="index.php?action=admin" id="adminEducationForm">
+                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($adminCsrfToken, ENT_QUOTES, 'UTF-8') ?>">
+                <input type="hidden" name="form_action" value="add_education_question">
+
+                <label class="admin-education-module-field">
+                    <span>Niveau éducatif</span>
+                    <select name="education_module_id" required>
+                        <option value="">Sélectionner un niveau</option>
+                        <?php foreach ($educationModules as $module): ?>
+                            <option value="<?= (int) $module['idModule'] ?>"<?= $adminEducationModuleId === (string) $module['idModule'] ? ' selected' : '' ?>>
+                                <?= htmlspecialchars((string) $module['Title'], ENT_QUOTES, 'UTF-8') ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </label>
+
+                <label class="admin-education-question-field">
+                    <span>Question</span>
+                    <input type="text" name="education_question" maxlength="500" value="<?= htmlspecialchars($adminEducationQuestion, ENT_QUOTES, 'UTF-8') ?>" placeholder="Ex. Que représente une action en bourse ?" required>
+                </label>
+
+                <div class="admin-education-options-field">
+                    <div class="admin-education-options-heading">
+                        <span>Choix de réponse</span>
+                        <small>Sélectionnez le bouton correspondant à la bonne réponse.</small>
+                    </div>
+                    <div class="admin-education-options" id="adminEducationOptions">
+                        <?php for ($optionIndex = 0; $optionIndex < 3; $optionIndex++): ?>
+                            <div class="admin-education-option">
+                                <label class="admin-education-correct">
+                                    <input type="radio" name="education_correct" value="<?= $optionIndex ?>"<?= $adminEducationCorrect === $optionIndex ? ' checked' : '' ?>>
+                                    <span>Bonne réponse</span>
+                                </label>
+                                <input type="text" name="education_options[]" maxlength="500" value="<?= htmlspecialchars((string) ($adminEducationOptions[$optionIndex] ?? ''), ENT_QUOTES, 'UTF-8') ?>" placeholder="Choix <?= $optionIndex + 1 ?>" required>
+                            </div>
+                        <?php endfor; ?>
+                    </div>
+                    <button type="button" class="admin-education-add-option" id="adminEducationAddOption">+ Ajouter un autre choix</button>
+                </div>
+
+                <label class="admin-education-explanation-field">
+                    <span>Explication</span>
+                    <textarea name="education_explanation" maxlength="5000" rows="4" placeholder="Expliquez pourquoi cette réponse est correcte." required><?= htmlspecialchars($adminEducationExplanation, ENT_QUOTES, 'UTF-8') ?></textarea>
+                </label>
+
+                <div class="admin-education-footer">
+                    <p><?= count($educationQuestions) ?> question(s) affichée(s) récemment</p>
+                    <button class="admin-adjustment-submit" type="submit">Ajouter la question</button>
+                </div>
+            </form>
+
+            <?php if ($educationQuestions !== []): ?>
+                <div class="admin-education-recent">
+                    <h3>Questions récemment ajoutées</h3>
+                    <div class="admin-education-question-list">
+                        <?php foreach ($educationQuestions as $educationQuestion): ?>
+                            <article>
+                                <div>
+                                    <span><?= htmlspecialchars((string) $educationQuestion['ModuleTitle'], ENT_QUOTES, 'UTF-8') ?></span>
+                                    <strong><?= htmlspecialchars((string) $educationQuestion['Question'], ENT_QUOTES, 'UTF-8') ?></strong>
+                                </div>
+                                <div class="admin-education-question-actions">
+                                    <span><?= count(is_array($educationQuestion['Options']) ? $educationQuestion['Options'] : []) ?> choix</span>
+                                    <form method="post" action="index.php?action=admin" class="admin-education-delete-form">
+                                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($adminCsrfToken, ENT_QUOTES, 'UTF-8') ?>">
+                                        <input type="hidden" name="form_action" value="delete_education_question">
+                                        <input type="hidden" name="education_question_id" value="<?= (int) $educationQuestion['idQuestion'] ?>">
+                                        <button type="submit" class="admin-education-delete-button" title="Supprimer cette question">
+                                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M8 6V3h8v3M19 6l-1 15H6L5 6M10 10v7M14 10v7"/></svg>
+                                            Supprimer
+                                        </button>
+                                    </form>
+                                </div>
+                            </article>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            <?php endif; ?>
+        </section>
+        <script>
+            (() => {
+                const options = document.getElementById('adminEducationOptions');
+                const addButton = document.getElementById('adminEducationAddOption');
+                if (!options || !addButton) return;
+
+                addButton.addEventListener('click', () => {
+                    const count = options.querySelectorAll('.admin-education-option').length;
+                    if (count >= 6) {
+                        addButton.disabled = true;
+                        return;
+                    }
+
+                    const option = document.createElement('div');
+                    option.className = 'admin-education-option';
+                    option.innerHTML = `
+                        <label class="admin-education-correct">
+                            <input type="radio" name="education_correct" value="${count}">
+                            <span>Bonne réponse</span>
+                        </label>
+                        <input type="text" name="education_options[]" maxlength="500" placeholder="Choix ${count + 1}" required>
+                        <button type="button" class="admin-education-remove-option" aria-label="Retirer ce choix">×</button>
+                    `;
+                    options.appendChild(option);
+                    if (count + 1 >= 6) addButton.disabled = true;
+                });
+
+                options.addEventListener('click', (event) => {
+                    const removeButton = event.target.closest('.admin-education-remove-option');
+                    if (!removeButton) return;
+                    const optionCount = options.querySelectorAll('.admin-education-option').length;
+                    if (optionCount <= 2) return;
+                    removeButton.closest('.admin-education-option').remove();
+
+                    options.querySelectorAll('.admin-education-option').forEach((option, index) => {
+                        const radio = option.querySelector('input[type="radio"]');
+                        const text = option.querySelector('input[type="text"]');
+                        radio.value = String(index);
+                        text.placeholder = `Choix ${index + 1}`;
+                    });
+                    addButton.disabled = false;
+                });
+
+                document.querySelectorAll('.admin-education-delete-form').forEach((form) => {
+                    form.addEventListener('submit', (event) => {
+                        if (!window.confirm('Supprimer définitivement cette question éducative ?')) {
+                            event.preventDefault();
+                        }
+                    });
                 });
             })();
         </script>
