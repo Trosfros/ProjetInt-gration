@@ -158,11 +158,32 @@ require $projectRoot . '/views/layout/header.php';
                 <div class="admin-message-footer">
                     <p class="admin-message-audience"><span aria-hidden="true"></span>Envoyé à tous les comptes vérifiés</p>
                     <button class="admin-adjustment-submit" type="submit">
-                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4 20-7ZM22 2 11 13"/></svg>
-                        Envoyer l’annonce
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                        Vérifier l’annonce
                     </button>
                 </div>
             </form>
+            <section class="admin-message-confirmation" id="adminMessageConfirmation" hidden role="region" aria-live="polite" aria-labelledby="adminMessageConfirmationTitle">
+                <div class="admin-message-confirmation-heading">
+                    <span class="admin-message-confirmation-icon" aria-hidden="true">✓</span>
+                    <div>
+                        <p class="admin-message-kicker">Dernière vérification</p>
+                        <h3 id="adminMessageConfirmationTitle">Prêt à envoyer cette annonce ?</h3>
+                        <p>Elle sera envoyée à tous les comptes vérifiés.</p>
+                    </div>
+                </div>
+                <div class="admin-message-preview">
+                    <strong id="adminMessagePreviewTitle"></strong>
+                    <p id="adminMessagePreviewBody"></p>
+                </div>
+                <div class="admin-message-confirmation-actions">
+                    <button class="admin-message-edit-button" id="adminMessageEdit" type="button">Modifier le message</button>
+                    <button class="admin-adjustment-submit admin-message-confirm-submit" id="adminMessageConfirm" type="button">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4 20-7ZM22 2 11 13"/></svg>
+                        Confirmer l’envoi
+                    </button>
+                </div>
+            </section>
         </section>
         <script>
             (() => {
@@ -170,7 +191,14 @@ require $projectRoot . '/views/layout/header.php';
                 const templateSelect = document.getElementById('adminMessageTemplate');
                 const titleInput = document.getElementById('adminMessageTitle');
                 const bodyInput = document.getElementById('adminMessageBody');
-                if (!form || !templateSelect || !titleInput || !bodyInput) return;
+                const confirmationPanel = document.getElementById('adminMessageConfirmation');
+                const previewTitle = document.getElementById('adminMessagePreviewTitle');
+                const previewBody = document.getElementById('adminMessagePreviewBody');
+                const editButton = document.getElementById('adminMessageEdit');
+                const confirmButton = document.getElementById('adminMessageConfirm');
+                if (!form || !templateSelect || !titleInput || !bodyInput
+                    || !confirmationPanel || !previewTitle || !previewBody
+                    || !editButton || !confirmButton) return;
 
                 const templates = {
                     maintenance: {
@@ -193,12 +221,38 @@ require $projectRoot . '/views/layout/header.php';
 
                     titleInput.value = template.title;
                     bodyInput.value = template.body;
+                    confirmationPanel.hidden = true;
                 });
 
+                form.addEventListener('input', () => {
+                    confirmationPanel.hidden = true;
+                });
+
+                let confirmed = false;
                 form.addEventListener('submit', (event) => {
-                    if (!window.confirm('Ce message sera envoyé à tous les comptes vérifiés. Confirmer l’envoi ?')) {
-                        event.preventDefault();
+                    if (confirmed) {
+                        confirmed = false;
+                        return;
                     }
+
+                    event.preventDefault();
+                    previewTitle.textContent = titleInput.value.trim();
+                    previewBody.textContent = bodyInput.value.trim();
+                    confirmationPanel.hidden = false;
+                    confirmationPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    confirmButton.focus({ preventScroll: true });
+                });
+
+                editButton.addEventListener('click', () => {
+                    confirmationPanel.hidden = true;
+                    titleInput.focus();
+                });
+
+                confirmButton.addEventListener('click', () => {
+                    if (!form.reportValidity()) return;
+
+                    confirmed = true;
+                    form.requestSubmit();
                 });
             })();
         </script>

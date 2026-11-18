@@ -563,6 +563,7 @@ else if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'register') {
                 $registration['code_hash'] = password_hash($code, PASSWORD_DEFAULT);
                 $registration['expires_at'] = time() + 600;
                 $registration['attempts'] = 0;
+                $registration['code_sent'] = true;
                 $_SESSION['registration_verification'] = $registration;
                 $_SESSION['registration_last_sent_at'] = time();
                 $_SESSION['register_success'] = 'Un nouveau code de vérification a été envoyé. Il est valable 10 minutes.';
@@ -601,10 +602,40 @@ else if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'register') {
 
     try {
         $pdo = getPDO();
-        $stmt = $pdo->prepare('SELECT idUser FROM `User` WHERE `Alias` = :username OR `Description` = :email LIMIT 1');
-        $stmt->execute(['username' => $username, 'email' => $email]);
+        $emailStmt = $pdo->prepare(
+            'SELECT `idUser`, `Alias`, `Description`, `Password`, `email_verified`
+             FROM `User` WHERE `Description` = :email LIMIT 1'
+        );
+        $emailStmt->execute(['email' => $email]);
+        $existingEmailAccount = $emailStmt->fetch(PDO::FETCH_ASSOC);
 
-        if ($stmt->fetch()) {
+        if (is_array($existingEmailAccount)) {
+            if ((int) $existingEmailAccount['email_verified'] === 0
+                && password_verify($password, (string) $existingEmailAccount['Password'])
+            ) {
+                $_SESSION['registration_verification'] = [
+                    'user_id' => (int) $existingEmailAccount['idUser'],
+                    'username' => (string) $existingEmailAccount['Alias'],
+                    'email' => (string) $existingEmailAccount['Description'],
+                    'code_hash' => '',
+                    'expires_at' => 0,
+                    'attempts' => 0,
+                    'code_sent' => false,
+                ];
+                unset($_SESSION['registration_last_sent_at']);
+                $_SESSION['register_success'] = 'Cette inscription est déjà en attente. Renvoyez le code pour terminer la vérification.';
+                header('Location: index.php?action=registerPage');
+                exit;
+            }
+
+            $_SESSION['register_error'] = 'Ce nom d’utilisateur ou cette adresse courriel existe déjà.';
+            header('Location: index.php?action=registerPage');
+            exit;
+        }
+
+        $usernameStmt = $pdo->prepare('SELECT `idUser` FROM `User` WHERE `Alias` = :username LIMIT 1');
+        $usernameStmt->execute(['username' => $username]);
+        if ($usernameStmt->fetch()) {
             $_SESSION['register_error'] = 'Ce nom d’utilisateur ou cette adresse courriel existe déjà.';
             header('Location: index.php?action=registerPage');
             exit;
@@ -631,6 +662,7 @@ else if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'register') {
             'code_hash' => password_hash($code, PASSWORD_DEFAULT),
             'expires_at' => time() + 600,
             'attempts' => 0,
+            'code_sent' => true,
         ];
         $_SESSION['registration_last_sent_at'] = time();
         $_SESSION['register_success'] = 'Un code de vérification a été envoyé à votre adresse courriel. Il est valable 10 minutes.';
