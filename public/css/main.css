@@ -712,7 +712,7 @@ input:checked + .theme-slider .icon-moon {
 }
 
 @media (max-width: 700px) {
-  .user-greeting,
+  .user-profile-name,
   .nav-actions > .btn-ghost {
     display: none;
   }
@@ -764,7 +764,7 @@ html.light-mode .nav-search-btn:hover {
   background: rgba(2, 132, 199, 0.1);
 }
 
-html.light-mode .user-greeting {
+html.light-mode .user-profile-name {
   color: #64748b !important;
 }
 
@@ -935,7 +935,7 @@ html.light-mode .nav-search-btn:hover {
   background: rgba(2, 132, 199, 0.1);
 }
 
-html.light-mode .user-greeting {
+html.light-mode .user-profile-name {
   color: #64748b !important;
 }
 

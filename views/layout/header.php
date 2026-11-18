@@ -109,12 +109,58 @@ if ($isLoggedIn) {
     rel="stylesheet">
 
   <style>
-    /* --- SWITCH MODE SOMBRE / CLAIR --- */
-    .theme-switch-container {
-      display: flex;
-      align-items: center;
-      margin-left: auto;
-      margin-right: 12px;
+    .navbar-authenticated .logo {
+      flex: 0 0 auto;
+    }
+
+    .navbar-authenticated .nav-links {
+      flex: 1;
+      gap: clamp(0.25rem, 1vw, 1rem);
+    }
+
+    .navbar-authenticated .nav-links a {
+      margin: 0;
+      padding: 0.6rem 0.75rem;
+      border-radius: 9px;
+      transition: color 0.2s ease, background 0.2s ease;
+    }
+
+    .navbar-authenticated .nav-links a:hover,
+    .navbar-authenticated .nav-links a[aria-current="page"] {
+      color: #7dd3fc;
+      background: rgba(56, 189, 248, 0.1);
+    }
+
+    .navbar-authenticated .nav-search-btn {
+      flex: 0 0 auto;
+      margin: 0 0.5rem;
+    }
+
+    .navbar-authenticated .user-profile-link {
+      gap: 0.7rem;
+      margin-right: 0;
+      color: #e2e8f0;
+      font-weight: 600;
+    }
+
+    .navbar-authenticated .nav-actions {
+      gap: clamp(0.5rem, 1vw, 0.9rem);
+    }
+
+    html.light-mode .navbar-authenticated .nav-links a:hover,
+    html.light-mode .navbar-authenticated .nav-links a[aria-current="page"] {
+      color: #0284c7;
+      background: rgba(2, 132, 199, 0.08);
+    }
+
+    html.light-mode .navbar-authenticated .user-profile-link {
+      color: #334155;
+    }
+
+    @media (max-width: 1100px) {
+      .navbar-authenticated .nav-links {
+        display: none;
+      }
     }
 
     .currency-rate-status {
@@ -183,6 +229,127 @@ if ($isLoggedIn) {
       background: #fff;
     }
 
+    .header-settings-menu {
+      position: relative;
+    }
+
+    .header-settings-toggle {
+      display: grid;
+      width: 38px;
+      height: 38px;
+      place-items: center;
+      color: #cbd5e1;
+      background: transparent;
+      border: 1px solid transparent;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: color 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+    }
+
+    .header-settings-toggle svg {
+      width: 20px;
+      height: 20px;
+      fill: none;
+      stroke: currentColor;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-width: 1.8;
+    }
+
+    .header-settings-toggle:hover,
+    .header-settings-toggle[aria-expanded="true"] {
+      color: #7dd3fc;
+      background: rgba(56, 189, 248, 0.1);
+      border-color: rgba(56, 189, 248, 0.18);
+    }
+
+    .header-settings-toggle:focus-visible,
+    .header-settings-dropdown a:focus-visible {
+      outline: 2px solid #38bdf8;
+      outline-offset: 2px;
+    }
+
+    .header-settings-dropdown {
+      position: absolute;
+      top: calc(100% + 10px);
+      right: 0;
+      z-index: 60;
+      width: 220px;
+      padding: 7px;
+      background: rgba(14, 18, 29, 0.97);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      box-shadow: 0 18px 48px rgba(0, 0, 0, 0.38);
+      backdrop-filter: blur(18px);
+    }
+
+    .header-settings-dropdown[hidden] {
+      display: none;
+    }
+
+    .header-settings-dropdown a {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      min-height: 42px;
+      padding: 0 11px;
+      color: #e2e8f0;
+      border-radius: 9px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      text-decoration: none;
+      transition: color 0.18s ease, background 0.18s ease;
+    }
+
+    .header-settings-dropdown a:hover {
+      color: #7dd3fc;
+      background: rgba(56, 189, 248, 0.1);
+    }
+
+    .header-settings-dropdown a svg {
+      width: 18px;
+      height: 18px;
+      flex: 0 0 18px;
+      fill: none;
+      stroke: currentColor;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-width: 1.8;
+    }
+
+    .header-settings-dropdown .header-logout-link {
+      margin-top: 5px;
+      padding-top: 5px;
+      border-top: 1px solid rgba(148, 163, 184, 0.14);
+      border-radius: 0 0 9px 9px;
+    }
+
+    html.light-mode .header-settings-toggle {
+      color: #475569;
+    }
+
+    html.light-mode .header-settings-toggle:hover,
+    html.light-mode .header-settings-toggle[aria-expanded="true"] {
+      color: #0284c7;
+      background: rgba(2, 132, 199, 0.08);
+      border-color: rgba(2, 132, 199, 0.16);
+    }
+
+    html.light-mode .header-settings-dropdown {
+      background: rgba(255, 255, 255, 0.98);
+      border-color: rgba(100, 116, 139, 0.2);
+      box-shadow: 0 18px 48px rgba(15, 23, 42, 0.16);
+    }
+
+    html.light-mode .header-settings-dropdown a {
+      color: #334155;
+    }
+
+    html.light-mode .header-settings-dropdown a:hover {
+      color: #0284c7;
+      background: rgba(2, 132, 199, 0.08);
+    }
+
     html.light-mode .currency-display-control select {
       color: #334155;
       background-color: rgba(248, 250, 252, 0.95);
@@ -220,12 +387,16 @@ if ($isLoggedIn) {
         font-size: 1.1rem;
       }
 
-      .navbar-authenticated .nav-search-btn {
+      .navbar-authenticated .nav-actions {
+        gap: 0.35rem;
+      }
+
+      .navbar-authenticated .user-profile-name {
         display: none;
       }
 
-      .navbar-authenticated .nav-actions {
-        gap: 0.35rem;
+      .navbar-authenticated .nav-search-btn {
+        display: none;
       }
 
       .navbar-authenticated .currency-display-control select {
@@ -233,83 +404,6 @@ if ($isLoggedIn) {
         padding-right: 22px;
         padding-left: 8px;
       }
-    }
-
-    .theme-switch {
-      position: relative;
-      display: inline-block;
-      width: 52px;
-      height: 28px;
-      cursor: pointer;
-    }
-
-    .theme-switch input {
-      opacity: 0;
-      width: 0;
-      height: 0;
-    }
-
-    .theme-slider {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background-color: rgba(30, 41, 59, 0.8);
-      border: 1px solid rgba(148, 163, 184, 0.3);
-      transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      border-radius: 34px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 6px;
-    }
-
-    .theme-slider .icon-sun {
-      color: #fbbf24;
-      width: 14px;
-      height: 14px;
-      opacity: 0.5;
-      transition: opacity 0.2s;
-    }
-
-    .theme-slider .icon-moon {
-      color: #38bdf8;
-      width: 14px;
-      height: 14px;
-      opacity: 1;
-      transition: opacity 0.2s;
-    }
-
-    .theme-slider:before {
-      position: absolute;
-      content: "";
-      height: 20px;
-      width: 20px;
-      left: 3px;
-      bottom: 3px;
-      background-color: #f8fafc;
-      transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      border-radius: 50%;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-    }
-
-    input:checked+.theme-slider {
-      background-color: #e2e8f0;
-      border-color: #cbd5e1;
-    }
-
-    input:checked+.theme-slider:before {
-      transform: translateX(24px);
-      background-color: #0f172a;
-    }
-
-    input:checked+.theme-slider .icon-sun {
-      opacity: 1;
-    }
-
-    input:checked+.theme-slider .icon-moon {
-      opacity: 0.5;
     }
 
     /* --- STYLES LIGHT MODE (VARIABLES & OVERRIDES) --- */
@@ -354,7 +448,7 @@ if ($isLoggedIn) {
       background: rgba(2, 132, 199, 0.1);
     }
 
-    html.light-mode .user-greeting {
+    html.light-mode .user-profile-name {
       color: #64748b !important;
     }
 
@@ -575,6 +669,8 @@ if ($isLoggedIn) {
     }
   </style>
 
+  <link rel="stylesheet" href="public/css/light-mode.css">
+
 </head>
 
 <body>
@@ -590,7 +686,15 @@ if ($isLoggedIn) {
       NovaBank
     </a>
 
-    <?php if (!$isLoggedIn): ?>
+    <?php if ($isLoggedIn): ?>
+      <nav class="nav-links nav-links-authenticated" aria-label="Navigation principale">
+        <a href="index.php"<?= ($activePage ?? '') === 'dashboard' ? ' aria-current="page"' : '' ?>>Tableau de bord</a>
+        <a href="index.php?action=marketPage"<?= ($activePage ?? '') === 'market' ? ' aria-current="page"' : '' ?>>Marchés</a>
+        <a href="index.php?action=investment"<?= ($activePage ?? '') === 'investment' ? ' aria-current="page"' : '' ?>>Portefeuille</a>
+        <a href="index.php?action=accounts"<?= ($activePage ?? '') === 'Accounts' ? ' aria-current="page"' : '' ?>>Comptes</a>
+        <a href="index.php?action=education"<?= ($activePage ?? '') === 'education' ? ' aria-current="page"' : '' ?>>Éducation</a>
+      </nav>
+    <?php else: ?>
       <nav class="nav-links">
         <a href="index.php#simulator">Simulateur Bourse</a>
         <a href="index.php#leaderboard">Classement</a>
@@ -598,23 +702,6 @@ if ($isLoggedIn) {
         <a href="index.php?action=about">À propos</a>
       </nav>
     <?php endif; ?>
-
-    <!-- SWITCH DE MODE (ENTRE ÉDUCATION ET LOUPE) -->
-    <div class="theme-switch-container">
-      <label class="theme-switch" for="themeToggle" aria-label="Basculer entre le mode clair et sombre">
-        <input type="checkbox" id="themeToggle" <?= $isLightMode ? 'checked' : '' ?>>
-        <span class="theme-slider">
-          <svg class="icon-sun" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-          </svg>
-          <svg class="icon-moon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
-          </svg>
-        </span>
-      </label>
-    </div>
 
     <!-- BOUTON LOUPE POUR OUVRIR LE PANNEAU -->
     <button type="button" class="nav-search-btn" id="openSearchBtn" aria-label="Rechercher">
@@ -656,15 +743,68 @@ if ($isLoggedIn) {
             <span class="user-avatar-initial"><?= htmlspecialchars($headerUserInitial, ENT_QUOTES, 'UTF-8') ?></span>
             <img src="index.php?action=profilePhoto" alt="" onerror="this.style.display='none'">
           </span>
-          <span class="user-greeting">Bonjour, <?= htmlspecialchars($headerUserName, ENT_QUOTES, 'UTF-8') ?></span>
+          <span class="user-profile-name"><?= htmlspecialchars($headerUserName, ENT_QUOTES, 'UTF-8') ?></span>
         </a>
-        <a href="index.php?action=logout" class="btn-ghost">Déconnexion</a>
+        <div class="header-settings-menu" id="headerSettingsMenuContainer">
+          <button type="button" class="header-settings-toggle" id="headerSettingsToggle"
+            aria-label="Ouvrir les options du compte" aria-expanded="false" aria-controls="headerSettingsDropdown">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
+          </button>
+          <div class="header-settings-dropdown" id="headerSettingsDropdown" hidden>
+            <a href="index.php?action=settings">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="12" cy="12" r="3" />
+                <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-1.8 3.12-.08-.03a1.7 1.7 0 0 0-1.8.25l-.07.05h-3.6l-.02-.08a1.7 1.7 0 0 0-1.3-1.31l-.08-.02-1.8-3.12.06-.06A1.7 1.7 0 0 0 9.6 14l-.03-.08v-3.6l.08-.02a1.7 1.7 0 0 0 1.31-1.3l.02-.08 3.12-1.8.06.06a1.7 1.7 0 0 0 1.88.34l.08-.03 3.12 1.8-.03.08a1.7 1.7 0 0 0 .25 1.8l.05.07v3.6z" />
+              </svg>
+              <span>Paramètres</span>
+            </a>
+            <a class="header-logout-link" href="index.php?action=logout">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />
+              </svg>
+              <span>Déconnexion</span>
+            </a>
+          </div>
+        </div>
       <?php else: ?>
         <a href="index.php?action=loginPage" class="btn-ghost">Se connecter</a>
         <a href="index.php?action=registerPage" class="btn-primary">Créer un compte</a>
       <?php endif; ?>
     </div>
   </header>
+
+  <?php if ($isLoggedIn): ?>
+    <script>
+      (() => {
+        const container = document.getElementById('headerSettingsMenuContainer');
+        const toggle = document.getElementById('headerSettingsToggle');
+        const menu = document.getElementById('headerSettingsDropdown');
+        if (!container || !toggle || !menu) return;
+
+        const setMenuOpen = (isOpen) => {
+          menu.hidden = !isOpen;
+          toggle.setAttribute('aria-expanded', String(isOpen));
+        };
+
+        toggle.addEventListener('click', () => setMenuOpen(menu.hidden));
+        document.addEventListener('click', (event) => {
+          if (!container.contains(event.target)) setMenuOpen(false);
+        });
+        container.addEventListener('focusout', (event) => {
+          if (!container.contains(event.relatedTarget)) setMenuOpen(false);
+        });
+        document.addEventListener('keydown', (event) => {
+          if (event.key === 'Escape' && !menu.hidden) {
+            setMenuOpen(false);
+            toggle.focus();
+          }
+        });
+      })();
+    </script>
+  <?php endif; ?>
 
   <?php if ($isLoggedIn): ?>
     <div id="currencyRateStatus" class="currency-rate-status is-loading" role="status" aria-live="polite">
