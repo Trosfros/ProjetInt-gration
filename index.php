@@ -222,6 +222,16 @@ else if ($action === 'accounts') {
     require __DIR__ . '/src/Models/AccountModel.php';
     exit;
 }
+else if ($action === 'settings') {
+    if (!$isLoggedIn) {
+        $_SESSION['redirect_after_login'] = 'settings';
+        header('Location: index.php?action=loginPage');
+        exit;
+    }
+
+    require __DIR__ . '/src/Models/settings.php';
+    exit;
+}
 else if ($action === 'notificationsCount') {
     header('Content-Type: application/json; charset=utf-8');
     if (!$isLoggedIn) {
@@ -239,6 +249,31 @@ else if ($action === 'notificationsCount') {
         error_log('index.php failed to load unread notification count: ' . $e->getMessage());
         http_response_code(500);
         echo json_encode(['error' => 'Impossible de charger les notifications.']);
+    }
+    exit;
+}
+else if ($action === 'currencyRate') {
+    header('Content-Type: application/json; charset=utf-8');
+    header('Cache-Control: no-store, private');
+    if (!$isLoggedIn) {
+        http_response_code(401);
+        echo json_encode(['error' => 'Vous devez être connecté.']);
+        exit;
+    }
+
+    try {
+        require_once __DIR__ . '/configs/currency_display.php';
+        $currencyRate = getCadUsdReferenceRate();
+        if ($currencyRate === null) {
+            http_response_code(503);
+            echo json_encode(['error' => 'Le taux CAD/USD est temporairement indisponible.']);
+        } else {
+            echo json_encode($currencyRate, JSON_THROW_ON_ERROR);
+        }
+    } catch (Throwable $e) {
+        error_log('index.php failed to load the CAD/USD reference rate: ' . $e->getMessage());
+        http_response_code(503);
+        echo json_encode(['error' => 'Le taux CAD/USD est temporairement indisponible.']);
     }
     exit;
 }
@@ -818,7 +853,7 @@ if ($isLoggedIn && ($action === '' || $action === 'dashboard')) {
                             </button>
                         </div>
                         <div class="dashboard-balance-value" id="dashboard-balance-value" style="color: #38bdf8; font-size: 2rem; font-weight: 700; margin-top: 6px;">
-                            <span class="privacy-value-visible"><?= $dashboardData === null ? '—' : htmlspecialchars(number_format($dashboardData['balance'], 2, ',', ' ') . ' $', ENT_QUOTES, 'UTF-8') ?></span>
+                            <span class="privacy-value-visible"><?= $dashboardData === null ? '—' : renderCurrencyAmount($dashboardData['balance'], 'CAD') ?></span>
                             <span class="privacy-value-hidden" aria-label="Solde masqué" hidden>••••••</span>
                         </div>
                         <span style="color: #94a3b8; font-size: 0.85rem; font-weight: 500;">Solde actuel du compte</span>
@@ -827,7 +862,7 @@ if ($isLoggedIn && ($action === '' || $action === 'dashboard')) {
                     <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 20px;">
                         <span style="color: #94a3b8; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px;">Investissements en cours</span>
                         <div style="color: #ffffff; font-size: 2rem; font-weight: 700; margin-top: 6px;">
-                            <span class="privacy-value-visible"><?php if ($dashboardData === null || !$dashboardData['pricesAvailable']): ?><?= $dashboardData === null ? '—' : 'Indisponible' ?><?php else: ?><?= htmlspecialchars(number_format($dashboardData['investmentValue'], 2, ',', ' ') . ' $', ENT_QUOTES, 'UTF-8') ?><?php endif; ?></span>
+                            <span class="privacy-value-visible"><?php if ($dashboardData === null || !$dashboardData['pricesAvailable']): ?><?= $dashboardData === null ? '—' : 'Indisponible' ?><?php else: ?><?= renderCurrencyAmount($dashboardData['investmentValue'], 'CAD') ?><?php endif; ?></span>
                             <span class="privacy-value-hidden" aria-label="Investissements masqués" hidden>••••••</span>
                         </div>
                         <span class="privacy-value-visible" style="color: #94a3b8; font-size: 0.85rem;">
@@ -846,7 +881,7 @@ if ($isLoggedIn && ($action === '' || $action === 'dashboard')) {
                             <?php if ($dashboardError !== null): ?>
                                 <?= htmlspecialchars($dashboardError, ENT_QUOTES, 'UTF-8') ?>
                             <?php elseif ($dashboardData !== null && $dashboardData['unrealizedPnl'] !== null && $dashboardData['investedAmount'] > 0): ?>
-                                Gain/perte latent(e) : <?= htmlspecialchars(number_format($dashboardData['unrealizedPnl'], 2, ',', ' ') . ' $', ENT_QUOTES, 'UTF-8') ?>
+                                Gain/perte latent(e) : <?= renderCurrencyAmount($dashboardData['unrealizedPnl'], 'CAD') ?>
                             <?php elseif ($dashboardData !== null && !$dashboardData['pricesAvailable']): ?>
                                 Performance indisponible : cours manquant
                             <?php else: ?>

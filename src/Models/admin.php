@@ -270,8 +270,8 @@ require $projectRoot . '/views/layout/header.php';
                 </article>
                 <article class="admin-stat-card admin-stat-balance">
                     <span>Soldes cumulés</span>
-                    <strong><?= number_format($totalUserBalance, 2, ',', ' ') ?> $</strong>
-                    <small>Somme des soldes individuels en CAD</small>
+                    <strong><?= renderCurrencyAmount($totalUserBalance, 'CAD') ?></strong>
+                    <small>Soldes enregistrés en CAD, convertis pour l’affichage</small>
                 </article>
             </section>
 
@@ -294,7 +294,7 @@ require $projectRoot . '/views/layout/header.php';
                                 <?php foreach ($adminUsers as $user): ?>
                                     <option value="<?= (int) $user['idUser'] ?>"<?= $selectedUserId === (string) $user['idUser'] ? ' selected' : '' ?>>
                                         <?= htmlspecialchars((string) $user['Alias'], ENT_QUOTES, 'UTF-8') ?>
-                                        (<?= number_format((float) ($user['Balance'] ?? 0), 2, ',', ' ') ?> $)
+                                        (<?= number_format((float) ($user['Balance'] ?? 0), 2, ',', ' ') ?> CAD)
                                     </option>
                                 <?php endforeach; ?>
                             </select>
@@ -352,7 +352,7 @@ require $projectRoot . '/views/layout/header.php';
                                                 <?= (int) $user['IsAdmin'] === 1 ? 'Administrateur' : 'Utilisateur' ?>
                                             </span>
                                         </td>
-                                        <td class="admin-balance-column"><?= number_format((float) ($user['Balance'] ?? 0), 2, ',', ' ') ?> $</td>
+                                        <td class="admin-balance-column"><?= renderCurrencyAmount((float) ($user['Balance'] ?? 0), 'CAD') ?></td>
                                     </tr>
                                 <?php endforeach; ?>
                             </tbody>

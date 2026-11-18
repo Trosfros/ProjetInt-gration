@@ -11,6 +11,9 @@ $currentTheme = $_COOKIE['novabank_theme'] ?? 'dark';
 $isLightMode = ($currentTheme === 'light');
 
 $rootPath = dirname(__DIR__, 2);
+require_once $rootPath . '/configs/currency_display.php';
+$serverDisplayCurrency = ($_COOKIE['novabank_display_currency'] ?? 'CAD') === 'USD' ? 'USD' : 'CAD';
+$cachedCadUsdReferenceRate = getCachedCadUsdReferenceRate();
 require_once $rootPath . '/vendor/autoload.php';
 require_once $rootPath . '/src/DAL/stockDAL.php';
 require_once $rootPath . '/configs/database.php';
@@ -42,16 +45,51 @@ if ($isLoggedIn) {
 
 ?>
 <!DOCTYPE html>
-<html lang="fr" class="<?= $isLightMode ? 'light-mode' : '' ?>">
+<html lang="fr" class="<?= $isLightMode ? 'light-mode' : '' ?>"
+  data-server-display-currency="<?= $serverDisplayCurrency ?>"
+  data-currency-rate-ready="<?= $cachedCadUsdReferenceRate !== null ? 'true' : 'false' ?>"
+  data-cad-usd-rate="<?= $cachedCadUsdReferenceRate !== null ? number_format($cachedCadUsdReferenceRate['rate'], 8, '.', '') : '' ?>"
+  data-cad-usd-rate-date="<?= $cachedCadUsdReferenceRate !== null ? htmlspecialchars($cachedCadUsdReferenceRate['date'], ENT_QUOTES, 'UTF-8') : '' ?>"
+  data-cad-usd-rate-stale="<?= $cachedCadUsdReferenceRate !== null && $cachedCadUsdReferenceRate['isStale'] ? 'true' : 'false' ?>">
 
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><?= htmlspecialchars($pageTitle, ENT_QUOTES, 'UTF-8') ?></title>
 
+  <?php if ($isLoggedIn): ?>
+    <script>
+      (() => {
+        const serverCurrency = document.documentElement.dataset.serverDisplayCurrency === 'USD' ? 'USD' : 'CAD';
+        let displayCurrency = serverCurrency;
+        try {
+          const savedCurrency = localStorage.getItem('novabank_display_currency');
+          if (savedCurrency === 'CAD' || savedCurrency === 'USD') {
+            displayCurrency = savedCurrency;
+          }
+        } catch (error) {
+          console.error('Unable to read the saved display currency.', error);
+        }
+        document.documentElement.dataset.displayCurrency = displayCurrency;
+        if (
+          document.documentElement.dataset.currencyRateReady !== 'true'
+          || displayCurrency !== serverCurrency
+        ) {
+          document.documentElement.classList.add('currency-pending');
+        }
+        try {
+          const secureAttribute = location.protocol === 'https:' ? '; Secure' : '';
+          document.cookie = `novabank_display_currency=${displayCurrency}; Max-Age=31536000; Path=/; SameSite=Lax${secureAttribute}`;
+        } catch (error) {
+          console.error('Unable to synchronize the display currency cookie.', error);
+        }
+      })();
+    </script>
+  <?php endif; ?>
+
   <link rel="stylesheet" href="public/css/main.css">
   <?php
-  $availablePageStylesheets = ['home.css', 'dashboard.css', 'auth.css', 'errors.css', 'market.css', 'education.css', 'history.css', 'transfer.css', 'admin.css', 'profile.css', 'about.css', 'notifications.css', 'support.css'];
+  $availablePageStylesheets = ['home.css', 'dashboard.css', 'auth.css', 'errors.css', 'market.css', 'education.css', 'history.css', 'transfer.css', 'admin.css', 'profile.css', 'about.css', 'notifications.css', 'support.css', 'settings.css'];
   foreach (($pageStylesheets ?? []) as $pageStylesheet):
     if (in_array($pageStylesheet, $availablePageStylesheets, true)):
       ?>
@@ -75,6 +113,124 @@ if ($isLoggedIn) {
       align-items: center;
       margin-left: auto;
       margin-right: 12px;
+    }
+
+    .currency-rate-status {
+      position: fixed;
+      top: 82px;
+      right: 20px;
+      z-index: 100;
+      max-width: min(360px, calc(100vw - 40px));
+      padding: 10px 14px;
+      color: #fff;
+      background: #7f1d1d;
+      border: 1px solid rgba(252, 165, 165, 0.5);
+      border-radius: 10px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+      font-size: 0.82rem;
+    }
+
+    .currency-rate-status.is-loading {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .currency-rate-status.is-warning {
+      color: #fef3c7;
+      background: #78350f;
+      border-color: rgba(252, 211, 77, 0.5);
+    }
+
+    .currency-rate-status.is-error {
+      color: #fff;
+      background: #7f1d1d;
+      border-color: rgba(252, 165, 165, 0.5);
+    }
+
+    .currency-rate-status:empty {
+      display: none;
+    }
+
+    .currency-display-control select {
+      min-height: 36px;
+      padding: 0 30px 0 11px;
+      color: #e2e8f0;
+      background-color: rgba(15, 23, 42, 0.78);
+      border: 1px solid rgba(148, 163, 184, 0.28);
+      border-radius: 9px;
+      font: inherit;
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .currency-display-control select:focus-visible {
+      outline: 2px solid #38bdf8;
+      outline-offset: 2px;
+    }
+
+    .currency-display-control option {
+      color: #0f172a;
+      background: #fff;
+    }
+
+    html.light-mode .currency-display-control select {
+      color: #334155;
+      background-color: rgba(248, 250, 252, 0.95);
+      border-color: rgba(100, 116, 139, 0.28);
+    }
+
+    html.currency-pending .currency-display {
+      color: transparent !important;
+      background: linear-gradient(90deg, rgba(148, 163, 184, 0.12), rgba(148, 163, 184, 0.34), rgba(148, 163, 184, 0.12));
+      background-size: 200% 100%;
+      border-radius: 4px;
+      animation: currency-shimmer 1.2s ease-in-out infinite;
+    }
+
+    @keyframes currency-shimmer {
+      to {
+        background-position: -200% 0;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html.currency-pending .currency-display {
+        animation: none;
+      }
+    }
+
+    @media (max-width: 520px) {
+      .navbar.navbar-authenticated {
+        gap: 0.4rem;
+        padding: 0.65rem 0.7rem !important;
+      }
+
+      .navbar-authenticated .logo {
+        gap: 5px;
+        font-size: 1.1rem;
+      }
+
+      .navbar-authenticated .nav-search-btn {
+        display: none;
+      }
+
+      .navbar-authenticated .nav-actions {
+        gap: 0.35rem;
+      }
+
+      .navbar-authenticated .currency-display-control select {
+        min-height: 34px;
+        padding-right: 22px;
+        padding-left: 8px;
+      }
     }
 
     .theme-switch {
@@ -424,7 +580,7 @@ if ($isLoggedIn) {
   <div class="glow-bg top-right"></div>
   <div class="glow-bg bottom-center"></div>
 
-  <header class="navbar">
+  <header class="navbar<?= $isLoggedIn ? ' navbar-authenticated' : '' ?>">
     <a href="index.php" class="logo" style="text-decoration: none; color: inherit;">
       <span class="logo-symbol">
         <img src="public/images/logo.png" alt="NovaBank Logo" onerror="this.style.display='none'">
@@ -432,21 +588,14 @@ if ($isLoggedIn) {
       NovaBank
     </a>
 
-    <nav class="nav-links">
-      <?php if ($isLoggedIn): ?>
-        <a href="index.php?action=dashboard">Tableau de bord</a>
-        <a href="index.php?action=investment">Investissements</a>
-        <a href="index.php?action=marketPage">Marché</a>
-        <a href="index.php?action=accounts">Comptes</a>
-        <a href="index.php?action=education">Éducation</a>
-        <a href="index.php?action=about">À propos</a>
-      <?php else: ?>
+    <?php if (!$isLoggedIn): ?>
+      <nav class="nav-links">
         <a href="index.php#simulator">Simulateur Bourse</a>
         <a href="index.php#leaderboard">Classement</a>
         <a href="index.php#features">Fonctionnalités</a>
         <a href="index.php?action=about">À propos</a>
-      <?php endif; ?>
-    </nav>
+      </nav>
+    <?php endif; ?>
 
     <!-- SWITCH DE MODE (ENTRE ÉDUCATION ET LOUPE) -->
     <div class="theme-switch-container">
@@ -479,6 +628,16 @@ if ($isLoggedIn) {
         $headerUserName = trim((string) ($_SESSION['user']['username'] ?? $_SESSION['user']['Alias'] ?? 'Membre'));
         $headerUserInitial = mb_strtoupper(mb_substr($headerUserName, 0, 1, 'UTF-8'), 'UTF-8');
         ?>
+        <div class="currency-display-control">
+          <select id="headerCurrencySelect" aria-label="Devise d’affichage">
+            <option value="CAD">CAD</option>
+            <option value="USD">USD</option>
+          </select>
+        </div>
+        <script>
+          document.getElementById('headerCurrencySelect').value =
+            document.documentElement.dataset.displayCurrency === 'USD' ? 'USD' : 'CAD';
+        </script>
         <a href="index.php?action=notifications" class="notification-nav-link" data-notification-link
           aria-label="<?= $headerNotificationCount === null ? 'Notifications indisponibles' : 'Notifications' . ($headerNotificationCount > 0 ? ', ' . $headerNotificationCount . ' non lues' : '') ?>"
           title="Notifications">
@@ -504,6 +663,12 @@ if ($isLoggedIn) {
       <?php endif; ?>
     </div>
   </header>
+
+  <?php if ($isLoggedIn): ?>
+    <div id="currencyRateStatus" class="currency-rate-status is-loading" role="status" aria-live="polite">
+      Chargement du taux CAD/USD…
+    </div>
+  <?php endif; ?>
 
   <?php if ($isLoggedIn): ?>
     <script>
@@ -624,7 +789,7 @@ if ($isLoggedIn) {
               ?>
               <div class="ticker-item" data-stock-id="<?= htmlspecialchars($stock['id'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
                 <span class="sym"><?= htmlspecialchars($stock['symbol'] ?? '', ENT_QUOTES, 'UTF-8') ?></span>
-                <span class="val">$<?= htmlspecialchars($stock['price'] ?? '0.00', ENT_QUOTES, 'UTF-8') ?></span>
+                <span class="val"><?= renderCurrencyAmount((float) ($stock['price'] ?? 0), 'USD') ?></span>
                 <span
                   class="trend <?= $class ?>"><?= $sign . htmlspecialchars($stock['change'] ?? '0', ENT_QUOTES, 'UTF-8') ?>%</span>
               </div>
@@ -752,3 +917,146 @@ if ($isLoggedIn) {
       }
     });
   </script>
+
+  <?php if ($isLoggedIn): ?>
+    <script>
+      document.addEventListener('DOMContentLoaded', () => {
+        const rateStatus = document.getElementById('currencyRateStatus');
+        const currencySelect = document.getElementById('headerCurrencySelect');
+        const preferenceStorageKey = 'novabank_display_currency';
+        let displayCurrency = document.documentElement.dataset.displayCurrency === 'USD' ? 'USD' : 'CAD';
+        let cadToUsdRate = null;
+        let rateDate = '';
+        if (currencySelect) currencySelect.value = displayCurrency;
+
+        const applyDisplayCurrency = () => {
+          if (cadToUsdRate === null) return;
+
+          document.querySelectorAll('[data-currency-value][data-currency-base]').forEach((amountElement) => {
+            const amount = Number(amountElement.dataset.currencyValue);
+            const baseCurrency = amountElement.dataset.currencyBase.toUpperCase();
+            if (!Number.isFinite(amount) || !['CAD', 'USD'].includes(baseCurrency)) return;
+
+            const convertedAmount = baseCurrency === displayCurrency
+              ? amount
+              : baseCurrency === 'CAD'
+                ? amount * cadToUsdRate
+                : amount / cadToUsdRate;
+
+            amountElement.textContent = new Intl.NumberFormat('fr-CA', {
+              style: 'currency',
+              currency: displayCurrency,
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2
+            }).format(convertedAmount);
+          });
+          document.documentElement.classList.remove('currency-pending');
+        };
+
+        try {
+          const savedCurrency = localStorage.getItem(preferenceStorageKey);
+          if (savedCurrency === 'CAD' || savedCurrency === 'USD') {
+            displayCurrency = savedCurrency;
+          }
+        } catch (error) {
+          console.error('Unable to read the saved display currency.', error);
+        }
+        document.documentElement.dataset.displayCurrency = displayCurrency;
+
+        const setDisplayCurrency = (currency, persist = true) => {
+          if (currency !== 'CAD' && currency !== 'USD') {
+            return false;
+          }
+
+          displayCurrency = currency;
+          document.documentElement.dataset.displayCurrency = currency;
+          if (currencySelect) currencySelect.value = currency;
+          try {
+            const secureAttribute = location.protocol === 'https:' ? '; Secure' : '';
+            document.cookie = `novabank_display_currency=${displayCurrency}; Max-Age=31536000; Path=/; SameSite=Lax${secureAttribute}`;
+          } catch (error) {
+            console.error('Unable to synchronize the display currency cookie.', error);
+          }
+          try {
+            if (persist) {
+              localStorage.setItem(preferenceStorageKey, displayCurrency);
+            }
+          } catch (error) {
+            console.error('Unable to save the display currency preference.', error);
+            applyDisplayCurrency();
+            return false;
+          }
+
+          applyDisplayCurrency();
+          return true;
+        };
+
+        window.NovaBankCurrency = {
+          getDisplayCurrency: () => displayCurrency,
+          setDisplayCurrency
+        };
+
+        if (currencySelect) {
+          currencySelect.addEventListener('change', () => {
+            setDisplayCurrency(currencySelect.value);
+          });
+        }
+
+        window.addEventListener('storage', (event) => {
+          if (event.key === preferenceStorageKey && (event.newValue === 'CAD' || event.newValue === 'USD')) {
+            setDisplayCurrency(event.newValue, false);
+          }
+        });
+
+        const cachedRate = Number(document.documentElement.dataset.cadUsdRate);
+        if (Number.isFinite(cachedRate) && cachedRate > 0) {
+          cadToUsdRate = cachedRate;
+          rateDate = document.documentElement.dataset.cadUsdRateDate || '';
+          if (document.documentElement.dataset.cadUsdRateStale === 'true') {
+            rateStatus.className = 'currency-rate-status is-warning';
+            rateStatus.textContent = `Taux du ${rateDate} utilisé; actualisation momentanément indisponible.`;
+          } else {
+            rateStatus.className = 'currency-rate-status';
+            rateStatus.textContent = '';
+          }
+          applyDisplayCurrency();
+        }
+
+        fetch('index.php?action=currencyRate', {
+          headers: { Accept: 'application/json' },
+          cache: 'no-store'
+        })
+          .then(async (response) => {
+            const result = await response.json();
+            if (!response.ok) {
+              throw new Error(result.error || 'Impossible de charger le taux CAD/USD.');
+            }
+            if (
+              !Number.isFinite(Number(result.rate)) ||
+              Number(result.rate) <= 0 ||
+              typeof result.date !== 'string' ||
+              typeof result.isStale !== 'boolean'
+            ) {
+              throw new Error('Le taux CAD/USD reçu est invalide.');
+            }
+
+            cadToUsdRate = Number(result.rate);
+            rateDate = result.date;
+            if (result.isStale) {
+              rateStatus.className = 'currency-rate-status is-warning';
+              rateStatus.textContent = `Taux du ${rateDate} utilisé; actualisation momentanément indisponible.`;
+            } else {
+              rateStatus.className = 'currency-rate-status';
+              rateStatus.textContent = '';
+            }
+            applyDisplayCurrency();
+          })
+          .catch((error) => {
+            console.error('Unable to load the CAD/USD reference rate.', error);
+            document.documentElement.classList.remove('currency-pending');
+            rateStatus.className = 'currency-rate-status is-error';
+            rateStatus.textContent = 'Taux automatique indisponible : les montants restent dans leur devise d’origine.';
+          });
+      });
+    </script>
+  <?php endif; ?>

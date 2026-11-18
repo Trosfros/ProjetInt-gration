@@ -90,9 +90,6 @@ if ($portfolio && !empty($portfolio['positions'])) {
     unset($position);
 }
 
-$formatMoney = static function (float $amount): string {
-    return ($amount < 0 ? '-$' : '$') . number_format(abs($amount), 2, '.', ',');
-};
 $formatShares = static function (float $shares): string {
     $formatted = rtrim(rtrim(number_format($shares, 8, '.', ','), '0'), '.');
     return $formatted === '' ? '0' : $formatted;
@@ -122,7 +119,7 @@ $formatShares = static function (float $shares): string {
               VALEUR TOTALE
             </div>
             <div class="summary-card-value">
-              <?= $portfolio === null || !$pricesAvailable ? '—' : htmlspecialchars($formatMoney($totalValue), ENT_QUOTES, 'UTF-8') ?>
+              <?= $portfolio === null || !$pricesAvailable ? '—' : renderCurrencyAmount($totalValue, 'CAD') ?>
             </div>
           </div>
 
@@ -142,14 +139,14 @@ $formatShares = static function (float $shares): string {
               GAIN / PERTE LATENT(E)
             </div>
             <div class="summary-card-value <?= $totalPnl >= 0 ? 'text-positive' : 'text-negative' ?>">
-              <?= $portfolio === null || !$pricesAvailable ? '—' : ($totalPnl > 0 ? '+' : '') . htmlspecialchars($formatMoney($totalPnl), ENT_QUOTES, 'UTF-8') ?>
+              <?= $portfolio === null || !$pricesAvailable ? '—' : ($totalPnl > 0 ? '+' : '') . renderCurrencyAmount($totalPnl, 'CAD') ?>
             </div>
           </div>
 
           <div class="summary-card">
             <div class="summary-card-label">SOLDE RESTANT</div>
             <div class="summary-card-value">
-              <?= $portfolio === null ? '—' : htmlspecialchars($formatMoney($portfolio['balance']), ENT_QUOTES, 'UTF-8') ?>
+              <?= $portfolio === null ? '—' : renderCurrencyAmount($portfolio['balance'], 'CAD') ?>
             </div>
           </div>
         </div>
@@ -216,20 +213,20 @@ $formatShares = static function (float $shares): string {
                   </div>
                   <div class="data-group align-right">
                     <span class="data-label">PRIX ACTUEL</span>
-                    <span class="data-value-medium"><?= $hasPrice ? htmlspecialchars($formatMoney($currentPrice), ENT_QUOTES, 'UTF-8') : '—' ?></span>
+                    <span class="data-value-medium"><?= $hasPrice ? renderCurrencyAmount($currentPrice, 'CAD') : '—' ?></span>
                   </div>
                   <div class="data-group">
                     <span class="data-label">VALEUR TOTALE</span>
-                    <span class="data-value-bold"><?= $hasPrice ? htmlspecialchars($formatMoney($totalVal), ENT_QUOTES, 'UTF-8') : '—' ?></span>
+                    <span class="data-value-bold"><?= $hasPrice ? renderCurrencyAmount($totalVal, 'CAD') : '—' ?></span>
                   </div>
                   <div class="data-group align-right">
                     <span class="data-label">COÛT D’ACHAT</span>
-                    <span class="data-value-medium"><?= htmlspecialchars($formatMoney($invested), ENT_QUOTES, 'UTF-8') ?></span>
+                    <span class="data-value-medium"><?= renderCurrencyAmount($invested, 'CAD') ?></span>
                   </div>
                   <div class="data-group">
                     <span class="data-label">GAIN / PERTE LATENT(E)</span>
                     <span class="data-value-bold <?= $hasPrice ? ($isPositive ? 'text-positive' : 'text-negative') : '' ?>">
-                      <?= $hasPrice ? ($pnl > 0 ? '+' : '') . htmlspecialchars($formatMoney($pnl), ENT_QUOTES, 'UTF-8') : '—' ?>
+                      <?= $hasPrice ? ($pnl > 0 ? '+' : '') . renderCurrencyAmount($pnl, 'CAD') : '—' ?>
                     </span>
                   </div>
                 </div>
