@@ -83,6 +83,40 @@ function sendPasswordChangeCode(string $email, string $username, string $code): 
     }
 }
 
+function sendRegistrationCode(string $email, string $username, string $code): void {
+    $config = require __DIR__ . '/configs/config.php';
+    $mail = new PHPMailer(true);
+
+    try {
+        $mail->isSMTP();
+        $mail->Host = $config['mail']['host'];
+        $mail->SMTPAuth = true;
+        $mail->Username = $config['mail']['username'];
+        $mail->Password = $config['mail']['password'];
+        $mail->SMTPSecure = $config['mail']['smtp_secure'];
+        $mail->Port = $config['mail']['port'];
+        $mail->CharSet = 'UTF-8';
+        $mail->setFrom($config['mail']['from_email'], $config['mail']['from_name']);
+        $mail->addAddress($email, $username);
+        $mail->Subject = 'Code de vérification de votre compte NovaBank';
+        $safeUsername = htmlspecialchars($username, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+
+        $mail->isHTML(true);
+        $mail->Body = "
+            <div style=\"font-family: Arial, sans-serif; color: #1f2937; line-height: 1.6; max-width: 600px; margin: 0 auto;\">
+                <h1 style=\"color: #0f172a; font-size: 24px;\">Bienvenue sur NovaBank, $safeUsername&nbsp;!</h1>
+                <p>Utilisez ce code pour confirmer votre adresse courriel et terminer la création de votre compte :</p>
+                <p style=\"margin: 28px 0; font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #0284c7;\">$code</p>
+                <p>Ce code est valable pendant 10 minutes et ne peut être utilisé qu’une seule fois.</p>
+                <p style=\"color: #64748b; font-size: 14px;\">Si vous n’êtes pas à l’origine de cette inscription, ignorez ce message et ne partagez pas ce code.</p>
+            </div>";
+        $mail->AltBody = "Bonjour $username,\r\n\r\nVotre code de vérification NovaBank est : $code\r\n\r\nIl est valable pendant 10 minutes. Si vous n'êtes pas à l'origine de cette inscription, ignorez ce message.";
+        $mail->send();
+    } catch (Exception $e) {
+        throw new RuntimeException('Impossible d’envoyer le code de vérification : ' . $e->getMessage(), 0, $e);
+    }
+}
+
 $action =$_GET['action'] ?? '';
 $isLoggedIn = !empty($_SESSION['user']);
 
@@ -377,49 +411,158 @@ else if ($_SERVER['REQUEST_METHOD'] === 'POST' &&$action === 'login') {
         exit;
     }
 }
-else if ($_SERVER['REQUEST_METHOD'] === 'POST' &&$action === 'register') {
-    $username = trim($_POST['username'] ?? '');
-    $email = trim($_POST['email'] ?? '');
-    $password =$_POST['password'] ?? '';
+else if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'register') {
+    $csrfToken = (string) ($_SESSION['register_csrf_token'] ?? '');
+    $submittedToken = (string) ($_POST['csrf_token'] ?? '');
+
+    if ($csrfToken === '' || !hash_equals($csrfToken, $submittedToken)) {
+        $_SESSION['register_error'] = 'Votre session a expiré. Rechargez la page et réessayez.';
+        header('Location: index.php?action=registerPage');
+        exit;
+    }
+
+    $formAction = (string) ($_POST['form_action'] ?? 'create_account');
+    $registration = $_SESSION['registration_verification'] ?? null;
+
+    if ($formAction === 'verify_code') {
+        $submittedCode = trim((string) ($_POST['verification_code'] ?? ''));
+
+        if (!is_array($registration) || ($registration['expires_at'] ?? 0) <= time()) {
+            $_SESSION['register_error'] = 'Code invalide ou expiré. Demandez un nouveau code.';
+        } elseif (!preg_match('/^\d{6}$/', $submittedCode)
+            || !password_verify($submittedCode, (string) ($registration['code_hash'] ?? ''))
+        ) {
+            $registration['attempts'] = (int) ($registration['attempts'] ?? 0) + 1;
+            if ($registration['attempts'] >= 5) {
+                $registration['expires_at'] = 0;
+                $_SESSION['registration_verification'] = $registration;
+                $_SESSION['register_error'] = 'Trop de tentatives. Demandez un nouveau code.';
+            } else {
+                $_SESSION['registration_verification'] = $registration;
+                $_SESSION['register_error'] = 'Code invalide. Vérifiez le code reçu et réessayez.';
+            }
+        } else {
+            try {
+                $update = getPDO()->prepare(
+                    'UPDATE `User` SET `email_verified` = 1, `email_verification_token` = NULL WHERE `idUser` = :userId AND `email_verified` = 0'
+                );
+                $update->execute(['userId' => (int) $registration['user_id']]);
+
+                if ($update->rowCount() !== 1) {
+                    throw new RuntimeException('No unverified account was updated by registration verification.');
+                }
+
+                unset($_SESSION['registration_verification'], $_SESSION['registration_last_sent_at']);
+                $_SESSION['verify_success'] = 'Votre adresse courriel est vérifiée. Votre compte est prêt, vous pouvez vous connecter.';
+                header('Location: index.php?action=loginPage');
+                exit;
+            } catch (Throwable $e) {
+                error_log('index.php failed to verify a new account: ' . $e->getMessage());
+                $_SESSION['register_error'] = 'Impossible de vérifier le compte pour le moment. Réessayez.';
+            }
+        }
+
+        header('Location: index.php?action=registerPage');
+        exit;
+    }
+
+    if ($formAction === 'resend_code') {
+        if (!is_array($registration)) {
+            $_SESSION['register_error'] = 'Aucune inscription en attente. Veuillez recommencer.';
+        } elseif ((int) ($_SESSION['registration_last_sent_at'] ?? 0) + 60 > time()) {
+            $_SESSION['register_error'] = 'Veuillez patienter une minute avant de demander un autre code.';
+        } else {
+            try {
+                $code = (string) random_int(100000, 999999);
+                sendRegistrationCode(
+                    (string) $registration['email'],
+                    (string) $registration['username'],
+                    $code
+                );
+                $registration['code_hash'] = password_hash($code, PASSWORD_DEFAULT);
+                $registration['expires_at'] = time() + 600;
+                $registration['attempts'] = 0;
+                $_SESSION['registration_verification'] = $registration;
+                $_SESSION['registration_last_sent_at'] = time();
+                $_SESSION['register_success'] = 'Un nouveau code de vérification a été envoyé. Il est valable 10 minutes.';
+            } catch (Throwable $e) {
+                error_log('index.php failed to resend a registration code: ' . $e->getMessage());
+                $_SESSION['register_error'] = 'Impossible d’envoyer le code pour le moment. Réessayez plus tard.';
+            }
+        }
+
+        header('Location: index.php?action=registerPage');
+        exit;
+    }
+
+    if ($formAction !== 'create_account' || is_array($registration)) {
+        $_SESSION['register_error'] = is_array($registration)
+            ? 'Une inscription est déjà en attente de vérification.'
+            : 'Action invalide. Rechargez la page et réessayez.';
+        header('Location: index.php?action=registerPage');
+        exit;
+    }
+
+    $username = trim((string) ($_POST['username'] ?? ''));
+    $email = trim((string) ($_POST['email'] ?? ''));
+    $password = (string) ($_POST['password'] ?? '');
     if ($username === '' || $email === '' || $password === '') {
         $_SESSION['register_error'] = 'Veuillez remplir tous les champs.';
         header('Location: index.php?action=registerPage');
         exit;
     }
 
-    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {$_SESSION['register_error'] = 'Adresse email invalide.';
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $_SESSION['register_error'] = 'Adresse courriel invalide.';
         header('Location: index.php?action=registerPage');
         exit;
     }
 
     try {
         $pdo = getPDO();
-        $stmt =$pdo->prepare('SELECT idUser FROM `User` WHERE `Alias` = :username OR `Description` = :email LIMIT 1');
-        $stmt->execute(['username' => $username, 'email' =>$email]);
+        $stmt = $pdo->prepare('SELECT idUser FROM `User` WHERE `Alias` = :username OR `Description` = :email LIMIT 1');
+        $stmt->execute(['username' => $username, 'email' => $email]);
 
-        if ($stmt->fetch()) {$_SESSION['register_error'] = 'Ce nom d’utilisateur ou cet email existe déjà.';
+        if ($stmt->fetch()) {
+            $_SESSION['register_error'] = 'Ce nom d’utilisateur ou cette adresse courriel existe déjà.';
             header('Location: index.php?action=registerPage');
             exit;
         }
 
-        $hash = password_hash($password, PASSWORD_DEFAULT);$token = bin2hex(random_bytes(32));
-        $insert =$pdo->prepare('INSERT INTO `User` (`Alias`, `Description`, `Password`, `Balance`, `email_verified`, `email_verification_token`) VALUES (:username, :email, :password, 1500.00, 0, :token)');
+        $code = (string) random_int(100000, 999999);
+        $pdo->beginTransaction();
+        $insert = $pdo->prepare(
+            'INSERT INTO `User` (`Alias`, `Description`, `Password`, `Balance`, `email_verified`, `email_verification_token`) VALUES (:username, :email, :password, 1500.00, 0, NULL)'
+        );
         $insert->execute([
             'username' => $username,
             'email' => $email,
-            'password' => $hash,
-            'token' => $token,
+            'password' => password_hash($password, PASSWORD_DEFAULT),
         ]);
+        $userId = (int) $pdo->lastInsertId();
+        sendRegistrationCode($email, $username, $code);
+        $pdo->commit();
 
-        sendVerificationEmail($email, $username,$token);
-
-        $_SESSION['register_success'] = 'Compte créé avec succès. Un email de vérification a été envoyé à votre adresse.';
-        header('Location: index.php?action=loginPage');
-        exit;
-    } catch (Throwable $e) {$_SESSION['register_error'] = 'Erreur pendant la création du compte : ' . $e->getMessage();
-        header('Location: index.php?action=registerPage');
-        exit;
+        $_SESSION['registration_verification'] = [
+            'user_id' => $userId,
+            'username' => $username,
+            'email' => $email,
+            'code_hash' => password_hash($code, PASSWORD_DEFAULT),
+            'expires_at' => time() + 600,
+            'attempts' => 0,
+        ];
+        $_SESSION['registration_last_sent_at'] = time();
+        $_SESSION['register_success'] = 'Un code de vérification a été envoyé à votre adresse courriel. Il est valable 10 minutes.';
+    } catch (Throwable $e) {
+        if (isset($pdo) && $pdo instanceof PDO && $pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        error_log('index.php failed to create a new account: ' . $e->getMessage());
+        $_SESSION['register_error'] = 'Impossible de créer le compte ou d’envoyer le code. Vérifiez les informations et réessayez.';
     }
+
+    header('Location: index.php?action=registerPage');
+    exit;
 }
 else if ($action !== '' && $action !== 'dashboard' &&$action !== 'education') {
     http_response_code(404);
