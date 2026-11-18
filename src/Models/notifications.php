@@ -34,7 +34,7 @@ require $projectRoot . '/views/layout/header.php';
             <div>
                 <p class="notifications-eyebrow">Restez informé</p>
                 <h1>Centre de notifications</h1>
-                <p>Retrouvez les transactions complétées et les messages de l’administration.</p>
+                <p>Retrouvez ici les annonces et messages de l’administration.</p>
             </div>
             <?php if ($notificationError === null && $notifications !== []): ?>
                 <form method="post" action="index.php?action=notifications">
@@ -57,23 +57,20 @@ require $projectRoot . '/views/layout/header.php';
             <section class="notifications-empty">
                 <span class="notifications-empty-icon" aria-hidden="true">♧</span>
                 <h2>Aucune notification</h2>
-                <p>Les transactions complétées et les messages de l’administration apparaîtront ici.</p>
+                <p>Les annonces et messages de l’administration apparaîtront ici.</p>
             </section>
         <?php else: ?>
             <section class="notifications-list" aria-label="Notifications récentes">
                 <?php foreach ($notifications as $notification): ?>
                     <?php
-                    $isAdminMessage = $notification['NotificationType'] === 'admin_message';
                     $createdAt = getQuebecDateTime((string) $notification['CreatedAt']);
                     ?>
                     <article class="notification-card<?= (int) $notification['IsRead'] === 0 ? ' is-unread' : '' ?>">
-                        <span class="notification-type-icon<?= $isAdminMessage ? ' is-admin-message' : '' ?>" aria-hidden="true">
-                            <?= $isAdminMessage ? '!' : '↗' ?>
-                        </span>
+                        <span class="notification-type-icon is-admin-message" aria-hidden="true">!</span>
                         <div class="notification-content">
                             <div class="notification-card-heading">
                                 <div>
-                                    <span class="notification-type-label"><?= $isAdminMessage ? 'Message de l’administration' : 'Transaction' ?></span>
+                                    <span class="notification-type-label">Message de l’administration</span>
                                     <h2><?= htmlspecialchars((string) $notification['Title'], ENT_QUOTES, 'UTF-8') ?></h2>
                                 </div>
                                 <?php if ((int) $notification['IsRead'] === 0): ?>

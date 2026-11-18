@@ -4,24 +4,12 @@ require_once dirname(__DIR__, 2) . '/configs/database.php';
 
 class NotificationModel
 {
-    private const NOTIFICATION_TYPES = ['transaction', 'admin_message'];
-
     private PDO $pdo;
 
     public function __construct(?PDO $pdo = null)
     {
         $this->pdo = $pdo ?? getPDO();
         $this->ensureTable();
-    }
-
-    public function createTransactionNotification(
-        int $userId,
-        string $description,
-        float $amount,
-        string $currency
-    ): void {
-        $message = $description . ' — ' . number_format($amount, 2, ',', ' ') . ' ' . $currency;
-        $this->create($userId, 'transaction', 'Transaction complétée', $message);
     }
 
     public function broadcastAdminMessage(string $title, string $message): int
@@ -45,7 +33,7 @@ class NotificationModel
         $stmt = $this->pdo->prepare(
             'SELECT `idNotification`, `NotificationType`, `Title`, `Message`, `IsRead`, `CreatedAt`
              FROM `UserNotification`
-             WHERE `idUser` = :userId
+             WHERE `idUser` = :userId AND `NotificationType` = \'admin_message\'
              ORDER BY `CreatedAt` DESC, `idNotification` DESC
              LIMIT :limit'
         );
@@ -59,7 +47,8 @@ class NotificationModel
     public function getUnreadCount(int $userId): int
     {
         $stmt = $this->pdo->prepare(
-            'SELECT COUNT(*) FROM `UserNotification` WHERE `idUser` = :userId AND `IsRead` = 0'
+            "SELECT COUNT(*) FROM `UserNotification`
+             WHERE `idUser` = :userId AND `NotificationType` = 'admin_message' AND `IsRead` = 0"
         );
         $stmt->execute(['userId' => $userId]);
 
@@ -69,27 +58,10 @@ class NotificationModel
     public function markAllAsRead(int $userId): void
     {
         $stmt = $this->pdo->prepare(
-            'UPDATE `UserNotification` SET `IsRead` = 1 WHERE `idUser` = :userId AND `IsRead` = 0'
+            "UPDATE `UserNotification` SET `IsRead` = 1
+             WHERE `idUser` = :userId AND `NotificationType` = 'admin_message' AND `IsRead` = 0"
         );
         $stmt->execute(['userId' => $userId]);
-    }
-
-    private function create(int $userId, string $type, string $title, string $message): void
-    {
-        if ($userId <= 0 || !in_array($type, self::NOTIFICATION_TYPES, true)) {
-            throw new InvalidArgumentException('Les informations de notification sont invalides.');
-        }
-
-        $stmt = $this->pdo->prepare(
-            'INSERT INTO `UserNotification` (`idUser`, `NotificationType`, `Title`, `Message`)
-             VALUES (:userId, :type, :title, :message)'
-        );
-        $stmt->execute([
-            'userId' => $userId,
-            'type' => $type,
-            'title' => $title,
-            'message' => $message,
-        ]);
     }
 
     private function ensureTable(): void
@@ -98,7 +70,7 @@ class NotificationModel
             "CREATE TABLE IF NOT EXISTS `UserNotification` (
                 `idNotification` INT NOT NULL AUTO_INCREMENT,
                 `idUser` INT NOT NULL,
-                `NotificationType` ENUM('transaction', 'admin_message') NOT NULL,
+                `NotificationType` ENUM('admin_message') NOT NULL,
                 `Title` VARCHAR(150) NOT NULL,
                 `Message` TEXT NOT NULL,
                 `IsRead` TINYINT(1) NOT NULL DEFAULT 0,

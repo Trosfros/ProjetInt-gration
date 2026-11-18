@@ -198,7 +198,7 @@ CREATE TABLE IF NOT EXISTS `BankTransaction` (
 CREATE TABLE IF NOT EXISTS `UserNotification` (
   `idNotification` INT NOT NULL AUTO_INCREMENT,
   `idUser` INT NOT NULL,
-  `NotificationType` ENUM('transaction','admin_message') NOT NULL,
+  `NotificationType` ENUM('admin_message') NOT NULL,
   `Title` VARCHAR(150) NOT NULL,
   `Message` TEXT NOT NULL,
   `IsRead` TINYINT(1) NOT NULL DEFAULT 0,
