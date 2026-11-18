@@ -17,11 +17,11 @@ function ensureEmailVerificationColumns(PDO $pdo): void {
 }
 
 function getPDO(): PDO {
-    $host     = '127.0.0.1';
+    $host     = '158.69.48.109';
     $port     = '3306';
     $dbname   = 'bdnovabank';
-    $username = 'root';
-    $password = '';
+      $username = 'novabank';
+    $password = 'yx8v3s4a';
 
     try {
         $pdo = new PDO("mysql:host=$host;port=$port;dbname=$dbname;charset=utf8mb4", $username, $password, [

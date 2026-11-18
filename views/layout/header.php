@@ -16,7 +16,7 @@ require_once $rootPath . '/src/DAL/stockDAL.php';
 require_once $rootPath . '/configs/database.php';
 
 use Dotenv\Dotenv;
-require_once $rootPath . '\src\Middlewares\FinnhubMiddleware.php';
+require_once $rootPath . '/src/Middlewares/FinnhubMiddleware.php';
 
 $dotenv = Dotenv::createImmutable($rootPath);
 $dotenv->safeLoad();
