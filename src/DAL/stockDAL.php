@@ -93,7 +93,7 @@ class StockDAL
        
         try 
         {
-            $stmt = $this->pdo->prepare("select * from StockFavorite WHERE idUser = ?");
+            $stmt = $this->pdo->prepare("SELECT s.* FROM StockFavorite sf INNER JOIN Stock s ON s.idStock = sf.idStock WHERE sf.IdUser = ?");
             $stmt->bindParam(1,$userId,PDO::PARAM_INT);
             $stmt->execute();
 

@@ -97,7 +97,7 @@
             <path d="M8 9h8M8 13h5" />
           </svg>
         </span>
-        <span>Demandes d’aide</span>
+        <span>Centre d’aide</span>
       </a>
     <?php endif; ?>
     <a class="sidebar-link logout-link" href="index.php?action=logout">
