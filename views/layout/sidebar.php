@@ -52,12 +52,6 @@
       </span>
       <span>Marché</span>
     </a>
-    <a class="sidebar-link" href="index.php">
-      <span class="sidebar-icon">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 7.5A2.5 2.5 0 0 1 6 5h12a2.5 2.5 0 0 1 2.5 2.5v9A2.5 2.5 0 0 1 18 19H6a2.5 2.5 0 0 1-2.5-2.5v-9Zm2 1.5h13"/></svg>
-      </span>
-      <span>Cartes</span>
-    </a>
     <a class="sidebar-link<?= ($activePage ?? '') === 'history' ? ' active' : '' ?>" href="index.php?action=history"<?= ($activePage ?? '') === 'history' ? ' aria-current="page"' : '' ?>>
       <span class="sidebar-icon">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 7v5l3 3M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>
@@ -69,15 +63,6 @@
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg>
       </span>
       <span>Notifications</span>
-    </a>
-    <a class="sidebar-link<?= ($activePage ?? '') === 'settings' ? ' active' : '' ?>" href="index.php?action=settings"<?= ($activePage ?? '') === 'settings' ? ' aria-current="page"' : '' ?>>
-      <span class="sidebar-icon">
-        <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
-          <circle cx="12" cy="12" r="3" />
-        </svg>
-      </span>
-      <span>Paramètres</span>
     </a>
     <?php if (!empty($_SESSION['user']['isAdmin'])): ?>
       <a class="sidebar-link<?= ($activePage ?? '') === 'admin' ? ' active' : '' ?>" href="index.php?action=admin"<?= ($activePage ?? '') === 'admin' ? ' aria-current="page"' : '' ?>>
@@ -100,12 +85,6 @@
         <span>Centre d’aide</span>
       </a>
     <?php endif; ?>
-    <a class="sidebar-link logout-link" href="index.php?action=logout">
-      <span class="sidebar-icon">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
-      </span>
-      <span>Déconnexion</span>
-    </a>
     <a class="sidebar-link sidebar-support-link<?= ($activePage ?? '') === 'support' ? ' active' : '' ?>" href="index.php?action=support"<?= ($activePage ?? '') === 'support' ? ' aria-current="page"' : '' ?>>
       <span class="sidebar-icon">
         <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

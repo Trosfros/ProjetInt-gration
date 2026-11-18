@@ -337,8 +337,9 @@ body::before {
   overflow: hidden;
   white-space: nowrap;
   padding: 0.85rem 0 !important; /* Ajusté : ni trop écrasé, ni trop épais */
-  position: relative;
-  z-index: 20;
+  position: sticky;
+  top: 72px;
+  z-index: 30;
 }
 .market-ticker::before,
 .market-ticker::after {
@@ -414,6 +415,13 @@ body::before {
 }
 .ticker-item .trend.down::before {
   content: "\2198";
+}
+
+@media (max-width: 980px) {
+  .market-ticker {
+    position: relative;
+    top: auto;
+  }
 }
 
 /* Footer centré */
