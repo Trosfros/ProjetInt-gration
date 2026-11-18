@@ -293,7 +293,13 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM `User` WHERE idUser = PuserId) THEN
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'User not found.';
     END IF;
-    if EXISTS (SELECT 1 FROM `Account` WHERE idUser = PuserId and AccountName = paccountName) THEN
+    if EXISTS (
+        SELECT 1
+        FROM `Account`
+        WHERE idUser = PuserId
+          AND AccountName = paccountName
+          AND Status NOT IN ('closed', 'Fermée')
+    ) THEN
          SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Cannot have 2 account with the same name under the same user';
     END IF;
     SET vAccountNumber = REPLACE(UUID(), '-', '');
@@ -337,30 +343,57 @@ END //
 CREATE PROCEDURE AddMoneyToAccount(
     IN pidUser INT,
     IN AccountId INT,
-    IN Ammount DECIMAL(15,2)
+    IN Ammount DECIMAL(65,2)
 )
 BEGIN
+    DECLARE vMoney DECIMAL(15,2);
+    DECLARE vBalance DECIMAL(65,2);
+    DECLARE vAccountUserId INT;
     DECLARE vStatus VARCHAR(10);
 
     IF Ammount IS NULL OR Ammount <= 0 THEN
-        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Amount must be positive.';
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Le montant doit être supérieur à 0 $.';
+    END IF;
+
+    IF Ammount > 9999999999999.99 THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Le montant dépasse la limite autorisée de 9 999 999 999 999,99 $.';
     END IF;
 
     START TRANSACTION;
 
-    SELECT Status INTO vStatus
+    SELECT Money, Status, idUser INTO vMoney, vStatus, vAccountUserId
     FROM `Account`
     WHERE idAccount = AccountId
     FOR UPDATE;
 
     IF vStatus IS NULL THEN
         ROLLBACK;
-        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Account not found.';
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Le compte demandé est introuvable.';
+    END IF;
+
+    IF vAccountUserId <> pidUser THEN
+        ROLLBACK;
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Vous ne pouvez pas modifier ce compte.';
     END IF;
 
     IF vStatus NOT IN ('active', 'actif') THEN
         ROLLBACK;
-        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Account is not active.';
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Ce compte n’est pas actif.';
+    END IF;
+
+    IF vMoney > 9999999999999.99 - Ammount THEN
+        ROLLBACK;
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Le solde du compte dépasserait la limite autorisée.';
+    END IF;
+
+    SELECT COALESCE(Balance, 0) INTO vBalance
+    FROM `User`
+    WHERE idUser = pidUser
+    FOR UPDATE;
+
+    IF vBalance IS NULL OR vBalance < Ammount THEN
+        ROLLBACK;
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Votre solde disponible est insuffisant pour ajouter ce montant.';
     END IF;
 
     UPDATE `Account`
@@ -377,38 +410,48 @@ END //
 CREATE PROCEDURE RemoveMoneyFromAccount(
     IN pidUser INT,
     IN AccountId INT,
-    IN Ammount DECIMAL(15,2)
+    IN Ammount DECIMAL(65,2)
 )
 BEGIN
     DECLARE vMoney DECIMAL(15,2);
     DECLARE vOverdraftLimit DECIMAL(15,2);
+    DECLARE vAccountUserId INT;
     DECLARE vStatus VARCHAR(10);
 
     IF Ammount IS NULL OR Ammount <= 0 THEN
-        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Amount must be positive.';
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Le montant doit être supérieur à 0 $.';
+    END IF;
+
+    IF Ammount > 9999999999999.99 THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Le montant dépasse la limite autorisée de 9 999 999 999 999,99 $.';
     END IF;
 
     START TRANSACTION;
 
-    SELECT Money, OverdraftLimit, Status INTO vMoney, vOverdraftLimit, vStatus
+    SELECT Money, OverdraftLimit, Status, idUser INTO vMoney, vOverdraftLimit, vStatus, vAccountUserId
     FROM `Account`
     WHERE idAccount = AccountId
     FOR UPDATE;
 
     IF vStatus IS NULL THEN
         ROLLBACK;
-        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Account not found.';
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Le compte demandé est introuvable.';
+    END IF;
+
+    IF vAccountUserId <> pidUser THEN
+        ROLLBACK;
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Vous ne pouvez pas modifier ce compte.';
     END IF;
 
     IF vStatus NOT IN ('active', 'actif') THEN
         ROLLBACK;
-        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Account is not active.';
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Ce compte n’est pas actif.';
     END IF;
 
     IF vMoney - Ammount < -vOverdraftLimit THEN
         ROLLBACK;
         SIGNAL SQLSTATE '45000'
-        SET MESSAGE_TEXT = 'Cannot remove more than what is available in the account.';
+        SET MESSAGE_TEXT = 'Le solde du compte est insuffisant pour effectuer ce retrait.';
     END IF;
 
     UPDATE `Account`

@@ -12,15 +12,24 @@ class TransactionModel
         $this->ensureTransactionTable();
     }
 
-    public function record(int $userId, string $type, string $description, float $amount, string $currency): void
+    public function record(int $userId, string $type, string $description, float|string $amount, string $currency): void
     {
         if (
             $userId <= 0
             || !in_array($type, ['deposit', 'withdrawal', 'purchase', 'sale', 'transfer_sent', 'transfer_received'], true)
-            || !is_finite($amount)
-            || $amount <= 0
+            || (is_float($amount) && !is_finite($amount))
+            || (float) $amount <= 0
         ) {
             throw new InvalidArgumentException('Les informations de transaction sont invalides.');
+        }
+
+        if (is_string($amount)) {
+            if (!preg_match('/^(?:0|[1-9]\d{0,12})\.\d{2}$/', $amount)) {
+                throw new InvalidArgumentException('Les informations de transaction sont invalides.');
+            }
+            $formattedAmount = $amount;
+        } else {
+            $formattedAmount = number_format($amount, 2, '.', '');
         }
 
         $stmt = $this->pdo->prepare(
@@ -31,7 +40,7 @@ class TransactionModel
             'userId' => $userId,
             'type' => $type,
             'description' => $description,
-            'amount' => number_format($amount, 2, '.', ''),
+            'amount' => $formattedAmount,
             'currency' => $currency,
         ]);
     }

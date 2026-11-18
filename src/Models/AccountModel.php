@@ -154,7 +154,7 @@ require $projectRoot . '/views/layout/header.php';
                         <div class="modal-field">
                             <label for="moneyAmount">Montant</label>
                             <input type="number" id="moneyAmount" name="amount" class="trade-input" step="0.01"
-                                min="0.01" required>
+                                min="0.01" max="9999999999999.99" required>
                         </div>
 
                         <p id="moneyFeedback" class="trade-feedback" hidden></p>
@@ -291,10 +291,10 @@ require $projectRoot . '/views/layout/header.php';
 
         const accountName = document.getElementById('moneyAccountName').value;
         const mode = document.getElementById('moneyMode').value;
-        const amount = parseFloat(document.getElementById('moneyAmount').value);
+        const amount = document.getElementById('moneyAmount').value;
 
-        if (!amount || amount <= 0) {
-            feedback.textContent = 'Entrez un montant valide.';
+        if (!/^(?:0|[1-9]\d{0,12})(?:\.\d{1,2})?$/.test(amount) || Number(amount) <= 0) {
+            feedback.textContent = 'Entrez un montant valide, positif et inférieur ou égal à 9 999 999 999 999,99 $.';
             feedback.classList.add('is-error');
             feedback.hidden = false;
             return;
