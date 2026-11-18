@@ -16,18 +16,32 @@ $activePage = 'market';
 $marketData = $marketData ?? [];
 
 require $projectRoot . '/views/layout/header.php';
-if (!isset($favoriteIds)) {
-  $favoriteIds = [];
-  try {
-    
-    $sessionUser = $_SESSION['user'];
-    $alias = is_array($sessionUser) ? ($sessionUser['Alias'] ?? $sessionUser['alias'] ?? '') : (string) $sessionUser;
-    if ($alias !== '') {
-      $favorites = (new StockDAL())->getUsersFavoriteIds($alias);
-    }
-  } catch (Throwable $e) {
-    $favorites = [];
+
+
+$favoriteIds = [];
+try {
+  $stockDal = new StockDAL();
+
+
+  $stockIds = $stockDal->getStockIdsBySymbols(array_column($marketData, 'symbol'));
+  foreach ($marketData as &$stock) {
+    $stock['id'] = $stockIds[$stock['symbol']] ?? null;
   }
+  unset($stock);
+
+  $sessionUser = $_SESSION['user'];
+  $alias = is_array($sessionUser)
+    ? ($sessionUser['username'] ?? $sessionUser['Alias'] ?? $sessionUser['alias'] ?? '')
+    : (string) $sessionUser;
+  if ($alias !== '') {
+    $favoriteIds = $stockDal->getUsersFavoriteIds($alias);
+  }
+} catch (Throwable $e) {
+  error_log('Market page DB error: ' . $e->getMessage());
+  foreach ($marketData as &$stock) {
+    $stock['id'] = null; 
+  }
+  unset($stock);
 }
 ?>
 
@@ -116,12 +130,14 @@ if (!isset($favoriteIds)) {
 
             <div class="trade-input-wrapper">
               <select name="stock_symbol" id="trade-symbol-select" class="trade-input" required
-                onchange="updateTab(this.value)">
+                autocomplete="off"
+                onchange="updateTab(this.value); updateFavoriteButton();">
                 <?php if (!empty($marketData)): ?>
                   <?php foreach ($marketData as $stock): ?>
                     <option data-id-stock="<?= htmlspecialchars($stock['id'] ?? '') ?>"
                       value="<?= htmlspecialchars($stock['symbol']) ?>"
-                      data-price="<?= htmlspecialchars($stock['price'] ?? 0) ?>" <?= $stock['symbol'] === 'AAPL' ? 'selected' : '' ?>>
+                      data-price="<?= htmlspecialchars($stock['price'] ?? 0) ?>"
+                      data-favorite="<?= in_array((int) ($stock['id'] ?? 0), $favoriteIds, true) ? '1' : '0' ?>" <?=$stock['symbol'] === 'AAPL' ? 'selected' : '' ?>>
                       <?= htmlspecialchars($stock['symbol']) ?> - $<?= htmlspecialchars($stock['price'] ?? 0) ?>
                     </option>
                   <?php endforeach; ?>
@@ -201,6 +217,11 @@ if (!isset($favoriteIds)) {
     updateTotal();
     updateTab("NASDAQ:AAPL");
     updateFavoriteButton();
+  });
+
+  // Retour arrière / avant : la page peut être restaurée depuis le cache du navigateur sans recharger
+  window.addEventListener('pageshow', (event) => {
+    if (event.persisted) location.reload();
   });
 
   function updateTab(symbol) {
