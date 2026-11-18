@@ -23,7 +23,7 @@ $favorites = [];
 try {
     $stockDal = $stockDal ?? new StockDAL();
     $result = $stockDal->getUsersFavorite($username);
- 
+
     $favorites = isset($result['success']) ? [] : $result;
 } catch (Throwable $e) {
     error_log('Favorites error: ' . $e->getMessage());
@@ -44,11 +44,13 @@ try {
             <?php
             $name = (string) ($fav['Name'] ?? '');
             $lastPrice = (float) ($fav['LastPrice'] ?? 0);
-        
+
             $change = $fav['Change'] ?? 0.0;
 
             $trendClass = $change < 0 ? 'trend down' : 'trend up';
-            
+            $change = (float) ($fav['Change'] ?? 0);
+            $trendClass = $change < 0 ? 'trend down' : 'trend up';
+            $changeText = ($change > 0 ? '+' : '') . number_format($change, 2, '.', '') . '%';
             ?>
             <div class="account-card">
                 <div class="account-card-header">
@@ -56,7 +58,7 @@ try {
                         <h3 class="account-name"><?= htmlspecialchars($name) ?></h3>
                     </div>
                     <div class="ticker-item">
-                        <span class="<?= $trendClass ?>"><?= htmlspecialchars($change . "%") ?></span>
+                        <span class="<?= $trendClass ?>"><?= htmlspecialchars($changeText) ?></span>
                     </div>
                 </div>
 
