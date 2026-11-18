@@ -738,8 +738,9 @@ if ($isLoggedIn && $action === 'education') {
 
 $pageTitle = ($action === 'education') ? 'Éducation financière | NovaBank' : 'NovaBank | Banque virtuelle & Simulateur de Bourse';
 $pageStylesheets = !$isLoggedIn
-    ? ['home.css']
-    : ($action === 'education' ? ['dashboard.css', 'education.css'] : ['dashboard.css']);
+    ? ['home.css','snow.css']
+    : ($action === 'education' ? ['dashboard.css', 'education.css','snow.css'] : ['dashboard.css','snow.css']);
+
 $activePage = $action === 'education' ? 'education' : 'dashboard';
 require __DIR__ . '/views/layout/header.php';
 
@@ -807,12 +808,16 @@ if ($isLoggedIn && ($action === '' || $action === 'dashboard')) {
     }
 }
 ?>
-
+<head>
+    <link rel="stylesheet" href="public/css/snow.css">
+</head>
 <?php if ($isLoggedIn): ?>
     <div class="dashboard-layout">
         <?php require __DIR__ . '/views/layout/sidebar.php'; ?>
-
+      
         <main class="dashboard-main" aria-label="Espace principal">
+          <div class="snowfall" aria-hidden="true"></div>
+           <div class="glow-bg top-left"></div>
             <?php if ($action === 'education'): ?>
                 <!-- Inclusion de la vue éducation dans le conteneur du tableau de bord -->
                 <?php require __DIR__ . '/src/Models/education.php'; ?>
@@ -1144,7 +1149,7 @@ if ($isLoggedIn && ($action === '' || $action === 'dashboard')) {
             </div>
 
         </section>
-
+                   
     </main>
 <?php endif; ?>
 

@@ -1,0 +1,67 @@
+
+.snowfall,
+.snowfall::before,
+.snowfall::after {
+    position: fixed;
+  inset: 0;
+  pointer-events: none; 
+  z-index: -1;      
+  background-repeat: repeat;
+}
+snowfall::before,
+.snowfall::after {
+  content: "";
+}
+.snowfall {
+  --snow: 255, 255, 255;
+  background-image:
+    radial-gradient(3px 3px at 40px 60px, rgba(var(--snow), 0.85) 50%, transparent 51%),
+    radial-gradient(4px 4px at 190px 230px, rgba(var(--snow), 0.7) 50%, transparent 51%),
+    radial-gradient(3px 3px at 310px 120px, rgba(var(--snow), 0.8) 50%, transparent 51%),
+    radial-gradient(4px 4px at 120px 340px, rgba(var(--snow), 0.65) 50%, transparent 51%);
+  background-size: 400px 400px;
+  animation: snow-fall-near 12s linear infinite;
+}
+
+.snowfall::before {
+    background-image:
+    radial-gradient(2px 2px at 30px 80px, rgba(var(--snow), 0.6) 50%, transparent 51%),
+    radial-gradient(2.5px 2.5px at 150px 20px, rgba(var(--snow), 0.55) 50%, transparent 51%),
+    radial-gradient(2px 2px at 220px 190px, rgba(var(--snow), 0.6) 50%, transparent 51%),
+    radial-gradient(2.5px 2.5px at 90px 260px, rgba(var(--snow), 0.5) 50%, transparent 51%);
+  background-size: 300px 300px;
+  animation: snow-fall-mid 20s linear infinite;
+}
+.snowfall::after {
+    background-image:
+    radial-gradient(1.5px 1.5px at 20px 30px, rgba(var(--snow), 0.45) 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 110px 140px, rgba(var(--snow), 0.4) 50%, transparent 51%),
+    radial-gradient(1px 1px at 170px 60px, rgba(var(--snow), 0.45) 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 60px 190px, rgba(var(--snow), 0.35) 50%, transparent 51%);
+  background-size: 200px 200px;
+  animation: snow-fall-far 30s linear infinite;
+}
+
+@keyframes snow-fall-near {
+  from { background-position: 0 0; }
+  to   { background-position: 400px 800px; }
+}
+@keyframes snow-fall-mid {
+  from { background-position: 0 0; }
+  to   { background-position: -300px 600px; }
+}
+
+@keyframes snow-fall-far {
+  from { background-position: 0 0; }
+  to   { background-position: 200px 400px; }
+}
+html.light-mode .snowfall {
+  --snow: 148, 163, 184;
+}
+@media (prefers-reduced-motion: reduce) {
+  .snowfall,
+  .snowfall::before,
+  .snowfall::after {
+    animation: none;
+  }
+}
