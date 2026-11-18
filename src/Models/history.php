@@ -76,7 +76,7 @@ require $projectRoot . '/views/layout/header.php';
                                     <?php
                                     $type = (string) $transaction['TransactionType'];
                                     $isIncoming = in_array($type, ['deposit', 'sale', 'transfer_received'], true);
-                                    $transactionDate = new DateTimeImmutable((string) $transaction['CreatedAt']);
+                                    $transactionDate = getQuebecDateTime((string) $transaction['CreatedAt']);
                                     ?>
                                     <tr>
                                         <td data-label="Transaction">

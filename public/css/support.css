@@ -1,0 +1,249 @@
+.support-page {
+  min-width: 0;
+  padding: clamp(1.25rem, 3vw, 2.5rem);
+}
+
+.support-header {
+  margin-bottom: 1.5rem;
+}
+
+.support-eyebrow {
+  margin: 0 0 0.4rem;
+  color: #38bdf8;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.support-header h1 {
+  margin: 0;
+  color: #f8fafc;
+  font-size: clamp(1.75rem, 4vw, 2.25rem);
+}
+
+.support-header > p:last-child {
+  margin: 0.5rem 0 0;
+  color: #94a3b8;
+}
+
+.support-panel,
+.support-requests,
+.support-request-card {
+  overflow: hidden;
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(148, 163, 184, 0.13);
+  border-radius: 14px;
+}
+
+.support-panel {
+  margin-bottom: 1.5rem;
+}
+
+.support-panel-heading {
+  padding: 1.25rem 1.4rem;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.13);
+}
+
+.support-panel-heading h2,
+.support-empty-state h2 {
+  margin: 0;
+  color: #f8fafc;
+  font-size: 1.1rem;
+}
+
+.support-panel-heading p,
+.support-empty-state p {
+  margin: 0.35rem 0 0;
+  color: #94a3b8;
+  font-size: 0.9rem;
+}
+
+.support-form {
+  display: grid;
+  gap: 1rem;
+  padding: 1.25rem 1.4rem;
+}
+
+.support-form label {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.support-form label > span {
+  color: #cbd5e1;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.support-form input,
+.support-form textarea {
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.7rem 0.8rem;
+  color: #f8fafc;
+  background: #0f172a;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 8px;
+  font: inherit;
+}
+
+.support-form textarea {
+  min-height: 7rem;
+  resize: vertical;
+}
+
+.support-form input:focus,
+.support-form textarea:focus {
+  border-color: #38bdf8;
+  outline: 2px solid rgba(56, 189, 248, 0.25);
+}
+
+.support-submit {
+  justify-self: start;
+  min-height: 2.75rem;
+  padding: 0.65rem 1rem;
+  color: #082f49;
+  background: #38bdf8;
+  border: 0;
+  border-radius: 8px;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.support-submit:hover {
+  background: #7dd3fc;
+}
+
+.support-requests {
+  margin-bottom: 1.5rem;
+}
+
+.support-request-list,
+.support-admin-list {
+  display: grid;
+  gap: 1rem;
+}
+
+.support-request-list {
+  padding: 1rem;
+}
+
+.support-admin-list {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 400px), 1fr));
+  align-items: start;
+}
+
+.support-request-card {
+  padding: 1.25rem;
+}
+
+.support-request-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.support-request-heading h2,
+.support-request-heading h3 {
+  margin: 0.45rem 0 0;
+  color: #f8fafc;
+  font-size: 1.05rem;
+}
+
+.support-request-heading time {
+  flex: 0 0 auto;
+  color: #94a3b8;
+  font-size: 0.8rem;
+}
+
+.support-status {
+  display: inline-flex;
+  padding: 0.25rem 0.55rem;
+  color: #fde68a;
+  background: rgba(234, 179, 8, 0.12);
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.support-status.is-answered {
+  color: #bbf7d0;
+  background: rgba(34, 197, 94, 0.12);
+}
+
+.support-request-user {
+  margin: 0.4rem 0 0;
+  color: #94a3b8;
+  font-size: 0.85rem;
+  overflow-wrap: anywhere;
+}
+
+.support-message,
+.support-response p {
+  color: #cbd5e1;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.support-response {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: rgba(56, 189, 248, 0.07);
+  border-left: 3px solid #38bdf8;
+  border-radius: 0 8px 8px 0;
+}
+
+.support-response strong {
+  color: #7dd3fc;
+}
+
+.support-response p {
+  margin: 0.55rem 0 0;
+}
+
+.support-reply-form {
+  padding: 1rem 0 0;
+  border-top: 1px solid rgba(148, 163, 184, 0.13);
+}
+
+.support-empty,
+.support-empty-state {
+  padding: 1.5rem;
+  color: #94a3b8;
+}
+
+.support-empty-state {
+  margin: 0;
+}
+
+.support-alert {
+  margin-bottom: 1.25rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid transparent;
+  border-radius: 12px;
+}
+
+.support-alert.is-success {
+  color: #bbf7d0;
+  background: rgba(20, 83, 45, 0.25);
+  border-color: rgba(74, 222, 128, 0.25);
+}
+
+.support-alert.is-error {
+  color: #fecaca;
+  background: rgba(127, 29, 29, 0.2);
+  border-color: rgba(248, 113, 113, 0.25);
+}
+
+@media (max-width: 640px) {
+  .support-page {
+    padding: 1.25rem 1rem;
+  }
+
+  .support-request-heading {
+    flex-direction: column;
+  }
+}

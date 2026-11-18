@@ -51,7 +51,7 @@ if ($isLoggedIn) {
 
   <link rel="stylesheet" href="public/css/main.css">
   <?php
-  $availablePageStylesheets = ['home.css', 'dashboard.css', 'auth.css', 'errors.css', 'market.css', 'education.css', 'history.css', 'transfer.css', 'admin.css', 'profile.css', 'about.css', 'notifications.css'];
+  $availablePageStylesheets = ['home.css', 'dashboard.css', 'auth.css', 'errors.css', 'market.css', 'education.css', 'history.css', 'transfer.css', 'admin.css', 'profile.css', 'about.css', 'notifications.css', 'support.css'];
   foreach (($pageStylesheets ?? []) as $pageStylesheet):
     if (in_array($pageStylesheet, $availablePageStylesheets, true)):
       ?>

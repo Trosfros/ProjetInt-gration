@@ -275,6 +275,34 @@ else if ($action === 'notifications') {
     require __DIR__ . '/src/Models/notifications.php';
     exit;
 }
+else if ($action === 'support') {
+    if (!$isLoggedIn) {
+        $_SESSION['redirect_after_login'] = 'support';
+        header('Location: index.php?action=loginPage');
+        exit;
+    }
+
+    require __DIR__ . '/src/Models/support.php';
+    exit;
+}
+else if ($action === 'adminSupport') {
+    if (!$isLoggedIn) {
+        $_SESSION['redirect_after_login'] = 'adminSupport';
+        header('Location: index.php?action=loginPage');
+        exit;
+    }
+
+    require_once __DIR__ . '/src/Middlewares/AdminMiddleware.php';
+    if (!AdminMiddleware::isAdmin(getPDO(), (int) $_SESSION['user']['id'])) {
+        http_response_code(403);
+        $pageTitle = 'Accès refusé | NovaBank';
+        require __DIR__ . '/views/errors/403.php';
+        exit;
+    }
+
+    require __DIR__ . '/src/Models/adminSupport.php';
+    exit;
+}
 else if ($action === 'admin') {
     if (!$isLoggedIn) {
         $_SESSION['redirect_after_login'] = $action;

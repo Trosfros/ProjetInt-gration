@@ -29,10 +29,19 @@ function getPDO(): PDO {
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
         ]);
 
+        $pdo->exec("SET time_zone = '+00:00'");
         ensureEmailVerificationColumns($pdo);
 
         return $pdo;
     } catch (PDOException $e) {
         die("Erreur de connexion : " . $e->getMessage());
     }
+}
+
+function getQuebecDateTime(string $databaseTimestamp): DateTimeImmutable
+{
+    $utc = new DateTimeZone('UTC');
+    $quebec = new DateTimeZone('America/Toronto');
+
+    return (new DateTimeImmutable($databaseTimestamp, $utc))->setTimezone($quebec);
 }

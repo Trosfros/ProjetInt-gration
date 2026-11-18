@@ -90,12 +90,30 @@
         </span>
         <span>Administration</span>
       </a>
+      <a class="sidebar-link<?= ($activePage ?? '') === 'adminSupport' ? ' active' : '' ?>" href="index.php?action=adminSupport"<?= ($activePage ?? '') === 'adminSupport' ? ' aria-current="page"' : '' ?>>
+        <span class="sidebar-icon">
+          <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 5h16v12H8l-4 4V5Z" />
+            <path d="M8 9h8M8 13h5" />
+          </svg>
+        </span>
+        <span>Demandes d’aide</span>
+      </a>
     <?php endif; ?>
     <a class="sidebar-link logout-link" href="index.php?action=logout">
       <span class="sidebar-icon">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
       </span>
       <span>Déconnexion</span>
+    </a>
+    <a class="sidebar-link sidebar-support-link<?= ($activePage ?? '') === 'support' ? ' active' : '' ?>" href="index.php?action=support"<?= ($activePage ?? '') === 'support' ? ' aria-current="page"' : '' ?>>
+      <span class="sidebar-icon">
+        <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 5h16v12H8l-4 4V5Z" />
+          <path d="M8 9h8M8 13h5" />
+        </svg>
+      </span>
+      <span>Service clientèle</span>
     </a>
   </nav>
 </aside>

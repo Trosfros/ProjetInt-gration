@@ -64,7 +64,7 @@ require $projectRoot . '/views/layout/header.php';
                 <?php foreach ($notifications as $notification): ?>
                     <?php
                     $isAdminMessage = $notification['NotificationType'] === 'admin_message';
-                    $createdAt = new DateTimeImmutable((string) $notification['CreatedAt']);
+                    $createdAt = getQuebecDateTime((string) $notification['CreatedAt']);
                     ?>
                     <article class="notification-card<?= (int) $notification['IsRead'] === 0 ? ' is-unread' : '' ?>">
                         <span class="notification-type-icon<?= $isAdminMessage ? ' is-admin-message' : '' ?>" aria-hidden="true">
