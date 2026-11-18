@@ -2,6 +2,7 @@
 
 $projectRoot = dirname(__DIR__, 2);
 require_once $projectRoot . '/src/Models/SupportModel.php';
+
 $pageTitle = 'Demandes d’aide | NovaBank';
 $pageStylesheets = ['dashboard.css', 'support.css'];
 $activePage = 'adminSupport';

@@ -17,7 +17,7 @@ $cachedCadUsdReferenceRate = getCachedCadUsdReferenceRate();
 require_once $rootPath . '/vendor/autoload.php';
 require_once $rootPath . '/src/DAL/stockDAL.php';
 require_once $rootPath . '/configs/database.php';
-
+require_once $rootPath . '/src/Models/snowSupport.php';
 use Dotenv\Dotenv;
 require_once $rootPath . '/src/Middlewares/FinnhubMiddleware.php';
 

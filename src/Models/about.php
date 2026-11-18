@@ -3,6 +3,7 @@ $projectRoot = dirname(__DIR__, 2);
 $pageTitle = 'À propos | NovaBank';
 $pageStylesheets = ['about.css'];
 require $projectRoot . '/views/layout/header.php';
+
 ?>
 
 <main class="about-page">
