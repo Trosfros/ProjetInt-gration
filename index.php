@@ -796,7 +796,7 @@ if ($isLoggedIn && ($action === '' || $action === 'dashboard')) {
                         Bienvenue sur votre espace NovaBank. Voici un résumé de votre compte.
                     </p>
                 </header>
-
+                
                 <section class="dashboard-summary-cards" id="dashboard-summary-cards" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; margin-bottom: 30px;">
                     <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 20px;">
                         <div class="dashboard-balance-heading">
@@ -904,6 +904,8 @@ if ($isLoggedIn && ($action === '' || $action === 'dashboard')) {
                         <a href="index.php?action=education" class="btn-secondary" style="display: inline-block; padding: 10px 18px; text-decoration: none; border-radius: 6px; font-weight: 600;">Consulter les Guides</a>
                     </div>
                 </section>
+                  
+              
             <?php endif; ?>
         </main>
     </div>
@@ -1055,7 +1057,9 @@ if ($isLoggedIn && ($action === '' || $action === 'dashboard')) {
                     </a>
                 </article>
             </div>
+            
         </section>
+         
     </main>
 <?php endif; ?>
 
