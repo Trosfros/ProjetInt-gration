@@ -44,13 +44,11 @@ try {
             <?php
             $name = (string) ($fav['Name'] ?? '');
             $lastPrice = (float) ($fav['LastPrice'] ?? 0);
-            $hasChange = isset($fav['Change']) && is_numeric($fav['Change']);
-            $change = $hasChange ? (float) $fav['Change'] : 0.0;
+        
+            $change = $fav['Change'] ?? 0.0;
 
             $trendClass = $change < 0 ? 'trend down' : 'trend up';
-            $changeText = $hasChange
-                ? ($change > 0 ? '+' : '') . number_format($change, 2, ',', ' ') . ' %'
-                : '—';
+            
             ?>
             <div class="account-card">
                 <div class="account-card-header">
@@ -58,14 +56,14 @@ try {
                         <h3 class="account-name"><?= htmlspecialchars($name) ?></h3>
                     </div>
                     <div class="ticker-item">
-                        <span class="<?= $trendClass ?>"><?= htmlspecialchars($changeText) ?></span>
+                        <span class="<?= $trendClass ?>"><?= htmlspecialchars($change . "%") ?></span>
                     </div>
                 </div>
 
                 <div class="account-balance-block">
                     <span class="account-balance-label">Prix</span>
                     <span class="account-balance">
-                        <?= renderCurrencyAmount($lastPrice, 'CAD') ?>
+                        <?= renderCurrencyAmount($lastPrice, 'USD') ?>
                     </span>
                 </div>
             </div>
