@@ -52,10 +52,70 @@
 }
 
 .admin-stat-card,
-.admin-users-section {
+.admin-users-section,
+.admin-adjustment-section {
   background: rgba(15, 23, 42, 0.7);
   border: 1px solid rgba(148, 163, 184, 0.13);
   border-radius: 14px;
+}
+
+.admin-adjustment-section {
+  overflow: hidden;
+  margin-bottom: 1.75rem;
+}
+
+.admin-adjustment-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr));
+  align-items: end;
+  gap: 1rem;
+  padding: 1.25rem 1.4rem;
+}
+
+.admin-adjustment-form label {
+  display: grid;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.admin-adjustment-form label > span {
+  color: #cbd5e1;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.admin-adjustment-form select,
+.admin-adjustment-form input {
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.65rem 0.75rem;
+  color: #f8fafc;
+  background: #0f172a;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 8px;
+  font: inherit;
+}
+
+.admin-adjustment-form select:focus,
+.admin-adjustment-form input:focus {
+  border-color: #38bdf8;
+  outline: 2px solid rgba(56, 189, 248, 0.25);
+}
+
+.admin-adjustment-submit {
+  min-height: 2.75rem;
+  padding: 0.65rem 1rem;
+  color: #082f49;
+  background: #38bdf8;
+  border: 0;
+  border-radius: 8px;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.admin-adjustment-submit:hover {
+  background: #7dd3fc;
 }
 
 .admin-stat-card {
@@ -190,6 +250,19 @@
   background: rgba(127, 29, 29, 0.2);
   border: 1px solid rgba(248, 113, 113, 0.25);
   border-radius: 12px;
+}
+
+.admin-success {
+  margin-bottom: 1.25rem;
+  padding: 1rem 1.25rem;
+  color: #bbf7d0;
+  background: rgba(20, 83, 45, 0.25);
+  border: 1px solid rgba(74, 222, 128, 0.25);
+  border-radius: 12px;
+}
+
+.admin-page > .admin-alert {
+  margin-bottom: 1.25rem;
 }
 
 @media (max-width: 640px) {
