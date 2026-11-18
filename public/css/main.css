@@ -147,16 +147,29 @@ main,
 /* Navbar */
 .navbar {
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
   align-items: center;
-  gap: 3rem;
-  padding: 1.25rem 2rem;
+  gap: 1.5rem;
+  min-height: 72px;
+  padding: 0.85rem 2.5rem;
   position: sticky;
   top: 0;
   z-index: 50;
   backdrop-filter: blur(16px);
   background: rgba(7, 9, 14, 0.75);
   border-bottom: 1px solid var(--card-border);
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  white-space: nowrap;
+}
+
+.nav-links a {
+  margin: 0 0.55rem;
 }
 
 @keyframes scrollProgress {
@@ -205,11 +218,18 @@ body::before {
   color: var(--text-main);
 }
 
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
 /* Boutons */
 .btn-ghost {
   color: var(--text-main);
   text-decoration: none;
-  margin-right: 1.2rem;
+  margin-right: 0;
   font-weight: 500;
   font-size: 0.95rem;
 }
@@ -423,9 +443,16 @@ footer p {
   .navbar {
     gap: 1.5rem;
     justify-content: space-between;
+    padding: 1rem 1.25rem !important;
   }
   .nav-links {
     display: none;
+  }
+  .nav-actions {
+    gap: 0.5rem;
+  }
+  .user-profile-link {
+    margin-right: 0;
   }
 
   /* --- SWITCH MODE SOMBRE / CLAIR --- */
@@ -674,6 +701,21 @@ input:checked + .theme-slider .icon-moon {
   color: #94a3b8;
   padding: 2px 8px;
   border-radius: 6px;
+}
+
+@media (max-width: 700px) {
+  .user-greeting,
+  .nav-actions > .btn-ghost {
+    display: none;
+  }
+
+  .navbar {
+    gap: 0.5rem;
+  }
+
+  .nav-search-btn {
+    margin-right: 0;
+  }
 }
 
 /* --- STYLES GLOBAUX MODE CLAIR --- */

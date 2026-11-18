@@ -195,6 +195,23 @@ CREATE TABLE IF NOT EXISTS `BankTransaction` (
     ON UPDATE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS `UserNotification` (
+  `idNotification` INT NOT NULL AUTO_INCREMENT,
+  `idUser` INT NOT NULL,
+  `NotificationType` ENUM('transaction','admin_message') NOT NULL,
+  `Title` VARCHAR(150) NOT NULL,
+  `Message` TEXT NOT NULL,
+  `IsRead` TINYINT(1) NOT NULL DEFAULT 0,
+  `CreatedAt` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`idNotification`),
+  INDEX `idx_user_notification_unread` (`idUser`, `IsRead`, `CreatedAt`),
+  CONSTRAINT `FK_UserNotification_User`
+    FOREIGN KEY (`idUser`)
+    REFERENCES `User` (`idUser`)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE
+);
+
 USE bdnovabank;
 
 -- 1. Table des Modules (Catégories / Chapitres)

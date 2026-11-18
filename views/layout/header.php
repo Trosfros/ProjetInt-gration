@@ -30,6 +30,15 @@ if (!isset($symbols) || !is_array($symbols) || empty($symbols)) {
 }
 
 $marketData = getMarketdata($rootPath,$apiKey,$symbols,60);
+$headerNotificationCount = null;
+if ($isLoggedIn) {
+  try {
+    require_once $rootPath . '/src/Models/NotificationModel.php';
+    $headerNotificationCount = (new NotificationModel())->getUnreadCount((int) $_SESSION['user']['id']);
+  } catch (Throwable $e) {
+    error_log('header.php failed to load unread notifications: ' . $e->getMessage());
+  }
+}
 
 ?>
 <!DOCTYPE html>
@@ -42,7 +51,7 @@ $marketData = getMarketdata($rootPath,$apiKey,$symbols,60);
 
   <link rel="stylesheet" href="public/css/main.css">
   <?php
-  $availablePageStylesheets = ['home.css', 'dashboard.css', 'auth.css', 'errors.css', 'market.css', 'education.css', 'history.css', 'transfer.css', 'admin.css', 'profile.css', 'about.css'];
+  $availablePageStylesheets = ['home.css', 'dashboard.css', 'auth.css', 'errors.css', 'market.css', 'education.css', 'history.css', 'transfer.css', 'admin.css', 'profile.css', 'about.css', 'notifications.css'];
   foreach (($pageStylesheets ?? []) as $pageStylesheet):
     if (in_array($pageStylesheet, $availablePageStylesheets, true)):
       ?>
@@ -52,6 +61,7 @@ $marketData = getMarketdata($rootPath,$apiKey,$symbols,60);
   endforeach;
   ?>
   <link rel="stylesheet" href="public/css/investment.css">
+  <link rel="stylesheet" href="public/css/notifications.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
@@ -469,6 +479,16 @@ $marketData = getMarketdata($rootPath,$apiKey,$symbols,60);
         $headerUserName = trim((string) ($_SESSION['user']['username'] ?? $_SESSION['user']['Alias'] ?? 'Membre'));
         $headerUserInitial = mb_strtoupper(mb_substr($headerUserName, 0, 1, 'UTF-8'), 'UTF-8');
         ?>
+        <a href="index.php?action=notifications" class="notification-nav-link" data-notification-link
+          aria-label="<?= $headerNotificationCount === null ? 'Notifications indisponibles' : 'Notifications' . ($headerNotificationCount > 0 ? ', ' . $headerNotificationCount . ' non lues' : '') ?>"
+          title="Notifications">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" />
+          </svg>
+          <?php if ($headerNotificationCount !== null && $headerNotificationCount > 0): ?>
+            <span class="notification-nav-badge" aria-hidden="true">!</span>
+          <?php endif; ?>
+        </a>
         <a href="index.php?action=profile" class="user-profile-link"
           aria-label="Voir le profil de <?= htmlspecialchars($headerUserName, ENT_QUOTES, 'UTF-8') ?>">
           <span class="user-avatar" aria-hidden="true">
@@ -484,6 +504,51 @@ $marketData = getMarketdata($rootPath,$apiKey,$symbols,60);
       <?php endif; ?>
     </div>
   </header>
+
+  <?php if ($isLoggedIn): ?>
+    <script>
+      (() => {
+        const link = document.querySelector('[data-notification-link]');
+        if (!link) return;
+
+        const refreshNotificationCount = async () => {
+          try {
+            const response = await fetch('index.php?action=notificationsCount', {
+              headers: { Accept: 'application/json' },
+              cache: 'no-store'
+            });
+            if (!response.ok) throw new Error('Impossible de mettre à jour le compteur de notifications.');
+
+            const data = await response.json();
+            if (!Number.isInteger(data.unreadCount) || data.unreadCount < 0) {
+              throw new Error('Le compteur de notifications reçu est invalide.');
+            }
+
+            link.setAttribute('aria-label', data.unreadCount > 0
+              ? `Notifications, ${data.unreadCount} non lues`
+              : 'Notifications');
+            let badge = link.querySelector('.notification-nav-badge');
+            if (data.unreadCount === 0) {
+              if (badge) badge.remove();
+              return;
+            }
+            if (!badge) {
+              badge = document.createElement('span');
+              badge.className = 'notification-nav-badge';
+              badge.setAttribute('aria-hidden', 'true');
+              link.appendChild(badge);
+            }
+            badge.textContent = '!';
+          } catch (error) {
+            console.error(error);
+          }
+        };
+
+        refreshNotificationCount();
+        window.setInterval(refreshNotificationCount, 30000);
+      })();
+    </script>
+  <?php endif; ?>
 
   <!-- PANNEAU DÉROULANT STYLE DESJARDINS -->
   <div class="desjardins-search-panel" id="desjardinsSearchPanel">

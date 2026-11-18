@@ -222,6 +222,59 @@ else if ($action === 'accounts') {
     require __DIR__ . '/src/Models/AccountModel.php';
     exit;
 }
+else if ($action === 'notificationsCount') {
+    header('Content-Type: application/json; charset=utf-8');
+    if (!$isLoggedIn) {
+        http_response_code(401);
+        echo json_encode(['error' => 'Vous devez être connecté.']);
+        exit;
+    }
+
+    try {
+        require_once __DIR__ . '/src/Models/NotificationModel.php';
+        echo json_encode([
+            'unreadCount' => (new NotificationModel())->getUnreadCount((int) $_SESSION['user']['id']),
+        ], JSON_THROW_ON_ERROR);
+    } catch (Throwable $e) {
+        error_log('index.php failed to load unread notification count: ' . $e->getMessage());
+        http_response_code(500);
+        echo json_encode(['error' => 'Impossible de charger les notifications.']);
+    }
+    exit;
+}
+else if ($action === 'notifications') {
+    if (!$isLoggedIn) {
+        $_SESSION['redirect_after_login'] = 'notifications';
+        header('Location: index.php?action=loginPage');
+        exit;
+    }
+
+    require_once __DIR__ . '/src/Models/NotificationModel.php';
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        $csrfToken = (string) ($_SESSION['notifications_csrf_token'] ?? '');
+        $submittedToken = $_POST['csrf_token'] ?? null;
+
+        if ($csrfToken === '' || !is_string($submittedToken) || !hash_equals($csrfToken, $submittedToken)) {
+            $_SESSION['notification_error'] = 'Votre session a expiré. Rechargez la page et réessayez.';
+        } elseif (($_POST['form_action'] ?? '') === 'mark_all_read') {
+            try {
+                (new NotificationModel())->markAllAsRead((int) $_SESSION['user']['id']);
+                $_SESSION['notification_success'] = 'Toutes les notifications ont été marquées comme lues.';
+            } catch (Throwable $e) {
+                error_log('index.php failed to mark notifications as read: ' . $e->getMessage());
+                $_SESSION['notification_error'] = 'Impossible de mettre à jour les notifications pour le moment.';
+            }
+        } else {
+            $_SESSION['notification_error'] = 'Action invalide. Rechargez la page et réessayez.';
+        }
+
+        header('Location: index.php?action=notifications');
+        exit;
+    }
+
+    require __DIR__ . '/src/Models/notifications.php';
+    exit;
+}
 else if ($action === 'admin') {
     if (!$isLoggedIn) {
         $_SESSION['redirect_after_login'] = $action;
@@ -398,7 +451,7 @@ else if ($_SERVER['REQUEST_METHOD'] === 'POST' &&$action === 'login') {
             );
             $redirectAfterLogin = $_SESSION['redirect_after_login'] ?? null;
             unset($_SESSION['redirect_after_login']);
-            $redirectAction = in_array($redirectAfterLogin, ['education', 'history', 'transfers', 'admin', 'profile'], true) ? $redirectAfterLogin : '';
+            $redirectAction = in_array($redirectAfterLogin, ['education', 'history', 'transfers', 'admin', 'profile', 'notifications'], true) ? $redirectAfterLogin : '';
             header('Location: ' . ($redirectAction !== '' ? 'index.php?action=' . $redirectAction : 'index.php'));
             exit;
         }

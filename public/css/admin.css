@@ -64,12 +64,82 @@
   margin-bottom: 1.75rem;
 }
 
+.admin-message-section {
+  background: linear-gradient(145deg, rgba(15, 23, 42, 0.96), rgba(8, 15, 28, 0.96));
+  border-color: rgba(56, 189, 248, 0.18);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.16);
+}
+
+.admin-message-heading {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.4rem 1.6rem;
+}
+
+.admin-message-heading-icon {
+  display: grid;
+  width: 2.8rem;
+  height: 2.8rem;
+  flex: 0 0 auto;
+  place-items: center;
+  color: #7dd3fc;
+  background: rgba(56, 189, 248, 0.1);
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  border-radius: 12px;
+}
+
+.admin-message-heading-icon svg {
+  width: 1.35rem;
+  height: 1.35rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.admin-message-heading > div {
+  min-width: 0;
+}
+
+.admin-section-heading .admin-message-kicker {
+  margin: 0 0 0.25rem;
+  color: #38bdf8;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
 .admin-adjustment-form {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr));
   align-items: end;
   gap: 1rem;
   padding: 1.25rem 1.4rem;
+}
+
+.admin-message-form {
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.5fr);
+  align-items: start;
+  gap: 1.2rem 1.4rem;
+  padding: 1.5rem 1.6rem 1.6rem;
+}
+
+.admin-message-form .admin-adjustment-submit {
+  white-space: nowrap;
+}
+
+.admin-message-optional {
+  margin-left: 0.25rem;
+  color: #64748b;
+  font-size: 0.72rem;
+  font-weight: 500;
+}
+
+.admin-message-form .admin-adjustment-reason {
+  grid-column: 1 / -1;
 }
 
 .admin-adjustment-form label {
@@ -85,7 +155,8 @@
 }
 
 .admin-adjustment-form select,
-.admin-adjustment-form input {
+.admin-adjustment-form input,
+.admin-adjustment-form textarea {
   width: 100%;
   min-height: 2.75rem;
   padding: 0.65rem 0.75rem;
@@ -96,8 +167,61 @@
   font: inherit;
 }
 
+.admin-adjustment-form textarea {
+  min-height: 10rem;
+  line-height: 1.55;
+  resize: vertical;
+}
+
+.admin-message-form select,
+.admin-message-form input,
+.admin-message-form textarea {
+  border-radius: 10px;
+  background: rgba(7, 13, 25, 0.72);
+}
+
+.admin-message-form select,
+.admin-message-form input {
+  min-height: 3rem;
+}
+
+.admin-message-hint {
+  color: #64748b;
+  font-size: 0.76rem;
+  line-height: 1.4;
+}
+
+.admin-message-footer {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 0.15rem;
+  padding-top: 1.15rem;
+  border-top: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.admin-message-audience {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin: 0;
+  color: #94a3b8;
+  font-size: 0.82rem;
+}
+
+.admin-message-audience span {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: #34d399;
+  box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.12);
+}
+
 .admin-adjustment-form select:focus,
-.admin-adjustment-form input:focus {
+.admin-adjustment-form input:focus,
+.admin-adjustment-form textarea:focus {
   border-color: #38bdf8;
   outline: 2px solid rgba(56, 189, 248, 0.25);
 }
@@ -116,6 +240,34 @@
 
 .admin-adjustment-submit:hover {
   background: #7dd3fc;
+}
+
+.admin-message-form .admin-adjustment-submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  min-height: 3rem;
+  padding: 0.7rem 1.25rem;
+  border-radius: 10px;
+  box-shadow: 0 6px 18px rgba(56, 189, 248, 0.16);
+  transition: background 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+}
+
+.admin-message-form .admin-adjustment-submit:hover {
+  background: #7dd3fc;
+  box-shadow: 0 8px 22px rgba(56, 189, 248, 0.24);
+  transform: translateY(-1px);
+}
+
+.admin-message-form .admin-adjustment-submit svg {
+  width: 1.1rem;
+  height: 1.1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .admin-stat-card {
@@ -265,9 +417,29 @@
   margin-bottom: 1.25rem;
 }
 
+@media (max-width: 900px) {
+  .admin-message-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 640px) {
   .admin-page {
     padding: 1.25rem 1rem;
+  }
+
+  .admin-message-form {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 1.2rem;
+  }
+
+  .admin-message-footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .admin-message-form .admin-adjustment-submit {
+    width: 100%;
   }
 
   .admin-header-icon {

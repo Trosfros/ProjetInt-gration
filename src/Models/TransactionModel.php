@@ -1,14 +1,17 @@
 <?php
 
 require_once dirname(__DIR__, 2) . '/configs/database.php';
+require_once dirname(__DIR__, 2) . '/src/Models/NotificationModel.php';
 
 class TransactionModel
 {
     private PDO $pdo;
+    private NotificationModel $notificationModel;
 
     public function __construct(?PDO $pdo = null)
     {
         $this->pdo = $pdo ?? getPDO();
+        $this->notificationModel = new NotificationModel($this->pdo);
         $this->ensureTransactionTable();
     }
 
@@ -34,6 +37,7 @@ class TransactionModel
             'amount' => number_format($amount, 2, '.', ''),
             'currency' => $currency,
         ]);
+        $this->notificationModel->createTransactionNotification($userId, $description, $amount, $currency);
     }
 
     public function getRecentForUser(int $userId, int $limit = 50): array

@@ -2,13 +2,17 @@
 
 $projectRoot = dirname(__DIR__, 2);
 require_once $projectRoot . '/src/Controllers/AdminController.php';
+require_once $projectRoot . '/src/Models/NotificationModel.php';
 
 $adminController = new AdminController(getPDO());
 $adminUsers = [];
 $adminError = null;
 $adminActionError = null;
 $adminSuccess = $_SESSION['admin_balance_success'] ?? null;
-unset($_SESSION['admin_balance_success']);
+$adminMessageSuccess = $_SESSION['admin_message_success'] ?? null;
+unset($_SESSION['admin_balance_success'], $_SESSION['admin_message_success']);
+$adminMessageTitle = is_string($_POST['message_title'] ?? null) ? trim($_POST['message_title']) : '';
+$adminMessageBody = is_string($_POST['message_body'] ?? null) ? trim($_POST['message_body']) : '';
 $selectedUserId = is_scalar($_POST['user_id'] ?? null) ? (string) $_POST['user_id'] : '';
 $adjustmentDirection = is_scalar($_POST['direction'] ?? null) ? (string) $_POST['direction'] : 'credit';
 $adjustmentAmount = is_scalar($_POST['amount'] ?? null) ? (string) $_POST['amount'] : '';
@@ -25,6 +29,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $adminActionError = 'Votre session a expiré. Rechargez la page et réessayez.';
     } else {
         try {
+            $formAction = (string) ($_POST['form_action'] ?? 'adjust_balance');
+            if ($formAction === 'publish_admin_message') {
+                if ($adminMessageTitle === '' || $adminMessageBody === '') {
+                    throw new InvalidArgumentException('Le titre et le message sont obligatoires.');
+                }
+                if (mb_strlen($adminMessageTitle, 'UTF-8') > 150 || mb_strlen($adminMessageBody, 'UTF-8') > 5000) {
+                    throw new InvalidArgumentException('Le titre doit contenir au plus 150 caractères et le message au plus 5 000 caractères.');
+                }
+
+                $recipientCount = (new NotificationModel())->broadcastAdminMessage($adminMessageTitle, $adminMessageBody);
+                if ($recipientCount === 0) {
+                    throw new InvalidArgumentException('Aucun compte vérifié n’est disponible pour recevoir ce message.');
+                }
+
+                $_SESSION['admin_message_success'] = 'Le message a été envoyé à ' . $recipientCount . ' utilisateur(s).';
+                header('Location: index.php?action=admin');
+                exit;
+            }
+
+            if ($formAction !== 'adjust_balance') {
+                throw new InvalidArgumentException('Action invalide.');
+            }
+
             $postedUserId = $_POST['user_id'] ?? null;
             $validatedUserId = is_string($postedUserId) ? filter_var($postedUserId, FILTER_VALIDATE_INT) : false;
             if ($validatedUserId === false) {
@@ -50,8 +77,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } catch (InvalidArgumentException $e) {
             $adminActionError = $e->getMessage();
         } catch (Throwable $e) {
-            error_log('admin.php failed to adjust a user balance: ' . $e->getMessage());
-            $adminActionError = 'Impossible d’ajuster le solde pour le moment.';
+            error_log('admin.php failed to process an admin action: ' . $e->getMessage());
+            $adminActionError = 'Impossible de traiter l’action d’administration pour le moment.';
         }
     }
 }
@@ -89,9 +116,92 @@ require $projectRoot . '/views/layout/header.php';
         <?php if ($adminSuccess !== null): ?>
             <div class="admin-success" role="status"><?= htmlspecialchars((string) $adminSuccess, ENT_QUOTES, 'UTF-8') ?></div>
         <?php endif; ?>
+        <?php if ($adminMessageSuccess !== null): ?>
+            <div class="admin-success" role="status"><?= htmlspecialchars((string) $adminMessageSuccess, ENT_QUOTES, 'UTF-8') ?></div>
+        <?php endif; ?>
         <?php if ($adminActionError !== null): ?>
             <div class="admin-alert" role="alert"><?= htmlspecialchars($adminActionError, ENT_QUOTES, 'UTF-8') ?></div>
         <?php endif; ?>
+
+        <section class="admin-adjustment-section admin-message-section" aria-labelledby="admin-message-title">
+            <div class="admin-section-heading admin-message-heading">
+                <span class="admin-message-heading-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><path d="M5 5.75A2.75 2.75 0 0 1 7.75 3h8.5A2.75 2.75 0 0 1 19 5.75v6.5A2.75 2.75 0 0 1 16.25 15H11l-4.5 4v-4.18A2.75 2.75 0 0 1 5 12.25z"/></svg>
+                </span>
+                <div>
+                    <p class="admin-message-kicker">Communication</p>
+                    <h2 id="admin-message-title">Envoyer un message aux utilisateurs</h2>
+                    <p>Rédigez une annonce pour le centre de notifications NovaBank.</p>
+                </div>
+            </div>
+            <form class="admin-adjustment-form admin-message-form" id="adminMessageForm" method="post" action="index.php?action=admin">
+                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($adminCsrfToken, ENT_QUOTES, 'UTF-8') ?>">
+                <input type="hidden" name="form_action" value="publish_admin_message">
+                <label class="admin-message-template-field">
+                    <span>Modèle <span class="admin-message-optional">facultatif</span></span>
+                    <select id="adminMessageTemplate">
+                        <option value="">Choisir un modèle…</option>
+                        <option value="maintenance">Maintenance planifiée</option>
+                        <option value="security">Conseil de sécurité</option>
+                        <option value="update">Mise à jour du service</option>
+                    </select>
+                </label>
+                <label class="admin-message-title-field">
+                    <span>Titre</span>
+                    <input id="adminMessageTitle" type="text" name="message_title" maxlength="150" value="<?= htmlspecialchars($adminMessageTitle, ENT_QUOTES, 'UTF-8') ?>" required>
+                </label>
+                <label class="admin-adjustment-reason">
+                    <span>Message</span>
+                    <textarea id="adminMessageBody" name="message_body" maxlength="5000" rows="5" required><?= htmlspecialchars($adminMessageBody, ENT_QUOTES, 'UTF-8') ?></textarea>
+                    <small class="admin-message-hint">Votre message apparaîtra dans le centre de notifications de vos utilisateurs.</small>
+                </label>
+                <div class="admin-message-footer">
+                    <p class="admin-message-audience"><span aria-hidden="true"></span>Envoyé à tous les comptes vérifiés</p>
+                    <button class="admin-adjustment-submit" type="submit">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4 20-7ZM22 2 11 13"/></svg>
+                        Envoyer l’annonce
+                    </button>
+                </div>
+            </form>
+        </section>
+        <script>
+            (() => {
+                const form = document.getElementById('adminMessageForm');
+                const templateSelect = document.getElementById('adminMessageTemplate');
+                const titleInput = document.getElementById('adminMessageTitle');
+                const bodyInput = document.getElementById('adminMessageBody');
+                if (!form || !templateSelect || !titleInput || !bodyInput) return;
+
+                const templates = {
+                    maintenance: {
+                        title: 'Maintenance planifiée',
+                        body: 'Une maintenance de NovaBank est prévue prochainement. Certaines fonctionnalités pourraient être temporairement indisponibles. Merci de votre compréhension.'
+                    },
+                    security: {
+                        title: 'Conseil de sécurité',
+                        body: 'Pour protéger votre compte, ne partagez jamais votre mot de passe ni vos codes de vérification. Si vous remarquez une activité inhabituelle, contactez notre équipe.'
+                    },
+                    update: {
+                        title: 'Mise à jour de NovaBank',
+                        body: 'NovaBank a été mis à jour afin d’améliorer votre expérience. Connectez-vous à votre compte pour découvrir les améliorations.'
+                    }
+                };
+
+                templateSelect.addEventListener('change', () => {
+                    const template = templates[templateSelect.value];
+                    if (!template) return;
+
+                    titleInput.value = template.title;
+                    bodyInput.value = template.body;
+                });
+
+                form.addEventListener('submit', (event) => {
+                    if (!window.confirm('Ce message sera envoyé à tous les comptes vérifiés. Confirmer l’envoi ?')) {
+                        event.preventDefault();
+                    }
+                });
+            })();
+        </script>
 
         <?php if ($adminError !== null): ?>
             <div class="admin-alert" role="alert">
