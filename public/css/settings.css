@@ -1,139 +1,98 @@
-.settings-page {
-  max-width: 1180px;
-  margin: 0 auto;
-  padding: 32px 28px 56px;
-}
-
 .dashboard-main.settings-page {
-  padding-top: 32px !important;
-}
-
-.settings-header {
-  margin-bottom: 28px;
-}
-
-.settings-eyebrow {
-  margin: 0 0 8px;
-  color: #38bdf8;
-  font-size: 0.78rem;
-  font-weight: 700;
-  letter-spacing: 0.11em;
-  text-transform: uppercase;
-}
-
-.settings-header h1 {
-  margin: 0;
-  color: #f8fafc;
-  font-size: clamp(1.8rem, 3vw, 2.4rem);
-}
-
-.settings-header > p:last-child {
-  margin: 10px 0 0;
-  color: #94a3b8;
-}
-
-.settings-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1.4fr) minmax(260px, 0.8fr);
-  gap: 20px;
-  align-items: start;
-}
-
-.settings-card,
-.settings-info-card {
-  padding: 26px;
-  color: #e2e8f0;
-  background: rgba(15, 23, 42, 0.78);
-  border: 1px solid rgba(148, 163, 184, 0.17);
-  border-radius: 18px;
-  box-shadow: 0 16px 40px rgba(2, 6, 23, 0.18);
-}
-
-.settings-card-heading {
   display: flex;
-  align-items: center;
-  gap: 15px;
+  justify-content: center;
+  padding: clamp(1.25rem, 4vw, 3rem) !important;
 }
 
-.settings-card-icon {
-  display: grid;
-  width: 46px;
-  height: 46px;
-  flex: 0 0 46px;
-  place-items: center;
-  color: #7dd3fc;
-  background: rgba(14, 165, 233, 0.12);
-  border: 1px solid rgba(56, 189, 248, 0.2);
-  border-radius: 14px;
-  font-size: 1.35rem;
-  font-weight: 700;
+.settings-profile-card {
+  width: min(100%, 760px);
+  height: fit-content;
+  margin: clamp(1rem, 4vh, 2.5rem) auto;
 }
 
-.settings-card-heading .settings-eyebrow {
-  margin-bottom: 4px;
+.settings-profile-avatar svg {
+  width: 40px;
+  height: 40px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.5;
 }
 
-.settings-card h2,
-.settings-info-card h2 {
-  margin: 0;
-  color: #f8fafc;
-  font-size: 1.12rem;
-}
-
-.settings-description {
-  max-width: 640px;
-  margin: 22px 0;
-  color: #94a3b8;
+.settings-preferences p {
+  color: var(--text-muted);
+  font-size: 0.92rem;
   line-height: 1.65;
 }
 
-.settings-info-card h2 {
-  margin-bottom: 16px;
+.settings-theme-setting {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1.5rem;
 }
 
-.settings-info-card ul {
-  display: grid;
-  gap: 13px;
+.settings-theme-setting .theme-switch-container {
+  flex: 0 0 auto;
   margin: 0;
-  padding-left: 20px;
-  color: #94a3b8;
-  line-height: 1.55;
 }
 
-html.light-mode .settings-header h1,
-html.light-mode .settings-card h2,
-html.light-mode .settings-info-card h2 {
-  color: #0f172a;
+.settings-theme-setting .theme-switch input:focus-visible + .theme-slider {
+  outline: 2px solid var(--primary);
+  outline-offset: 3px;
 }
 
-html.light-mode .settings-card,
-html.light-mode .settings-info-card {
-  color: #334155;
-  background: rgba(255, 255, 255, 0.86);
-  border-color: rgba(100, 116, 139, 0.18);
+.settings-details {
+  margin: 1.5rem 0 0;
 }
 
-html.light-mode .settings-header > p:last-child,
-html.light-mode .settings-description,
-html.light-mode .settings-info-card ul {
-  color: #64748b;
+.settings-details > div {
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.025);
 }
 
-@media (max-width: 760px) {
-  .settings-page {
-    padding: 24px 16px 40px;
-  }
+.settings-details dt {
+  margin-bottom: 0.4rem;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
 
+.settings-details dd {
+  color: var(--text-main);
+  line-height: 1.5;
+}
+
+@media (max-width: 980px) {
   .dashboard-main.settings-page {
-    padding-top: 24px !important;
+    padding: 1.5rem !important;
+  }
+}
+
+@media (max-width: 520px) {
+  .dashboard-main.settings-page {
+    padding: 1rem !important;
   }
 
-  .settings-grid {
-    grid-template-columns: 1fr;
+  .settings-profile-card {
+    margin: 0 auto;
   }
 
-  .settings-card,
-  .settings-info-card {
-    padding: 22px;
+  .settings-theme-setting {
+    align-items: flex-start;
+  }
+
+  .settings-profile-avatar {
+    width: 64px;
+    height: 64px;
+    flex-basis: 64px;
+    font-size: 1.5rem;
+  }
+
+  .settings-profile-avatar svg {
+    width: 32px;
+    height: 32px;
   }
 }
