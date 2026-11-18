@@ -1,160 +1,103 @@
-<?php
+<?php 
 
-use Finnhub\Api\DefaultApi;
-use Finnhub\Configuration;
-use GuzzleHttp\Client;
-use GuzzleHttp\Psr7\Query;
-use Dotenv\Dotenv;
-
-require_once dirname(__DIR__ ,2) . '/configs/database.php';
-require_once dirname(__DIR__ ,2) .'/vendor/autoload.php';
-//this is a very complicated class to handle please bring a lot of coffee if you do want to touch it
-class FinnhubMiddleware
+use Composer\CaBundle\CaBundle;
+function getMarketdata(string $rootPath, string $apiKey, array $symbols, int $cacheLifetime = 60):array
 {
-    private Dotenv $dotenv;
-    private string $apiKey;
-    private Configuration $config;
-    private DefaultApi $client;
-    private $symbols = ['NVDA', 'AAPL', 'TSLA', 'MSFT'];
-    private PDO $pdo;
-    private array $tasks = [];
-    private string $lockPath;
-    private string $pidPath;
-    private string $stopPath;
-    private string $logPath;
+    $marketData = [];
+    $cacheFile = $rootPath . '/storage/market_cache.json';
+    $cacheLockFile = $rootPath . '/storage/market_cache.lock';
 
-    public function __construct()
-    {
-        $this->dotenv = Dotenv::createImmutable(dirname(__DIR__,2));
-        $this->dotenv->load();
 
-        $this->apiKey = $_ENV['FINNHUB_API_KEY'] ?? getenv('FINNHUB_API_KEY') ?? '';
-        $this->config = Configuration::getDefaultConfiguration()->setApiKey('token', $this->apiKey);
-        $this->client = new DefaultApi(new Client(), $this->config);
-        $this->pdo = getPDO();
- 
-        $this->lockPath = dirname(__DIR__,2). '/storage/worker.lock';
-        $this->logPath = dirname(__DIR__,2). '/storage/finnlog.log';
-        $this->pidPath = dirname(__DIR__,2). '/storage/worker.pid';
-        $this->stopPath = dirname(__DIR__,2). '/storage/worker.stop';
+try {
+  clearstatcache();
+
+  if (is_file($cacheFile) && (time() - filemtime($cacheFile) < $cacheLifetime)) {
+    $marketData = json_decode(file_get_contents($cacheFile), true) ?? [];
+  } else {
+    $cacheDirectory = dirname($cacheFile);
+    if (!is_dir($cacheDirectory)) {
+      mkdir($cacheDirectory, 0755, true);
     }
 
-    // this should call the other function in there to update our database
-    public function updateDB(): void
-    {
-        $quotes = $this->getStockInfo();
-
-        if (empty($quotes)) {
-            return;
-        }
-
-        $stmt = $this->pdo->prepare('CALL addStock(?, ?, ?)');
-        $this->pdo->beginTransaction();
-        foreach ($quotes as $symbol => $data) {
-            try {
-
-                $stmt->execute([
-                    $symbol,
-                    $data['c'],
-                    $data['d'],
-                ]);
-                $stmt->closeCursor();
-                $this->pdo->commit();
-
-            } catch (PDOException $e) {
-                $this->log("Failed to save $symbol: " . $e->getMessage());
-                $this->pdo->rollBack();
-            }
-        }
+    if (is_file($cacheFile)) {
+      $marketData = json_decode(file_get_contents($cacheFile), true) ?? [];
     }
-    public function isRunning(): bool {
-        $lock = fopen(__DIR__ . '/worker.lock', 'c');
-        if (flock($lock, LOCK_EX | LOCK_NB)) {
-            flock($lock, LOCK_UN);
-            fclose($lock);
-            return false;
-        }
-        fclose($lock);
-        return true;
 
-    }
-    public function requestStop():void {
-        touch($this->stopPath);
-    }
     
-    public function addTask(callable $task): void {
-        $this->tasks[] = $task;
+    if (is_file($cacheLockFile) && (time() - filemtime($cacheLockFile) >= $cacheLifetime)) {
+      @unlink($cacheLockFile);
     }
 
-    private function GetStockInfo(): array {
-        $results = [];
+  
+    $lockHandle = ($apiKey !== '') ? @fopen($cacheLockFile, 'x') : false;
 
-        foreach ($this->symbols as $symbol) {
-            try {
-                $quote = $this->client->quote($symbol);
+    if ($lockHandle) {
+      fwrite($lockHandle, (string) time());
+      fclose($lockHandle);
 
-                $results[$symbol] = json_decode(json_encode($quote), true);
-            } catch (\Exception $e) {
-                $this->log("Finnhub request failed for $symbol: " . $e->getMessage());
-            }
+      try {
+        $multi   = curl_multi_init();
+        $handles = [];
+        $caPath  = CaBundle::getSystemCaRootBundlePath();
+
+        foreach ($symbols as $symbol) {
+          $ch = curl_init('https://finnhub.io/api/v1/quote?symbol=' . urlencode($symbol) . '&token=' . urlencode($apiKey));
+          curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_CONNECTTIMEOUT => 3,
+            CURLOPT_TIMEOUT        => 5,
+            CURLOPT_CAINFO         => $caPath,
+          ]);
+          curl_multi_add_handle($multi, $ch);
+          $handles[$symbol] = $ch;
         }
 
-        return $results;
-    }
-    public function startPolling(int $intervalseconds = 3): void {
-        echo "work";
-        if (PHP_SAPI !== 'cli')
-        {
-            throw new RuntimeException('must run startPolling() from CLI not a web request');
+        do {
+          $status = curl_multi_exec($multi, $running);
+          if ($running) {
+            curl_multi_select($multi, 1.0);
+          }
+        } while ($running && $status === CURLM_OK);
+
+        $freshData = [];
+        $stockId   = 0;
+        foreach ($handles as $symbol => $ch) {
+          $stockId++;
+          $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+          $response = curl_multi_getcontent($ch);
+
+          if ($httpCode !== 200) {
+            error_log("Finnhub $symbol: HTTP $httpCode " . curl_error($ch));
+          }
+
+          $quote = ($httpCode === 200 && $response) ? json_decode($response, true) : null;
+          if (!empty($quote['c'])) {
+            $freshData[] = [
+              'id'     => $stockId,
+              'symbol' => $symbol,
+              'price'  => number_format((float) $quote['c'], 2, '.', ''),
+              'change' => round((float) ($quote['dp'] ?? 0), 2),
+            ];
+          }
+
+          curl_multi_remove_handle($multi, $ch);
+          curl_close($ch);
         }
-        $lock =fopen($this->lockPath,'c');
-        if (!flock($lock, LOCK_EX | LOCK_NB)) {
-            $this->log("already running exiting");
-            return;
+        curl_multi_close($multi);
+
+        if (!empty($freshData)) {
+          $marketData = $freshData;
+          file_put_contents($cacheFile, json_encode($marketData), LOCK_EX);
+        } else {
+          touch($cacheFile); 
         }
-        $this->log("worker started");
-        $failures = 0;
-        while (true)
-            {
-                if (file_exists($this->stopPath)) {
-                    @unlink($this->stopPath);
-                    $this->log("stop requested shutting down");
-                    break;
-                }
-                $start= microtime(true);
-                try 
-                {
-                    $this->updateDB();
-                    foreach ($this->tasks as $task){
-                        $task();
-                    }
-                    $failures = 0;
-                    $this->log("refresh is ok!");
-                }catch (Exception $e){
-                    $failures++;
-                    $this->log("refresh failed " . $e->getMessage());
-
-                    if ($failure >= 3) {
-                        $this->pdo = getPDO(); //reconnecting
-                        $failure = 0;
-                        $this->log("reconnected to the DB");
-
-                    }
-                }
-                $timer = $start + $intervalseconds;
-                while (microtime(true) < $timer && !file_exists($this->stopPath)) {
-                    sleep(1);
-                }
-
-                flock($lock, LOCK_UN);
-                fclose($lock);
-                $this->log("worker stopped");
-            }
-
-
+      } finally {
+        @unlink($cacheLockFile);
+      }
     }
-    private function log(string $message): void
-    {
-        file_put_contents($this->lockPath, $message . PHP_EOL, FILE_APPEND|LOCK_EX);
-    }
+  }
+} catch (Throwable $e) {
+  error_log('Market cache error: ' . $e->getMessage());
+}
+return $marketData;
 }
