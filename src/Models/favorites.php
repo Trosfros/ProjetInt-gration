@@ -12,61 +12,63 @@ if (empty($_SESSION['user'])) {
 
 require_once $projectRoot . '/vendor/autoload.php';
 require_once $projectRoot . '/configs/database.php';
+require_once $projectRoot . '/src/DAL/StockDAL.php';
 
 $username = $_SESSION['user']['username'];
 
 $pageStylesheets = ['dashboard.css', 'investment.css', 'account.css'];
 $activePage = 'investment';
 
-
 $favorites = [];
-
-$favorites = $stockDal->getUsersFavorite($username);
-
+try {
+    $stockDal = $stockDal ?? new StockDAL();
+    $result = $stockDal->getUsersFavorite($username);
+ 
+    $favorites = isset($result['success']) ? [] : $result;
+} catch (Throwable $e) {
+    error_log('Favorites error: ' . $e->getMessage());
+}
 ?>
 
-
 <?php if (count($favorites) > 0): ?>
+    <link rel="stylesheet" href="public/css/account.css">
 
-    <head>
-        <link rel="stylesheet" href="public/css/account.css">
-    </head>
-    <section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;"></section>
     <header class="investment-header">
         <div>
-
-            <h1> Vos favoris</h1>
+            <h1>Vos favoris</h1>
         </div>
     </header>
-    <?php foreach ($favorites as $fav): ?>
-        <?php
-        $Name = $fav['Name'] ?? '';
-        $LastPrice = $fav['LastPrice'] ?? '';
-        $change = $fav['Change'] ?? '' . "%";
-        ?>
-        <div class="account-card" style="display:inline-flex;">
-            <div class="account-card-header">
-                <div>
-                    <h3 class="account-name"><?= htmlspecialchars($Name) ?></h3>
+
+    <section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
+        <?php foreach ($favorites as $fav): ?>
+            <?php
+            $name = (string) ($fav['Name'] ?? '');
+            $lastPrice = (float) ($fav['LastPrice'] ?? 0);
+            $hasChange = isset($fav['Change']) && is_numeric($fav['Change']);
+            $change = $hasChange ? (float) $fav['Change'] : 0.0;
+
+            $trendClass = $change < 0 ? 'trend down' : 'trend up';
+            $changeText = $hasChange
+                ? ($change > 0 ? '+' : '') . number_format($change, 2, ',', ' ') . ' %'
+                : '—';
+            ?>
+            <div class="account-card">
+                <div class="account-card-header">
+                    <div>
+                        <h3 class="account-name"><?= htmlspecialchars($name) ?></h3>
+                    </div>
+                    <div class="ticker-item">
+                        <span class="<?= $trendClass ?>"><?= htmlspecialchars($changeText) ?></span>
+                    </div>
                 </div>
-                <div class="ticker-item">
-                    <span class="<?= $change <= 0 ? "trend down" : "trend up" ?>">
-                        <?= htmlspecialchars($change . "%") ?>
+
+                <div class="account-balance-block">
+                    <span class="account-balance-label">Prix</span>
+                    <span class="account-balance">
+                        <?= renderCurrencyAmount($lastPrice, 'CAD') ?>
                     </span>
                 </div>
-
             </div>
-
-            <div class="account-balance-block">
-                <span class="account-balance-label">Prix</span>
-                <span class="account-balance">
-                    <?= renderCurrencyAmount($LastPrice, 'CAD') ?>
-                </span>
-            </div>
-
-
-
-        </div>
-        </section>
-    <?php endforeach; ?>
+        <?php endforeach; ?>
+    </section>
 <?php endif; ?>

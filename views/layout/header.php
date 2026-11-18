@@ -34,6 +34,8 @@ if (!isset($symbols) || !is_array($symbols) || empty($symbols)) {
 
 $marketData = getMarketdata($rootPath,$apiKey,$symbols,60);
 $headerNotificationCount = null;
+
+
 if ($isLoggedIn) {
   try {
     require_once $rootPath . '/src/Models/NotificationModel.php';
