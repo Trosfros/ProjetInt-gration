@@ -12,7 +12,7 @@ if (empty($_SESSION['user'])) {
 
 require_once $projectRoot . '/vendor/autoload.php';
 require_once $projectRoot . '/configs/database.php';
-require_once $projectRoot . '/src/DAL/StockDAL.php';
+require_once $projectRoot . '/src/DAL/stockDAL.php';
 
 $username = $_SESSION['user']['username'];
 
