@@ -678,7 +678,8 @@ if ($isLoggedIn) {
   <div class="glow-bg top-left"></div>
   <div class="glow-bg top-right"></div>
   <div class="glow-bg bottom-center"></div>
-
+  <div class="snowfall" aria-hidden="true"></div>
+  <div class="glow-bg top-left"></div>
   <header class="navbar<?= $isLoggedIn ? ' navbar-authenticated' : '' ?>">
     <a href="index.php" class="logo" style="text-decoration: none; color: inherit;">
       <span class="logo-symbol">
