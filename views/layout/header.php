@@ -90,6 +90,7 @@ if ($isLoggedIn) {
   <?php endif; ?>
 
   <link rel="stylesheet" href="public/css/main.css">
+   <link rel="stylesheet" href="/public/css/snow.css">
   <?php
   $availablePageStylesheets = ['home.css', 'dashboard.css', 'auth.css', 'errors.css', 'market.css', 'education.css', 'history.css', 'transfer.css', 'admin.css', 'profile.css', 'about.css', 'notifications.css', 'support.css', 'settings.css'];
   foreach (($pageStylesheets ?? []) as $pageStylesheet):
