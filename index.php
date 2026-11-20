@@ -1,7 +1,9 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+require_once __DIR__ . '/vendor/autoload.php';
+\Dotenv\Dotenv::createImmutable(__DIR__)->safeLoad();
+require_once __DIR__ . '/configs/security.php';
+startSecureSession();
+sendSecurityHeaders();
 
 require __DIR__ . '/vendor/autoload.php';
 require __DIR__ . '/configs/database.php';
@@ -133,6 +135,12 @@ $action = $_GET['action'] ?? '';
 $isLoggedIn = !empty($_SESSION['user']);
 
 if ($action === 'logout') {
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST'
+        || !validCsrfToken(is_string($_POST['csrf_token'] ?? null) ? $_POST['csrf_token'] : null)
+    ) {
+        http_response_code(403);
+        exit('Requête invalide.');
+    }
     unset(
         $_SESSION['user'],
         $_SESSION['password_change'],
@@ -141,6 +149,7 @@ if ($action === 'logout') {
         $_SESSION['password_reset_email'],
         $_SESSION['password_reset_last_sent_at']
     );
+    session_regenerate_id(true);
     header('Location: index.php');
     exit;
 } else if ($action === 'market') {
@@ -333,6 +342,23 @@ if ($action === 'logout') {
 
     require __DIR__ . '/src/Models/adminSupport.php';
     exit;
+} else if ($action === 'securityAudit') {
+    if (!$isLoggedIn) {
+        $_SESSION['redirect_after_login'] = 'admin';
+        header('Location: index.php?action=loginPage');
+        exit;
+    }
+
+    require_once __DIR__ . '/src/Middlewares/AdminMiddleware.php';
+    if (!AdminMiddleware::isAdmin(getPDO(), (int) $_SESSION['user']['id'])) {
+        http_response_code(403);
+        $pageTitle = 'Accès refusé | NovaBank';
+        require __DIR__ . '/views/errors/403.php';
+        exit;
+    }
+
+    require __DIR__ . '/src/Models/securityAudit.php';
+    exit;
 } else if ($action === 'admin') {
     if (!$isLoggedIn) {
         $_SESSION['redirect_after_login'] = $action;
@@ -459,6 +485,8 @@ if ($action === 'logout') {
             if ($user) {
                 $update = $pdo->prepare('UPDATE `User` SET `email_verified` = 1, `email_verification_token` = NULL WHERE `idUser` = :id');
                 $update->execute(['id' => $user['idUser']]);
+                require_once __DIR__ . '/src/Models/AuditModel.php';
+                AuditModel::record('user.email_verified', 'low', 'Adresse courriel vérifiée.', (int) $user['idUser'], (int) $user['idUser'], [], $pdo);
                 $_SESSION['verify_success'] = 'Votre adresse email a bien été vérifiée. Vous pouvez maintenant vous connecter.';
             } else {
                 $_SESSION['verify_error'] = 'Lien de vérification invalide ou déjà utilisé.';
@@ -473,6 +501,11 @@ if ($action === 'logout') {
     header('Location: index.php?action=loginPage');
     exit;
 } else if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'login') {
+    if (!validCsrfToken(is_string($_POST['csrf_token'] ?? null) ? $_POST['csrf_token'] : null)) {
+        $_SESSION['login_error'] = 'Votre session a expiré. Rechargez la page et réessayez.';
+        header('Location: index.php?action=loginPage');
+        exit;
+    }
     $email = trim($_POST['email'] ?? '');
     $password = $_POST['password'] ?? '';
 
@@ -490,17 +523,22 @@ if ($action === 'logout') {
 
         if ($user && password_verify($password, $user['Password'])) {
             if ((int) ($user['email_verified'] ?? 0) !== 1) {
+                require_once __DIR__ . '/src/Models/AuditModel.php';
+                AuditModel::record('auth.login.unverified', 'medium', 'Connexion refusée : adresse courriel non vérifiée.', null, (int) $user['idUser'], [], $pdo);
                 $_SESSION['login_error'] = 'Veuillez vérifier votre adresse email avant de vous connecter.';
                 header('Location: index.php?action=loginPage');
                 exit;
             }
 
+            session_regenerate_id(true);
             $_SESSION['user'] = [
                 'id' => $user['idUser'],
                 'username' => $user['Alias'],
                 'email' => $user['Description'],
                 'isAdmin' => (int) ($user['IsAdmin'] ?? 0) === 1,
             ];
+            require_once __DIR__ . '/src/Models/AuditModel.php';
+            AuditModel::record('auth.login.success', 'info', 'Connexion réussie.', (int) $user['idUser'], (int) $user['idUser'], [], $pdo);
             unset(
                 $_SESSION['password_reset'],
                 $_SESSION['password_reset_email'],
@@ -513,6 +551,16 @@ if ($action === 'logout') {
             exit;
         }
 
+        require_once __DIR__ . '/src/Models/AuditModel.php';
+        AuditModel::record(
+            'auth.login.failed',
+            'high',
+            'Échec de connexion.',
+            null,
+            is_array($user) ? (int) $user['idUser'] : null,
+            ['accountFound' => is_array($user)],
+            $pdo
+        );
         $_SESSION['login_error'] = 'Identifiants invalides.';
         header('Location: index.php?action=loginPage');
         exit;
@@ -554,7 +602,8 @@ if ($action === 'logout') {
             }
         } else {
             try {
-                $update = getPDO()->prepare(
+                $pdo = getPDO();
+                $update = $pdo->prepare(
                     'UPDATE `User` SET `email_verified` = 1, `email_verification_token` = NULL WHERE `idUser` = :userId AND `email_verified` = 0'
                 );
                 $update->execute(['userId' => (int) $registration['user_id']]);
@@ -562,6 +611,9 @@ if ($action === 'logout') {
                 if ($update->rowCount() !== 1) {
                     throw new RuntimeException('No unverified account was updated by registration verification.');
                 }
+
+                require_once __DIR__ . '/src/Models/AuditModel.php';
+                AuditModel::record('user.email_verified', 'low', 'Adresse courriel vérifiée.', (int) $registration['user_id'], (int) $registration['user_id'], [], $pdo);
 
                 unset($_SESSION['registration_verification'], $_SESSION['registration_last_sent_at']);
                 $_SESSION['verify_success'] = 'Votre adresse courriel est vérifiée. Votre compte est prêt, vous pouvez vous connecter.';
@@ -685,6 +737,9 @@ if ($action === 'logout') {
         $userId = (int) $pdo->lastInsertId();
         sendRegistrationCode($email, $username, $code);
         $pdo->commit();
+
+        require_once __DIR__ . '/src/Models/AuditModel.php';
+        AuditModel::record('user.registered', 'low', 'Nouvel utilisateur créé.', null, $userId, [], $pdo);
 
         $_SESSION['registration_verification'] = [
             'user_id' => $userId,

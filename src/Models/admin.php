@@ -47,6 +47,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
 
                 $adminController->deleteEducationQuestion((int) $questionId);
+                require_once $projectRoot . '/src/Models/AuditModel.php';
+                AuditModel::record('admin.education.question_deleted', 'high', 'Question éducative supprimée par un administrateur.', (int) $_SESSION['user']['id'], null, ['questionId' => (int) $questionId]);
                 $_SESSION['admin_education_success'] = 'La question éducative a été supprimée.';
                 header('Location: index.php?action=admin');
                 exit;
@@ -73,6 +75,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $optionTexts,
                     [$correctOption]
                 );
+                require_once $projectRoot . '/src/Models/AuditModel.php';
+                AuditModel::record('admin.education.question_added', 'medium', 'Question éducative ajoutée par un administrateur.', (int) $_SESSION['user']['id'], null, ['moduleId' => (int) $moduleId]);
                 $_SESSION['admin_education_success'] = 'La question éducative a été ajoutée au niveau sélectionné.';
                 header('Location: index.php?action=admin');
                 exit;
@@ -90,6 +94,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($recipientCount === 0) {
                     throw new InvalidArgumentException('Aucun compte vérifié n’est disponible pour recevoir ce message.');
                 }
+
+                require_once $projectRoot . '/src/Models/AuditModel.php';
+                AuditModel::record('admin.message.broadcast', 'medium', 'Message administratif diffusé.', (int) $_SESSION['user']['id'], null, ['recipientCount' => $recipientCount]);
 
                 $_SESSION['admin_message_success'] = 'Le message a été envoyé à ' . $recipientCount . ' utilisateur(s).';
                 header('Location: index.php?action=admin');
@@ -117,7 +124,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $adjustmentDirection,
                 $adjustmentAmount,
                 $adjustmentReason,
-                (string) ($_SESSION['user']['username'] ?? 'administrateur')
+                (string) ($_SESSION['user']['username'] ?? 'administrateur'),
+                (int) $_SESSION['user']['id']
             );
             $_SESSION['admin_balance_success'] = 'Le solde a été ajusté et l’opération a été ajoutée à l’historique.';
             header('Location: index.php?action=admin');

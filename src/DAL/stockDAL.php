@@ -2,6 +2,7 @@
 
 require_once dirname(__DIR__, 2) . "/configs/database.php";
 require_once dirname(__DIR__, 2) . "/src/Models/TransactionModel.php";
+require_once dirname(__DIR__, 2) . '/src/Models/AuditModel.php';
 
 class StockDAL
 {
@@ -38,6 +39,11 @@ class StockDAL
                 (float) number_format($stock['Price'] * $shares, 2, '.', ''),
                 'CAD'
             );
+            AuditModel::record('investment.purchase', 'high', 'Ordre d’achat exécuté.', $userId, $userId, [
+                'stockId' => $idStock,
+                'shares' => number_format($shares, 8, '.', ''),
+                'estimatedValue' => number_format($stock['Price'] * $shares, 2, '.', ''),
+            ], $this->pdo);
             return ['success' => true, 'message' => "Achat passer avec succès!"];
         } catch (PDOException $e) {
 
@@ -73,6 +79,11 @@ class StockDAL
                 (float) number_format($stock['Price'] * (float) $shares, 2, '.', ''),
                 'CAD'
             );
+            AuditModel::record('investment.sale', 'high', 'Ordre de vente exécuté.', $userId, $userId, [
+                'stockId' => $idStock,
+                'shares' => number_format((float) $shares, 8, '.', ''),
+                'estimatedValue' => number_format($stock['Price'] * (float) $shares, 2, '.', ''),
+            ], $this->pdo);
             return ['success' => true, 'message' => "Vendu stock avec succès!"];
         } catch (PDOException $e) {
 
@@ -122,6 +133,10 @@ class StockDAL
             $stmt->closeCursor();
 
             $isFavorite = $this->isFavorite($userId, $idStock);
+            AuditModel::record('investment.favorite.changed', 'low', 'Action favorite mise à jour.', $userId, $userId, [
+                'stockId' => $idStock,
+                'isFavorite' => $isFavorite,
+            ], $this->pdo);
 
             return [
                 'success' => true,

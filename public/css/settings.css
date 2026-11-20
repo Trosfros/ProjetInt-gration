@@ -38,9 +38,88 @@
   margin: 0;
 }
 
+.settings-theme-setting .theme-switch {
+  width: 64px;
+  height: 36px;
+}
+
+.settings-theme-setting .theme-switch input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.settings-theme-setting .theme-slider {
+  background: linear-gradient(135deg, #17243a, #26364d);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.25);
+}
+
+.settings-theme-setting .theme-slider::before {
+  z-index: 0;
+  left: 4px;
+  bottom: 4px;
+  width: 26px;
+  height: 26px;
+  background: #f8fafc;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+.settings-theme-setting .theme-slider .icon-moon,
+.settings-theme-setting .theme-slider .icon-sun {
+  position: relative;
+  z-index: 1;
+  width: 15px;
+  height: 15px;
+  pointer-events: none;
+}
+
+.settings-theme-setting .theme-slider .icon-moon {
+  color: #7dd3fc;
+  opacity: 1;
+}
+
+.settings-theme-setting .theme-slider .icon-sun {
+  color: #fbbf24;
+  opacity: 0.45;
+}
+
+.settings-theme-setting .theme-switch input:checked + .theme-slider {
+  background: linear-gradient(135deg, #dbeafe, #fef3c7);
+  border-color: #bfdbfe;
+}
+
+.settings-theme-setting .theme-switch input:checked + .theme-slider::before {
+  transform: translateX(28px);
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(8, 126, 164, 0.25);
+}
+
+.settings-theme-setting .theme-switch input:checked + .theme-slider .icon-moon {
+  opacity: 0.45;
+}
+
+.settings-theme-setting .theme-switch input:checked + .theme-slider .icon-sun {
+  opacity: 1;
+}
+
 .settings-theme-setting .theme-switch input:focus-visible + .theme-slider {
-  outline: 2px solid var(--primary);
-  outline-offset: 3px;
+  outline: 3px solid var(--primary);
+  outline-offset: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .settings-theme-setting .theme-slider,
+  .settings-theme-setting .theme-slider::before,
+  .settings-theme-setting .theme-slider svg {
+    transition: none;
+  }
 }
 
 .settings-details {

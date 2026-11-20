@@ -15,16 +15,6 @@ if (!$profile) {
     exit;
 }
 
-$profilePictureColumn = $pdo->query("SHOW COLUMNS FROM `User` LIKE 'PFP'")->fetch();
-
-if (!$profilePictureColumn) {
-    throw new RuntimeException('La colonne de photo de profil est absente de la table User.');
-}
-
-if (strtolower((string) $profilePictureColumn['Type']) === 'blob') {
-    $pdo->exec('ALTER TABLE `User` MODIFY `PFP` MEDIUMBLOB NULL');
-}
-
 if (empty($_SESSION['profile_csrf_token'])) {
     $_SESSION['profile_csrf_token'] = bin2hex(random_bytes(32));
 }
@@ -125,6 +115,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'password' => password_hash($newPassword, PASSWORD_DEFAULT),
                 'userId' => (int) $_SESSION['user']['id'],
             ]);
+            require_once $projectRoot . '/src/Models/AuditModel.php';
+            AuditModel::record('account.password_changed', 'high', 'Mot de passe modifié après vérification.', (int) $_SESSION['user']['id'], (int) $_SESSION['user']['id'], [], $pdo);
             unset($_SESSION['password_change']);
             session_regenerate_id(true);
             $_SESSION['profile_success'] = 'Votre mot de passe a été changé avec succès.';
@@ -167,6 +159,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $update->bindValue(':photo', $photo, PDO::PARAM_LOB);
             $update->bindValue(':userId', (int) $_SESSION['user']['id'], PDO::PARAM_INT);
             $update->execute();
+
+            require_once $projectRoot . '/src/Models/AuditModel.php';
+            AuditModel::record('account.profile_photo_changed', 'low', 'Photo de profil modifiée.', (int) $_SESSION['user']['id'], (int) $_SESSION['user']['id'], [], $pdo);
 
             $_SESSION['profile_success'] = 'Votre photo de profil a été mise à jour.';
             header('Location: index.php?action=profile');

@@ -30,6 +30,8 @@ try {
         } else {
             try {
                 $supportModel->createRequest($userId, $submittedSubject, $submittedMessage);
+                require_once $projectRoot . '/src/Models/AuditModel.php';
+                AuditModel::record('support.request.created', 'low', 'Demande de soutien créée.', $userId, $userId);
                 $_SESSION['support_success'] = 'Votre demande a été envoyée au service clientèle.';
                 header('Location: index.php?action=support');
                 exit;

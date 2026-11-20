@@ -345,7 +345,7 @@ try {
     try {
       const res = await fetch('src/DAL/placeOrder.php', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content },
         body: JSON.stringify({ side: side, idStock: idStock, amount: amount, unit: 'shares' }),
       });
 
@@ -373,7 +373,7 @@ try {
   try {
     const res = await fetch('src/DAL/toggleFavorite.php', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content },
       body: JSON.stringify({ idStock: idStock }),
     });
     const data = await res.json();

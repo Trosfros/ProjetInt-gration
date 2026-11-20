@@ -212,6 +212,44 @@ CREATE TABLE IF NOT EXISTS `UserNotification` (
     ON UPDATE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS `SupportRequest` (
+  `idSupportRequest` INT NOT NULL AUTO_INCREMENT,
+  `idUser` INT NOT NULL,
+  `Subject` VARCHAR(150) NOT NULL,
+  `Message` TEXT NOT NULL,
+  `Status` ENUM('open', 'answered') NOT NULL DEFAULT 'open',
+  `AdminResponse` TEXT NULL,
+  `CreatedAt` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `AnsweredAt` TIMESTAMP NULL DEFAULT NULL,
+  PRIMARY KEY (`idSupportRequest`),
+  INDEX `idx_support_request_status_date` (`Status`, `CreatedAt`),
+  INDEX `idx_support_request_user_date` (`idUser`, `CreatedAt`),
+  CONSTRAINT `FK_SupportRequest_User`
+    FOREIGN KEY (`idUser`) REFERENCES `User` (`idUser`)
+    ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `SecurityAuditLog` (
+  `idAudit` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `eventType` VARCHAR(64) NOT NULL,
+  `riskLevel` ENUM('info', 'low', 'medium', 'high', 'critical') NOT NULL DEFAULT 'medium',
+  `summary` VARCHAR(255) NOT NULL,
+  `actorUserId` INT NULL,
+  `targetUserId` INT NULL,
+  `detailsJson` JSON NULL,
+  `ipAddress` VARCHAR(45) NULL,
+  `userAgent` VARCHAR(512) NULL,
+  `createdAt` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`idAudit`),
+  INDEX `idx_audit_created` (`createdAt`, `idAudit`),
+  INDEX `idx_audit_risk_created` (`riskLevel`, `createdAt`),
+  INDEX `idx_audit_event_created` (`eventType`, `createdAt`),
+  INDEX `idx_audit_actor_created` (`actorUserId`, `createdAt`),
+  INDEX `idx_audit_target_created` (`targetUserId`, `createdAt`),
+  CONSTRAINT `FK_Audit_Actor` FOREIGN KEY (`actorUserId`) REFERENCES `User` (`idUser`) ON DELETE SET NULL ON UPDATE CASCADE,
+  CONSTRAINT `FK_Audit_Target` FOREIGN KEY (`targetUserId`) REFERENCES `User` (`idUser`) ON DELETE SET NULL ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 USE bdnovabank;
 
 -- 1. Table des Modules (Catégories / Chapitres)

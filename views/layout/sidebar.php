@@ -84,6 +84,15 @@
         </span>
         <span>Centre d’aide</span>
       </a>
+      <a class="sidebar-link<?= ($activePage ?? '') === 'securityAudit' ? ' active' : '' ?>" href="index.php?action=securityAudit"<?= ($activePage ?? '') === 'securityAudit' ? ' aria-current="page"' : '' ?>>
+        <span class="sidebar-icon">
+          <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 3 20 6v5c0 5-3.4 8.3-8 10-4.6-1.7-8-5-8-10V6l8-3Z" />
+            <path d="m9 12 2 2 4-4" />
+          </svg>
+        </span>
+        <span>Journal d’audit</span>
+      </a>
     <?php endif; ?>
     <a class="sidebar-link sidebar-support-link<?= ($activePage ?? '') === 'support' ? ' active' : '' ?>" href="index.php?action=support"<?= ($activePage ?? '') === 'support' ? ' aria-current="page"' : '' ?>>
       <span class="sidebar-icon">

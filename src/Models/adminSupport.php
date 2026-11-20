@@ -34,6 +34,8 @@ try {
             } else {
                 try {
                     $supportModel->replyToRequest((int) $requestId, $responseInput);
+                    require_once $projectRoot . '/src/Models/AuditModel.php';
+                    AuditModel::record('admin.support.replied', 'medium', 'Réponse ajoutée à une demande de soutien.', (int) $_SESSION['user']['id'], null, ['requestId' => (int) $requestId]);
                     $_SESSION['admin_support_success'] = 'Votre réponse a été envoyée à l’utilisateur.';
                     header('Location: index.php?action=adminSupport');
                     exit;

@@ -39,6 +39,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt->execute(['email' => $email]);
                 $user = $stmt->fetch();
 
+                require_once $projectRoot . '/src/Models/AuditModel.php';
+                AuditModel::record(
+                    'auth.password_reset.requested',
+                    'medium',
+                    'Demande de réinitialisation du mot de passe.',
+                    null,
+                    $user ? (int) $user['idUser'] : null,
+                    ['accountFound' => (bool) $user],
+                    $pdo
+                );
+
                 if ($user) {
                     $code = (string) random_int(100000, 999999);
                     sendPasswordChangeCode($email, (string) $user['Alias'], $code);
@@ -97,7 +108,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['password_reset_error'] = 'Les deux mots de passe ne correspondent pas.';
         } else {
             try {
-                $update = getPDO()->prepare('UPDATE `User` SET `Password` = :password WHERE `idUser` = :userId');
+                $pdo = getPDO();
+                $update = $pdo->prepare('UPDATE `User` SET `Password` = :password WHERE `idUser` = :userId');
                 $update->execute([
                     'password' => password_hash($newPassword, PASSWORD_DEFAULT),
                     'userId' => (int) $resetState['user_id'],
@@ -106,6 +118,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($update->rowCount() !== 1) {
                     throw new RuntimeException('No account was updated by the password reset.');
                 }
+
+                require_once $projectRoot . '/src/Models/AuditModel.php';
+                AuditModel::record('auth.password_reset.completed', 'high', 'Mot de passe réinitialisé.', null, (int) $resetState['user_id'], [], $pdo);
 
                 unset(
                     $_SESSION['password_reset'],

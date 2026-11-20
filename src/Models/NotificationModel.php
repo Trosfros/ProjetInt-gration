@@ -9,7 +9,6 @@ class NotificationModel
     public function __construct(?PDO $pdo = null)
     {
         $this->pdo = $pdo ?? getPDO();
-        $this->ensureTable();
     }
 
     public function broadcastAdminMessage(string $title, string $message): int

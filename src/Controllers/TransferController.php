@@ -2,6 +2,7 @@
 
 require_once dirname(__DIR__, 2) . '/configs/database.php';
 require_once dirname(__DIR__, 2) . '/src/Models/TransactionModel.php';
+require_once dirname(__DIR__, 2) . '/src/Models/AuditModel.php';
 
 class TransferController
 {
@@ -134,6 +135,10 @@ class TransferController
             );
 
             $this->pdo->commit();
+            AuditModel::record('transfer.sent', 'high', 'Virement effectué.', $senderId, $recipientId, [
+                'amount' => number_format($amountCents / 100, 2, '.', ''),
+                'currency' => 'CAD',
+            ], $this->pdo);
         } catch (Throwable $e) {
             if ($this->pdo->inTransaction()) {
                 $this->pdo->rollBack();

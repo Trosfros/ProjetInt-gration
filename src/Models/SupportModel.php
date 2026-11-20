@@ -9,7 +9,6 @@ class SupportModel
     public function __construct(?PDO $pdo = null)
     {
         $this->pdo = $pdo ?? getPDO();
-        $this->ensureTable();
     }
 
     public function createRequest(int $userId, string $subject, string $message): void

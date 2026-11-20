@@ -1,6 +1,7 @@
 <?php
 require_once dirname(__DIR__, 2) . "/configs/database.php";
 require_once dirname(__DIR__, 2) . "/src/Models/TransactionModel.php";
+require_once dirname(__DIR__, 2) . '/src/Models/AuditModel.php';
 
 class AccountDAL
 {
@@ -67,7 +68,14 @@ class AccountDAL
                 'accountType' => $accountType,
                 'currency' => $currency,
             ]);
+            $accountId = (int) $this->pdo->lastInsertId();
             $this->pdo->commit();
+
+            AuditModel::record('account.created', 'low', 'Compte bancaire créé.', $userId, $userId, [
+                'accountId' => $accountId,
+                'accountType' => $accountType,
+                'currency' => $currency,
+            ], $this->pdo);
 
             return ['success' => true, 'message' => 'Compte créé avec succès.'];
         } catch (PDOException $e) {
@@ -110,7 +118,7 @@ class AccountDAL
         $this->pdo->beginTransaction();
         try {
             $accountStmt = $this->pdo->prepare(
-                'SELECT `idUser`, `Money`, `OverdraftLimit`, `Status`
+                'SELECT `idUser`, `Money`, `OverdraftLimit`, `Status`, `Currency`
                  FROM `Account`
                  WHERE `idAccount` = :accountId
                  FOR UPDATE'
@@ -183,6 +191,17 @@ class AccountDAL
             $this->recordAccountTransaction($transactionModel, $idUser, $idAccount, $type, $money);
             $this->pdo->commit();
 
+            $risk = $deposit ? 'medium' : 'high';
+            AuditModel::record(
+                $deposit ? 'account.deposit' : 'account.withdrawal',
+                $risk,
+                $deposit ? 'Transfert vers un compte interne effectué.' : 'Retrait depuis un compte interne effectué.',
+                $idUser,
+                $idUser,
+                ['accountId' => $idAccount, 'amount' => $money, 'currency' => (string) ($account['Currency'] ?? 'CAD')],
+                $this->pdo
+            );
+
             return ['success' => true, 'message' => $message];
         } catch (Throwable $e) {
             if ($this->pdo->inTransaction()) {
@@ -251,6 +270,8 @@ class AccountDAL
         $stmt = $this->pdo->prepare("CALL deleteAccount(?)");
         $stmt->bindParam(1, $accountId, PDO::PARAM_INT);
         $stmt->execute();
+        $userId = $this->GetActiveUserID($username);
+        AuditModel::record('account.closed', 'medium', 'Compte fermé.', $userId, $userId, ['accountId' => $accountId], $this->pdo);
         return ['success' => true, 'message' => "Compte fermé avec succès."];
     } catch (PDOException $e) {
         if ($e->errorInfo[0] === '45000') {

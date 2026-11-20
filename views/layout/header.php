@@ -5,6 +5,7 @@ if (session_status() === PHP_SESSION_NONE) {
 
 $pageTitle = $pageTitle ?? 'NovaBank | Banque virtuelle & Simulateur de Bourse';
 $isLoggedIn = !empty($_SESSION['user']);
+$pageCsrfToken = function_exists('getCsrfToken') ? getCsrfToken() : '';
 
 // Récupération du thème depuis le cookie (par défaut 'dark')
 $currentTheme = $_COOKIE['novabank_theme'] ?? 'dark';
@@ -57,6 +58,7 @@ if ($isLoggedIn) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="csrf-token" content="<?= htmlspecialchars($pageCsrfToken, ENT_QUOTES, 'UTF-8') ?>">
   <title><?= htmlspecialchars($pageTitle, ENT_QUOTES, 'UTF-8') ?></title>
 
   <?php if ($isLoggedIn): ?>
@@ -91,7 +93,7 @@ if ($isLoggedIn) {
 
   <link rel="stylesheet" href="public/css/main.css">
   <?php
-  $availablePageStylesheets = ['home.css', 'dashboard.css', 'auth.css', 'errors.css', 'market.css', 'education.css', 'history.css', 'transfer.css', 'admin.css', 'profile.css', 'about.css', 'notifications.css', 'support.css', 'settings.css'];
+  $availablePageStylesheets = ['home.css', 'dashboard.css', 'auth.css', 'errors.css', 'market.css', 'education.css', 'history.css', 'transfer.css', 'admin.css', 'audit.css', 'profile.css', 'about.css', 'notifications.css', 'support.css', 'settings.css'];
   foreach (($pageStylesheets ?? []) as $pageStylesheet):
     if (in_array($pageStylesheet, $availablePageStylesheets, true)):
       ?>
@@ -264,7 +266,8 @@ if ($isLoggedIn) {
     }
 
     .header-settings-toggle:focus-visible,
-    .header-settings-dropdown a:focus-visible {
+    .header-settings-dropdown a:focus-visible,
+    .header-settings-dropdown button:focus-visible {
       outline: 2px solid #38bdf8;
       outline-offset: 2px;
     }
@@ -301,12 +304,50 @@ if ($isLoggedIn) {
       transition: color 0.18s ease, background 0.18s ease;
     }
 
+    .header-settings-dropdown form {
+      margin: 0;
+    }
+
+    .header-settings-dropdown button.header-logout-link {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      width: 100%;
+      min-height: 42px;
+      padding: 0 11px;
+      color: #e2e8f0;
+      background: transparent;
+      border: 0;
+      border-radius: 9px;
+      font: inherit;
+      font-size: 0.9rem;
+      font-weight: 500;
+      text-align: left;
+      cursor: pointer;
+    }
+
     .header-settings-dropdown a:hover {
       color: #7dd3fc;
       background: rgba(56, 189, 248, 0.1);
     }
 
+    .header-settings-dropdown button.header-logout-link:hover {
+      color: #7dd3fc;
+      background: rgba(56, 189, 248, 0.1);
+    }
+
     .header-settings-dropdown a svg {
+      width: 18px;
+      height: 18px;
+      flex: 0 0 18px;
+      fill: none;
+      stroke: currentColor;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-width: 1.8;
+    }
+
+    .header-settings-dropdown button.header-logout-link svg {
       width: 18px;
       height: 18px;
       flex: 0 0 18px;
@@ -761,12 +802,15 @@ if ($isLoggedIn) {
               </svg>
               <span>Paramètres</span>
             </a>
-            <a class="header-logout-link" href="index.php?action=logout">
+            <form method="post" action="index.php?action=logout">
+              <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($pageCsrfToken, ENT_QUOTES, 'UTF-8') ?>">
+              <button class="header-logout-link" type="submit">
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />
               </svg>
               <span>Déconnexion</span>
-            </a>
+              </button>
+            </form>
           </div>
         </div>
       <?php else: ?>

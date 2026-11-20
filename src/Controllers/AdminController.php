@@ -1,6 +1,7 @@
 <?php
 
 require_once dirname(__DIR__) . '/Models/TransactionModel.php';
+require_once dirname(__DIR__) . '/Models/AuditModel.php';
 
 class AdminController
 {
@@ -28,7 +29,8 @@ class AdminController
         string $direction,
         string $amount,
         string $reason,
-        string $adminAlias
+        string $adminAlias,
+        int $adminUserId
     ): void {
         if ($userId <= 0) {
             throw new InvalidArgumentException('Veuillez sélectionner un utilisateur.');
@@ -91,6 +93,10 @@ class AdminController
                 'CAD'
             );
             $this->pdo->commit();
+            AuditModel::record('admin.balance.adjusted', 'critical', 'Ajustement de solde effectué par un administrateur.', $adminUserId, $userId, [
+                'direction' => $direction,
+                'amount' => $formattedAmount,
+            ], $this->pdo);
         } catch (Throwable $e) {
             if ($this->pdo->inTransaction()) {
                 $this->pdo->rollBack();

@@ -1,0 +1,3 @@
+<FilesMatch "^(AccountDAL|stockDAL)\.php$">
+    Require all denied
+</FilesMatch>

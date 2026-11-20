@@ -1,0 +1,119 @@
+<?php
+
+require_once dirname(__DIR__, 2) . '/configs/database.php';
+
+class AuditModel
+{
+    private const RISK_LEVELS = ['info', 'low', 'medium', 'high', 'critical'];
+    private PDO $pdo;
+
+    public function __construct(?PDO $pdo = null)
+    {
+        $this->pdo = $pdo ?? getPDO();
+    }
+
+    public static function record(
+        string $eventType,
+        string $riskLevel,
+        string $summary,
+        ?int $actorUserId = null,
+        ?int $targetUserId = null,
+        array $details = [],
+        ?PDO $pdo = null
+    ): void {
+        if (!in_array($riskLevel, self::RISK_LEVELS, true)) {
+            $riskLevel = 'medium';
+        }
+
+        try {
+            $model = new self($pdo);
+            $stmt = $model->pdo->prepare(
+                'INSERT INTO `SecurityAuditLog`
+                    (`eventType`, `riskLevel`, `summary`, `actorUserId`, `targetUserId`, `detailsJson`, `ipAddress`, `userAgent`)
+                 VALUES (:eventType, :riskLevel, :summary, :actorUserId, :targetUserId, :detailsJson, :ipAddress, :userAgent)'
+            );
+            $stmt->execute([
+                'eventType' => substr($eventType, 0, 64),
+                'riskLevel' => $riskLevel,
+                'summary' => mb_substr($summary, 0, 255, 'UTF-8'),
+                'actorUserId' => $actorUserId && $actorUserId > 0 ? $actorUserId : null,
+                'targetUserId' => $targetUserId && $targetUserId > 0 ? $targetUserId : null,
+                'detailsJson' => $details ? json_encode($details, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE) : null,
+                'ipAddress' => self::clientIp(),
+                'userAgent' => mb_substr((string) ($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 512, 'UTF-8'),
+            ]);
+        } catch (Throwable $e) {
+            error_log('Security audit event could not be stored: ' . $e->getMessage());
+        }
+    }
+
+    public function getEvents(array $filters, int $page = 1, int $perPage = 50): array
+    {
+        $where = [];
+        $params = [];
+        if (in_array($filters['risk'] ?? '', self::RISK_LEVELS, true)) {
+            $where[] = 'a.`riskLevel` = :risk';
+            $params['risk'] = $filters['risk'];
+        }
+        if (is_string($filters['event'] ?? null) && preg_match('/^[a-z0-9_.-]{1,64}$/i', $filters['event'])) {
+            $where[] = 'a.`eventType` = :eventType';
+            $params['eventType'] = $filters['event'];
+        }
+        foreach (['from' => '>=', 'to' => '<'] as $key => $operator) {
+            $date = $this->validDate((string) ($filters[$key] ?? ''));
+            if ($date !== null) {
+                $where[] = 'a.`createdAt` ' . $operator . ' :date_' . $key;
+                $params['date_' . $key] = $key === 'to' ? $date->modify('+1 day')->format('Y-m-d') : $date->format('Y-m-d');
+            }
+        }
+        $whereSql = $where ? 'WHERE ' . implode(' AND ', $where) : '';
+
+        $count = $this->pdo->prepare('SELECT COUNT(*) FROM `SecurityAuditLog` a ' . $whereSql);
+        $count->execute($params);
+        $total = (int) $count->fetchColumn();
+        $page = max(1, $page);
+        $perPage = max(10, min($perPage, 100));
+        $pages = max(1, (int) ceil($total / $perPage));
+        $page = min($page, $pages);
+
+        $stmt = $this->pdo->prepare(
+            'SELECT a.`idAudit`, a.`eventType`, a.`riskLevel`, a.`summary`, a.`actorUserId`, a.`targetUserId`,
+                    a.`detailsJson`, a.`ipAddress`, a.`userAgent`, a.`createdAt`,
+                    actor.`Alias` AS `actorAlias`, target.`Alias` AS `targetAlias`
+             FROM `SecurityAuditLog` a
+             LEFT JOIN `User` actor ON actor.`idUser` = a.`actorUserId`
+             LEFT JOIN `User` target ON target.`idUser` = a.`targetUserId`
+             ' . $whereSql . '
+             ORDER BY a.`createdAt` DESC, a.`idAudit` DESC
+             LIMIT :limit OFFSET :offset'
+        );
+        foreach ($params as $key => $value) {
+            $stmt->bindValue(':' . $key, $value);
+        }
+        $stmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', ($page - 1) * $perPage, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return ['events' => $stmt->fetchAll(PDO::FETCH_ASSOC), 'total' => $total, 'page' => $page, 'pages' => $pages];
+    }
+
+    public function getEventTypes(): array
+    {
+        return $this->pdo->query('SELECT DISTINCT `eventType` FROM `SecurityAuditLog` ORDER BY `eventType`')->fetchAll(PDO::FETCH_COLUMN);
+    }
+
+    private static function clientIp(): ?string
+    {
+        $ip = (string) ($_SERVER['REMOTE_ADDR'] ?? '');
+        return filter_var($ip, FILTER_VALIDATE_IP) ? $ip : null;
+    }
+
+    private function validDate(string $value): ?DateTimeImmutable
+    {
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
+            return null;
+        }
+        $date = DateTimeImmutable::createFromFormat('!Y-m-d', $value);
+        return $date && $date->format('Y-m-d') === $value ? $date : null;
+    }
+}

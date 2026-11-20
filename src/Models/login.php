@@ -4,6 +4,7 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 $projectRoot = dirname(__DIR__, 2);
+$loginCsrfToken = getCsrfToken();
 
 // Gestion des messages de session (erreurs et succès de vérification/création)
 $error = $_SESSION['login_error'] ?? ($_SESSION['verify_error'] ?? null);
@@ -40,6 +41,7 @@ require $projectRoot . '/views/layout/header.php';
     <?php endif; ?>
 
     <form id="loginForm" action="index.php?action=login" method="POST" class="auth-form">
+      <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($loginCsrfToken, ENT_QUOTES, 'UTF-8') ?>">
       <div class="form-group">
         <label for="email">Adresse email</label>
         <input type="email" id="email" name="email" placeholder="nom@exemple.com" required autocomplete="email">

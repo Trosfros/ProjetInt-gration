@@ -1,8 +1,11 @@
 <?php
 
 if (session_status() === PHP_SESSION_NONE) {
-    session_start();
+    require_once dirname(__DIR__, 2) . '/configs/security.php';
+    startSecureSession();
 }
+require_once dirname(__DIR__, 2) . '/configs/security.php';
+sendSecurityHeaders();
 
 require_once __DIR__ . "/AccountDAL.php";
 require_once dirname(__DIR__,2) ."/configs/utils.php";
@@ -17,6 +20,9 @@ if (!is_array($input)) {
 
 if (empty($_SESSION['user']['username'])) {
     respond(401, ['success' => false, 'message' => 'Vous devez être connecté pour créer un compte.']);
+}
+if (!validCsrfToken(requestCsrfToken())) {
+    respond(403, ['success' => false, 'message' => 'Session expirée. Rechargez la page.']);
 }
 
 $accountName = trim((string) ($input['accountName'] ?? ''));

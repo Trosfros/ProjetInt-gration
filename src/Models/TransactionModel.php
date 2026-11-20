@@ -9,7 +9,6 @@ class TransactionModel
     public function __construct(?PDO $pdo = null)
     {
         $this->pdo = $pdo ?? getPDO();
-        $this->ensureTransactionTable();
     }
 
     public function record(int $userId, string $type, string $description, float|string $amount, string $currency): void

@@ -1,8 +1,11 @@
 <?php
 
 if (session_status() === PHP_SESSION_NONE) {
-    session_start();
+    require_once dirname(__DIR__, 2) . '/configs/security.php';
+    startSecureSession();
 }
+require_once dirname(__DIR__, 2) . '/configs/security.php';
+sendSecurityHeaders();
 
 require_once __DIR__ . "/stockDAL.php";
 require_once dirname(__DIR__,2) ."/configs/utils.php";
@@ -14,7 +17,7 @@ ob_start();
 $input = json_decode(file_get_contents("php://input"), true);
 
 if (!is_array($input)) {
-    respond(400, ['success' => false, 'message' => 'placeOrder.php bad input. CONTENT_TYPE=' . ($_SERVER['CONTENT_TYPE'] ?? 'none')]);
+    respond(400, ['success' => false, 'message' => 'Requête invalide.']);
 }
 
 $side    = $input['side']    ?? null;
@@ -28,6 +31,9 @@ if (!in_array($side, ['buy', 'sell'], true) || !$idStock || !$shares || $shares 
 
 if (empty($_SESSION['user']['username'])) {
     respond(401, ['success' => false, 'message' => 'Vous devez être connecté pour passer un ordre.']);
+}
+if (!validCsrfToken(requestCsrfToken())) {
+    respond(403, ['success' => false, 'message' => 'Session expirée. Rechargez la page.']);
 }
 
 $alias = (string) $_SESSION['user']['username'];
@@ -47,5 +53,5 @@ try {
     respond(404, ['success' => false, 'message' => $e->getMessage()]);
 } catch (\Throwable $e) {
     error_log('placeOrder.php failed: ' . $e->getMessage());
-    respond(500, ['success' => false, 'message' => 'Something went wrong placing the order']);
+    respond(500, ['success' => false, 'message' => 'Impossible de traiter l’ordre pour le moment.']);
 }

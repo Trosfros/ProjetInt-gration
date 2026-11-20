@@ -228,7 +228,7 @@ require $projectRoot . '/views/layout/header.php';
         try {
             const res = await fetch('src/DAL/newAccount.php', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content },
                 body: JSON.stringify(payload),
             });
             const data = await res.json();
@@ -303,7 +303,7 @@ require $projectRoot . '/views/layout/header.php';
         try {
             const res = await fetch('src/DAL/updateAccountMoney.php', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content },
                 body: JSON.stringify({ accountName, amount, mode }),
             });
             const data = await res.json();
@@ -348,7 +348,7 @@ require $projectRoot . '/views/layout/header.php';
         try {
             const res = await fetch('src/DAL/closeAccount.php', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content },
                 body: JSON.stringify({ idAccount }),
             });
             const data = await res.json();

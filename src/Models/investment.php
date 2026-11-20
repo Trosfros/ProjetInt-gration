@@ -388,7 +388,7 @@ sellConfirmButton.addEventListener('click', async () => {
   try {
     const response = await fetch('src/DAL/placeOrder.php', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content },
       body: JSON.stringify({
         side: 'sell',
         idStock: Number(sale.button.dataset.idStock),
