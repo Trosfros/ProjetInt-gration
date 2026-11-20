@@ -65,7 +65,11 @@ require $projectRoot . '/views/layout/header.php';
                 <h1>Virements</h1>
                 <p>Transférez des fonds à un autre utilisateur NovaBank à l’aide de son adresse email.</p>
             </div>
-            <span class="transfer-header-icon" aria-hidden="true">↗</span>
+            <span class="transfer-header-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M7 17 17 7M7 7h10v10" />
+                </svg>
+            </span>
         </header>
 
         <?php if ($transferSuccess !== null): ?>

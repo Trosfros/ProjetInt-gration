@@ -2,6 +2,7 @@
   position: relative;
   isolation: isolate;
   max-width: 1240px;
+  padding-top: 2.5rem;
   padding-bottom: 2rem;
 }
 
@@ -406,6 +407,12 @@
     align-items: flex-start;
     flex-direction: column;
     gap: 0.35rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .education-academy {
+    padding-top: 2rem;
   }
 }
 

@@ -797,10 +797,10 @@ if ($isLoggedIn) {
           </button>
           <div class="header-settings-dropdown" id="headerSettingsDropdown" hidden>
             <a href="index.php?action=settings">
-              <svg viewBox="0 0 24 24" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <circle cx="12" cy="12" r="3" />
-                <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-1.8 3.12-.08-.03a1.7 1.7 0 0 0-1.8.25l-.07.05h-3.6l-.02-.08a1.7 1.7 0 0 0-1.3-1.31l-.08-.02-1.8-3.12.06-.06A1.7 1.7 0 0 0 9.6 14l-.03-.08v-3.6l.08-.02a1.7 1.7 0 0 0 1.31-1.3l.02-.08 3.12-1.8.06.06a1.7 1.7 0 0 0 1.88.34l.08-.03 3.12 1.8-.03.08a1.7 1.7 0 0 0 .25 1.8l.05.07v3.6z" />
-              </svg>
+                <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+            </svg>
               <span>Paramètres</span>
             </a>
             <form method="post" action="index.php?action=logout">

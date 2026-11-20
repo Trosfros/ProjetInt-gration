@@ -3,6 +3,7 @@
   width: 100%;
   margin: 0 auto;
   padding: 2rem clamp(1rem, 3vw, 2.5rem);
+  padding-top: 2.5rem !important;
 }
 
 .history-header {
@@ -269,6 +270,7 @@
 @media (max-width: 900px) {
   .history-page {
     padding: 1.5rem 1rem;
+    padding-top: 2rem !important;
   }
 
   .history-table th,
