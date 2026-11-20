@@ -2,14 +2,17 @@
 
 require_once dirname(__DIR__) . '/Models/TransactionModel.php';
 require_once dirname(__DIR__) . '/Models/AuditModel.php';
+require_once dirname(__DIR__) . '/Models/NotificationModel.php';
 
 class AdminController
 {
     private PDO $pdo;
+    private NotificationModel $notificationModel;
 
     public function __construct(PDO $pdo)
     {
         $this->pdo = $pdo;
+        $this->notificationModel = new NotificationModel($this->pdo);
     }
 
 
@@ -63,10 +66,11 @@ class AdminController
         $this->pdo->beginTransaction();
         try {
             $userStmt = $this->pdo->prepare(
-                'SELECT `idUser` FROM `User` WHERE `idUser` = :userId FOR UPDATE'
+                'SELECT `idUser`, `Balance` FROM `User` WHERE `idUser` = :userId FOR UPDATE'
             );
             $userStmt->execute(['userId' => $userId]);
-            if (!$userStmt->fetchColumn()) {
+            $user = $userStmt->fetch(PDO::FETCH_ASSOC);
+            if (!$user) {
                 throw new InvalidArgumentException('Cet utilisateur est introuvable.');
             }
 
@@ -83,6 +87,16 @@ class AdminController
             ]);
             if ($updateStmt->rowCount() !== 1) {
                 throw new InvalidArgumentException('Le solde ne peut pas devenir négatif.');
+            }
+
+            if ($direction === 'debit') {
+                $balanceStmt = $this->pdo->prepare('SELECT `Balance` FROM `User` WHERE `idUser` = :userId');
+                $balanceStmt->execute(['userId' => $userId]);
+                $this->notificationModel->notifyLowBalanceCrossing(
+                    $userId,
+                    number_format((float) ($user['Balance'] ?? 0), 2, '.', ''),
+                    number_format((float) $balanceStmt->fetchColumn(), 2, '.', '')
+                );
             }
 
             $transactionModel->record(

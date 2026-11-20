@@ -193,6 +193,21 @@
   background: rgba(139, 92, 246, 0.14);
 }
 
+.notification-type-icon.is-transfer {
+  color: #86efac;
+  background: rgba(34, 197, 94, 0.13);
+}
+
+.notification-type-icon.is-login {
+  color: #c4b5fd;
+  background: rgba(139, 92, 246, 0.14);
+}
+
+.notification-type-icon.is-low-balance {
+  color: #fcd34d;
+  background: rgba(245, 158, 11, 0.14);
+}
+
 .notification-content {
   min-width: 0;
   flex: 1;
@@ -266,6 +281,26 @@ html.light-mode .notification-card.is-unread {
 
 html.light-mode .notification-card p {
   color: #334155;
+}
+
+html.light-mode .notification-type-icon.is-admin-message {
+  color: #6d28d9;
+  background: #f3e8ff;
+}
+
+html.light-mode .notification-type-icon.is-transfer {
+  color: #15803d;
+  background: #dcfce7;
+}
+
+html.light-mode .notification-type-icon.is-login {
+  color: #6d28d9;
+  background: #f3e8ff;
+}
+
+html.light-mode .notification-type-icon.is-low-balance {
+  color: #a16207;
+  background: #fef3c7;
 }
 
 @media (max-width: 700px) {

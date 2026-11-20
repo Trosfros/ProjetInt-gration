@@ -914,3 +914,69 @@ html.light-mode .audit-pagination a[aria-current="page"] {
     background: linear-gradient(150deg, #f4f8ff, #fff 70%);
   }
 }
+
+html.light-mode .settings-notification-section {
+  color: #26364d;
+  background: #fff !important;
+  border-color: rgba(30, 50, 80, 0.12);
+  box-shadow: 0 10px 28px rgba(30, 50, 80, 0.05);
+}
+
+html.light-mode .settings-section-heading h2,
+html.light-mode .settings-danger-section h2 {
+  color: #17243a;
+}
+
+html.light-mode .settings-section-heading p,
+html.light-mode .settings-danger-section p,
+html.light-mode .settings-notification-option small {
+  color: #607087;
+}
+
+html.light-mode .settings-notification-option {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+
+html.light-mode .settings-notification-option strong,
+html.light-mode .settings-threshold-field {
+  color: #26364d;
+}
+
+html.light-mode .settings-threshold-field input,
+html.light-mode .settings-delete-form input {
+  color: #26364d;
+  background: #fff;
+  border-color: #d3dce8;
+}
+
+html.light-mode .settings-danger-section {
+  color: #26364d;
+  background: #fff7f7;
+  border-color: rgba(190, 18, 60, 0.2);
+}
+
+html.light-mode .settings-delete-form label {
+  color: #9f1239;
+}
+
+html.light-mode .settings-save-button {
+  color: #fff;
+  background: #087ea4;
+}
+
+html.light-mode .settings-save-button:hover {
+  background: #075985;
+}
+
+html.light-mode .settings-feedback.is-error {
+  color: #9f1239;
+  background: #fff1f2;
+  border-color: rgba(190, 18, 60, 0.2);
+}
+
+html.light-mode .settings-feedback.is-success {
+  color: #166534;
+  background: #ecfdf3;
+  border-color: rgba(22, 101, 52, 0.2);
+}

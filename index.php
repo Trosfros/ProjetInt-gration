@@ -539,6 +539,12 @@ if ($action === 'logout') {
             ];
             require_once __DIR__ . '/src/Models/AuditModel.php';
             AuditModel::record('auth.login.success', 'info', 'Connexion réussie.', (int) $user['idUser'], (int) $user['idUser'], [], $pdo);
+            require_once __DIR__ . '/src/Models/NotificationModel.php';
+            try {
+                (new NotificationModel($pdo))->notifyLoginSuccess((int) $user['idUser']);
+            } catch (PDOException $e) {
+                error_log('index.php failed to create login notification: ' . $e->getMessage());
+            }
             unset(
                 $_SESSION['password_reset'],
                 $_SESSION['password_reset_email'],

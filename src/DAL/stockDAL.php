@@ -3,15 +3,18 @@
 require_once dirname(__DIR__, 2) . "/configs/database.php";
 require_once dirname(__DIR__, 2) . "/src/Models/TransactionModel.php";
 require_once dirname(__DIR__, 2) . '/src/Models/AuditModel.php';
+require_once dirname(__DIR__, 2) . '/src/Models/NotificationModel.php';
 
 class StockDAL
 {
     private PDO $pdo;
+    private NotificationModel $notificationModel;
 
     public function __construct()
     {
         $this->pdo = getPDO();
         $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        $this->notificationModel = new NotificationModel($this->pdo);
     }
     //returns if function worked
     public function buyStock(string $alias, int $idStock, float $shares): array
@@ -25,6 +28,13 @@ class StockDAL
         $transactionModel = new TransactionModel();
 
         try {
+            $balanceStmt = $this->pdo->prepare('SELECT `Balance` FROM `User` WHERE `idUser` = :userId');
+            $balanceStmt->execute(['userId' => $userId]);
+            $previousBalance = $balanceStmt->fetchColumn();
+            if ($previousBalance === false) {
+                throw new RuntimeException('User not found while fetching balance.');
+            }
+
             $stmt = $this->pdo->prepare("CALL BuyStockInvestment(?, ?, ?)");
             $stmt->bindParam(1, $userId, PDO::PARAM_INT);
             $stmt->bindParam(2, $idStock, PDO::PARAM_INT);
@@ -39,6 +49,20 @@ class StockDAL
                 (float) number_format($stock['Price'] * $shares, 2, '.', ''),
                 'CAD'
             );
+            $balanceStmt->execute(['userId' => $userId]);
+            $currentBalance = $balanceStmt->fetchColumn();
+            if ($currentBalance === false) {
+                throw new RuntimeException('User not found while fetching balance.');
+            }
+            try {
+                $this->notificationModel->notifyLowBalanceCrossing(
+                    $userId,
+                    number_format((float) ($previousBalance ?? 0), 2, '.', ''),
+                    number_format((float) $currentBalance, 2, '.', '')
+                );
+            } catch (PDOException $e) {
+                error_log('stockDAL failed to create low-balance notification: ' . $e->getMessage());
+            }
             AuditModel::record('investment.purchase', 'high', 'Ordre d’achat exécuté.', $userId, $userId, [
                 'stockId' => $idStock,
                 'shares' => number_format($shares, 8, '.', ''),

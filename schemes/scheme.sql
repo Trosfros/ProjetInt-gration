@@ -198,7 +198,7 @@ CREATE TABLE IF NOT EXISTS `BankTransaction` (
 CREATE TABLE IF NOT EXISTS `UserNotification` (
   `idNotification` INT NOT NULL AUTO_INCREMENT,
   `idUser` INT NOT NULL,
-  `NotificationType` ENUM('admin_message') NOT NULL,
+  `NotificationType` ENUM('admin_message','transfer_sent','transfer_received','login_success','low_balance') NOT NULL,
   `Title` VARCHAR(150) NOT NULL,
   `Message` TEXT NOT NULL,
   `IsRead` TINYINT(1) NOT NULL DEFAULT 0,
@@ -211,6 +211,18 @@ CREATE TABLE IF NOT EXISTS `UserNotification` (
     ON DELETE CASCADE
     ON UPDATE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS `UserNotificationPreference` (
+  `idUser` INT NOT NULL,
+  `NotifyTransfers` TINYINT(1) NOT NULL DEFAULT 1,
+  `NotifyLogin` TINYINT(1) NOT NULL DEFAULT 1,
+  `NotifyLowBalance` TINYINT(1) NOT NULL DEFAULT 1,
+  `LowBalanceThreshold` DECIMAL(15,2) NOT NULL DEFAULT 100.00,
+  PRIMARY KEY (`idUser`),
+  CONSTRAINT `FK_UserNotificationPreference_User`
+    FOREIGN KEY (`idUser`) REFERENCES `User` (`idUser`)
+    ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `SupportRequest` (
   `idSupportRequest` INT NOT NULL AUTO_INCREMENT,

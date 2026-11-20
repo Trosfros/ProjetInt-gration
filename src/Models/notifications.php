@@ -34,7 +34,7 @@ require $projectRoot . '/views/layout/header.php';
             <div>
                 <p class="notifications-eyebrow">Restez informé</p>
                 <h1>Centre de notifications</h1>
-                <p>Retrouvez ici les annonces et messages de l’administration.</p>
+                <p>Retrouvez vos alertes de virement, de connexion, de solde et les annonces de l’administration.</p>
             </div>
             <?php if ($notificationError === null && $notifications !== []): ?>
                 <form method="post" action="index.php?action=notifications">
@@ -64,13 +64,26 @@ require $projectRoot . '/views/layout/header.php';
                 <?php foreach ($notifications as $notification): ?>
                     <?php
                     $createdAt = getQuebecDateTime((string) $notification['CreatedAt']);
+                    $type = (string) $notification['NotificationType'];
+                    $notificationTypes = [
+                        'admin_message' => ['label' => 'Message de l’administration', 'icon' => '!', 'class' => 'is-admin-message'],
+                        'transfer_sent' => ['label' => 'Virement envoyé', 'icon' => '↑', 'class' => 'is-transfer'],
+                        'transfer_received' => ['label' => 'Virement reçu', 'icon' => '↓', 'class' => 'is-transfer'],
+                        'login_success' => ['label' => 'Connexion au compte', 'icon' => '•', 'class' => 'is-login'],
+                        'low_balance' => ['label' => 'Solde bas', 'icon' => '$', 'class' => 'is-low-balance'],
+                    ];
+                    $notificationType = $notificationTypes[$type] ?? [
+                        'label' => 'Notification',
+                        'icon' => 'i',
+                        'class' => '',
+                    ];
                     ?>
                     <article class="notification-card<?= (int) $notification['IsRead'] === 0 ? ' is-unread' : '' ?>">
-                        <span class="notification-type-icon is-admin-message" aria-hidden="true">!</span>
+                        <span class="notification-type-icon <?= htmlspecialchars($notificationType['class'], ENT_QUOTES, 'UTF-8') ?>" aria-hidden="true"><?= htmlspecialchars($notificationType['icon'], ENT_QUOTES, 'UTF-8') ?></span>
                         <div class="notification-content">
                             <div class="notification-card-heading">
                                 <div>
-                                    <span class="notification-type-label">Message de l’administration</span>
+                                    <span class="notification-type-label"><?= htmlspecialchars($notificationType['label'], ENT_QUOTES, 'UTF-8') ?></span>
                                     <h2><?= htmlspecialchars((string) $notification['Title'], ENT_QUOTES, 'UTF-8') ?></h2>
                                 </div>
                                 <?php if ((int) $notification['IsRead'] === 0): ?>

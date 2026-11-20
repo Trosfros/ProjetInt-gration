@@ -3,6 +3,7 @@
 require_once dirname(__DIR__, 2) . '/configs/database.php';
 require_once dirname(__DIR__, 2) . '/src/Models/TransactionModel.php';
 require_once dirname(__DIR__, 2) . '/src/Models/AuditModel.php';
+require_once dirname(__DIR__, 2) . '/src/Models/NotificationModel.php';
 
 class TransferController
 {
@@ -10,12 +11,14 @@ class TransferController
 
     private PDO $pdo;
     private TransactionModel $transactionModel;
+    private NotificationModel $notificationModel;
 
     public function __construct()
     {
         $this->pdo = getPDO();
         $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         $this->transactionModel = new TransactionModel($this->pdo);
+        $this->notificationModel = new NotificationModel($this->pdo);
     }
 
     public function getPageData(int $userId): array
@@ -55,7 +58,7 @@ class TransferController
         }
 
         $recipientStmt = $this->pdo->prepare(
-            'SELECT `idUser`, `Description`
+            'SELECT `idUser`, `Alias`, `Description`
              FROM `User`
              WHERE `Description` = :email AND `idUser` <> :senderId
              LIMIT 1'
@@ -132,6 +135,19 @@ class TransferController
                 'Virement reçu de ' . $lockedUsers[$senderId]['Alias'],
                 $amountCents / 100,
                 'CAD'
+            );
+
+            $this->notificationModel->notifyTransfer(
+                $senderId,
+                $recipientId,
+                (string) $lockedUsers[$senderId]['Alias'],
+                (string) $lockedUsers[$recipientId]['Alias'],
+                $amountCents
+            );
+            $this->notificationModel->notifyLowBalanceCrossing(
+                $senderId,
+                number_format($senderBalanceCents / 100, 2, '.', ''),
+                number_format(($senderBalanceCents - $amountCents) / 100, 2, '.', '')
             );
 
             $this->pdo->commit();

@@ -2,17 +2,20 @@
 require_once dirname(__DIR__, 2) . "/configs/database.php";
 require_once dirname(__DIR__, 2) . "/src/Models/TransactionModel.php";
 require_once dirname(__DIR__, 2) . '/src/Models/AuditModel.php';
+require_once dirname(__DIR__, 2) . '/src/Models/NotificationModel.php';
 
 class AccountDAL
 {
     private const MAX_ACCOUNT_BALANCE_CENTS = 999999999999999;
 
     private PDO $pdo;
+    private NotificationModel $notificationModel;
 
     public function __construct()
     {
         $this->pdo = getPDO();
         $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        $this->notificationModel = new NotificationModel($this->pdo);
     }
 
     public function createAccount(string $Alias, string $accountName, ?string $accountType = 'checking', ?string $currency = 'CAD'): array
@@ -142,16 +145,19 @@ class AccountDAL
                 }
 
                 $userStmt = $this->pdo->prepare(
-                    'SELECT COALESCE(`Balance`, 0) >= CAST(:amount AS DECIMAL(15,2)) AS `hasBalance`
+                    'SELECT COALESCE(`Balance`, 0) AS `balance`,
+                            COALESCE(`Balance`, 0) >= CAST(:amount AS DECIMAL(15,2)) AS `hasBalance`
                      FROM `User`
                      WHERE `idUser` = :userId
                      FOR UPDATE'
                 );
                 $userStmt->execute(['amount' => $money, 'userId' => $idUser]);
-                if (!(bool) $userStmt->fetchColumn()) {
+                $user = $userStmt->fetch(PDO::FETCH_ASSOC);
+                if (!$user || !(bool) $user['hasBalance']) {
                     $this->pdo->rollBack();
                     return ['success' => false, 'message' => 'Votre solde disponible est insuffisant pour ajouter ce montant.'];
                 }
+                $userBalanceCents = $this->toAccountCents((string) $user['balance']);
 
                 $updateAccount = $this->pdo->prepare(
                     'UPDATE `Account` SET `Money` = `Money` + CAST(:amount AS DECIMAL(15,2)) WHERE `idAccount` = :accountId'
@@ -189,6 +195,13 @@ class AccountDAL
             }
 
             $this->recordAccountTransaction($transactionModel, $idUser, $idAccount, $type, $money);
+            if ($deposit) {
+                $this->notificationModel->notifyLowBalanceCrossing(
+                    $idUser,
+                    number_format($userBalanceCents / 100, 2, '.', ''),
+                    number_format(($userBalanceCents - $amountCents) / 100, 2, '.', '')
+                );
+            }
             $this->pdo->commit();
 
             $risk = $deposit ? 'medium' : 'high';
