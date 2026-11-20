@@ -92,6 +92,7 @@ if ($isLoggedIn) {
   <?php endif; ?>
 
   <link rel="stylesheet" href="public/css/main.css">
+   <link rel="stylesheet" href="/public/css/snow.css">
   <?php
   $availablePageStylesheets = ['home.css', 'dashboard.css', 'auth.css', 'errors.css', 'market.css', 'education.css', 'history.css', 'transfer.css', 'admin.css', 'audit.css', 'profile.css', 'about.css', 'notifications.css', 'support.css', 'settings.css'];
   foreach (($pageStylesheets ?? []) as $pageStylesheet):
@@ -717,8 +718,8 @@ if ($isLoggedIn) {
 <body>
   <div class="glow-bg top-left"></div>
   <div class="glow-bg top-right"></div>
-  <div class="glow-bg bottom-center"></div>
 
+  <div class="glow-bg top-left"></div>
   <header class="navbar<?= $isLoggedIn ? ' navbar-authenticated' : '' ?>">
     <a href="index.php" class="logo" style="text-decoration: none; color: inherit;">
       <span class="logo-symbol">
