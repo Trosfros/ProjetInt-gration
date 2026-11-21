@@ -799,8 +799,8 @@ if ($isLoggedIn && $action === 'education') {
 
 $pageTitle = ($action === 'education') ? 'Éducation financière | NovaBank' : 'NovaBank | Banque virtuelle & Simulateur de Bourse';
 $pageStylesheets = !$isLoggedIn
-    ? ['home.css','snow.css']
-    : ($action === 'education' ? ['dashboard.css', 'education.css','snow.css'] : ['dashboard.css','snow.css']);
+    ? ['home.css']
+    : ($action === 'education' ? ['dashboard.css', 'education.css','snow.css'] : ['dashboard.css']);
 
 $activePage = $action === 'education' ? 'education' : 'dashboard';
 require __DIR__ . '/views/layout/header.php';

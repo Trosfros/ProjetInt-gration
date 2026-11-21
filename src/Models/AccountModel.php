@@ -154,7 +154,7 @@ require $projectRoot . '/views/layout/header.php';
                         <div class="modal-field">
                             <label for="moneyAmount">Montant</label>
                             <input type="number" id="moneyAmount" name="amount" class="trade-input" step="0.01"
-                                min="0.01" max="9999999999999.99" required>
+                                min="0.01" required>
                         </div>
 
                         <p id="moneyFeedback" class="trade-feedback" hidden></p>
@@ -228,7 +228,7 @@ require $projectRoot . '/views/layout/header.php';
         try {
             const res = await fetch('src/DAL/newAccount.php', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
             });
             const data = await res.json();
@@ -291,10 +291,10 @@ require $projectRoot . '/views/layout/header.php';
 
         const accountName = document.getElementById('moneyAccountName').value;
         const mode = document.getElementById('moneyMode').value;
-        const amount = document.getElementById('moneyAmount').value;
+        const amount = parseFloat(document.getElementById('moneyAmount').value);
 
-        if (!/^(?:0|[1-9]\d{0,12})(?:\.\d{1,2})?$/.test(amount) || Number(amount) <= 0) {
-            feedback.textContent = 'Entrez un montant valide, positif et inférieur ou égal à 9 999 999 999 999,99 $.';
+        if (!amount || amount <= 0) {
+            feedback.textContent = 'Entrez un montant valide.';
             feedback.classList.add('is-error');
             feedback.hidden = false;
             return;
@@ -303,7 +303,7 @@ require $projectRoot . '/views/layout/header.php';
         try {
             const res = await fetch('src/DAL/updateAccountMoney.php', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ accountName, amount, mode }),
             });
             const data = await res.json();
@@ -348,7 +348,7 @@ require $projectRoot . '/views/layout/header.php';
         try {
             const res = await fetch('src/DAL/closeAccount.php', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ idAccount }),
             });
             const data = await res.json();

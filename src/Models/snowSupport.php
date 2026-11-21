@@ -4,5 +4,4 @@
 <head>
     <link rel="stylesheet" href="public/css/snow.css">
 </head>
-<div class="snowfall" aria-hidden="true"></div>
-<div class="glow-bg top-left"></div>
+<div class="snowfall" aria-hidden="true"><span></span><span></span><span></span></div>
