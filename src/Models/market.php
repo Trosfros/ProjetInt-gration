@@ -59,7 +59,7 @@ require $projectRoot . '/views/layout/header.php';
                 required
                 onchange="updateTab(this.value)">
                 <?php if (!empty($marketData)): ?>
-                  <?php foreach ($marketData as$stock): ?>
+                  <?php foreach ($marketData as $stock): ?>
                     <option
                      data-id-stock="<?= htmlspecialchars($stock['id'] ?? '') ?>"
                      value="<?= htmlspecialchars($stock['symbol']) ?>" 
@@ -123,6 +123,21 @@ require $projectRoot . '/views/layout/header.php';
     </div>
   </main>
 </div>
+
+<!-- FENÊTRE MODALE DE CONFIRMATION POUR ORDRE > 1000$ -->
+<dialog class="sell-confirm-dialog" id="trade-confirm-dialog" aria-labelledby="trade-dialog-title">
+  <form method="dialog" class="sell-dialog-close-form">
+    <button class="sell-dialog-close" type="submit" aria-label="Fermer la confirmation">×</button>
+  </form>
+  <div class="sell-dialog-icon" aria-hidden="true">⚠️</div>
+  <p class="investment-kicker">Confirmation d'ordre important</p>
+  <h2 id="trade-dialog-title"><span id="trade-dialog-action"></span> de <span id="trade-dialog-quantity"></span> <span id="trade-dialog-stock"></span></h2>
+  <p class="sell-dialog-description">Le total estimé de cet ordre dépasse 1 000,00 $ (<span id="trade-dialog-total"></span>). Veuillez confirmer pour exécuter la transaction.</p>
+  <div class="sell-dialog-actions">
+    <button type="button" class="sell-dialog-cancel" id="trade-dialog-cancel">Annuler</button>
+    <button type="button" class="sell-dialog-confirm" id="trade-dialog-confirm">Confirmer l'ordre</button>
+  </div>
+</dialog>
 
 <!-- CALCULATEUR DYNAMIQUE ET SCRIPTS -->
 <script type="text/javascript">
@@ -257,23 +272,11 @@ function updateTotal() {
   totalDisplay.value = '$' + total.toFixed(2);
 }
 
-async function doPayment(side) {
-  const symbolSelect = document.getElementById('trade-symbol-select');
-  const qtyInput = document.getElementById('trade-qty-input');
+const tradeDialog = document.getElementById('trade-confirm-dialog');
+const tradeConfirmButton = document.getElementById('trade-dialog-confirm');
+let pendingTrade = null;
 
-  const selectedOption = symbolSelect.options[symbolSelect.selectedIndex];
-  const idStock = parseInt(selectedOption.dataset.idStock, 10);
-  const amount = parseFloat(qtyInput.value);
-
-  if (!idStock) {
-    alert("Cette action n'a pas d'identifiant valide en base de données.");
-    return;
-  }
-  if (!amount || amount <= 0) {
-    alert('Entrez une quantité valide.');
-    return;
-  }
-
+async function executeOrder(side, idStock, amount) {
   showTradeFeedback(null);
   try {
     const res = await fetch('src/DAL/placeOrder.php', {
@@ -291,6 +294,56 @@ async function doPayment(side) {
     alert('Erreur réseau lors de la commande : ' + err);
   }
 }
+
+async function doPayment(side) {
+  const symbolSelect = document.getElementById('trade-symbol-select');
+  const qtyInput = document.getElementById('trade-qty-input');
+
+  const selectedOption = symbolSelect.options[symbolSelect.selectedIndex];
+  const idStock = parseInt(selectedOption.dataset.idStock, 10);
+  const amount = parseFloat(qtyInput.value);
+  const symbol = selectedOption.value;
+
+  if (!idStock) {
+    alert("Cette action n'a pas d'identifiant valide en base de données.");
+    return;
+  }
+  if (!amount || amount <= 0) {
+    alert('Entrez une quantité valide.');
+    return;
+  }
+
+  const unitPrice = window.getSelectedStockPrice ? window.getSelectedStockPrice(symbol) : 150.00;
+  const total = amount * unitPrice;
+
+  // Si le total dépasse 1000$, on interrompt et on ouvre la modale de confirmation
+  if (total > 1000) {
+    pendingTrade = { side, idStock, amount };
+    document.getElementById('trade-dialog-action').textContent = side === 'buy' ? 'Achat' : 'Vente';
+    document.getElementById('trade-dialog-quantity').textContent = amount.toLocaleString('fr-CA');
+    document.getElementById('trade-dialog-stock').textContent = symbol;
+    document.getElementById('trade-dialog-total').textContent = total.toLocaleString('fr-CA', { style: 'currency', currency: 'USD' });
+    
+    tradeDialog.showModal();
+    return;
+  }
+
+  // Sinon, on exécute directement
+  await executeOrder(side, idStock, amount);
+}
+
+document.getElementById('trade-dialog-cancel').addEventListener('click', () => {
+  tradeDialog.close();
+  pendingTrade = null;
+});
+
+tradeConfirmButton.addEventListener('click', async () => {
+  if (!pendingTrade) return;
+  const { side, idStock, amount } = pendingTrade;
+  tradeDialog.close();
+  pendingTrade = null;
+  await executeOrder(side, idStock, amount);
+});
 </script>
 
 <?php require $projectRoot . '/views/layout/footer.php'; ?>
