@@ -96,7 +96,7 @@ if ($isLoggedIn) {
   <link rel="stylesheet" href="public/css/main.css">
    <link rel="stylesheet" href="/public/css/snow.css">
   <?php
-  $availablePageStylesheets = ['home.css', 'dashboard.css', 'auth.css', 'errors.css', 'market.css', 'education.css', 'history.css', 'transfer.css', 'admin.css', 'audit.css', 'profile.css', 'about.css', 'privacy.css', 'notifications.css', 'support.css', 'settings.css'];
+  $availablePageStylesheets = ['home.css', 'dashboard.css', 'auth.css', 'errors.css', 'market.css', 'education.css', 'history.css', 'leaderboard.css', 'transfer.css', 'admin.css', 'audit.css', 'profile.css', 'about.css', 'privacy.css', 'notifications.css', 'support.css', 'settings.css'];
   foreach (($pageStylesheets ?? []) as $pageStylesheet):
     if (in_array($pageStylesheet, $availablePageStylesheets, true)):
       ?>
@@ -736,12 +736,12 @@ if ($isLoggedIn) {
         <a href="index.php?action=marketPage"<?= ($activePage ?? '') === 'market' ? ' aria-current="page"' : '' ?>>Marchés</a>
         <a href="index.php?action=investment"<?= ($activePage ?? '') === 'investment' ? ' aria-current="page"' : '' ?>>Portefeuille</a>
         <a href="index.php?action=accounts"<?= ($activePage ?? '') === 'Accounts' ? ' aria-current="page"' : '' ?>>Comptes</a>
-        <a href="index.php?action=education"<?= ($activePage ?? '') === 'education' ? ' aria-current="page"' : '' ?>>Éducation</a>
+        <a href="index.php?action=leaderboard"<?= ($activePage ?? '') === 'leaderboard' ? ' aria-current="page"' : '' ?>>Classement</a>
       </nav>
     <?php else: ?>
       <nav class="nav-links">
         <a href="index.php#simulator">Simulateur Bourse</a>
-        <a href="index.php#leaderboard">Classement</a>
+        <a href="index.php?action=leaderboard">Classement</a>
         <a href="index.php#features">Fonctionnalités</a>
         <a href="index.php?action=about">À propos</a>
       </nav>

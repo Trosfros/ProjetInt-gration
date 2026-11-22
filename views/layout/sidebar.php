@@ -52,6 +52,14 @@ $sidebarAria = static fn(array $pages): string =>
       </span>
       <span>Éducation</span>
     </a>
+    <a class="<?= $sidebarClass(['leaderboard']) ?>" href="index.php?action=leaderboard"<?= $sidebarAria(['leaderboard']) ?>>
+      <span class="sidebar-icon">
+        <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4ZM7 6H4v2a4 4 0 0 0 4 4M17 6h3v2a4 4 0 0 1-4 4" />
+        </svg>
+      </span>
+      <span>Classement</span>
+    </a>
     <a class="<?= $sidebarClass(['investment']) ?>" href="index.php?action=investment"<?= $sidebarAria(['investment']) ?>>
       <span class="sidebar-icon">
         <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

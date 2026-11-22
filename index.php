@@ -388,6 +388,15 @@ if ($action === 'logout') {
 
     require __DIR__ . '/src/Models/history.php';
     exit;
+} else if ($action === 'leaderboard') {
+    if (!$isLoggedIn) {
+        $_SESSION['redirect_after_login'] = $action;
+        header('Location: index.php?action=loginPage');
+        exit;
+    }
+
+    require __DIR__ . '/src/Models/leaderboard.php';
+    exit;
 } else if ($action === 'transfers') {
     if (!$isLoggedIn) {
         $_SESSION['redirect_after_login'] = $action;
