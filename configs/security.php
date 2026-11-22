@@ -45,9 +45,42 @@ function getCsrfToken(): string
 
 function validCsrfToken(?string $token): bool
 {
-    return is_string($token) && $token !== ''
+    $valid = is_string($token) && $token !== ''
         && !empty($_SESSION['csrf_token'])
         && hash_equals($_SESSION['csrf_token'], $token);
+    if (!$valid) {
+        try {
+            require_once dirname(__DIR__) . '/src/Models/AuditModel.php';
+            AuditModel::record(
+                'security.csrf.failed',
+                'high',
+                'Jeton CSRF invalide ou expiré.',
+                isset($_SESSION['user']['id']) ? (int) $_SESSION['user']['id'] : null,
+                isset($_SESSION['user']['id']) ? (int) $_SESSION['user']['id'] : null,
+                [
+                    'method' => (string) ($_SERVER['REQUEST_METHOD'] ?? ''),
+                    'endpoint' => (string) (parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH) ?: ''),
+                ]
+            );
+            $ipAddress = filter_var($_SERVER['REMOTE_ADDR'] ?? '', FILTER_VALIDATE_IP) ?: null;
+            if ($ipAddress !== null
+                && AuditModel::countRecentEvent('security.csrf.failed', 10, $ipAddress) >= 10
+                && AuditModel::countRecentEvent('security.csrf.brute_force', 10, $ipAddress) === 0
+            ) {
+                AuditModel::record(
+                    'security.csrf.brute_force',
+                    'critical',
+                    'Tentatives répétées avec jetons CSRF invalides détectées.',
+                    null,
+                    null,
+                    ['failedAttemptsWindow' => 10, 'windowMinutes' => 10]
+                );
+            }
+        } catch (Throwable $e) {
+            error_log('Unable to record failed CSRF validation: ' . $e->getMessage());
+        }
+    }
+    return $valid;
 }
 
 function requestCsrfToken(): ?string

@@ -15,7 +15,9 @@ $isLightMode = ($currentTheme === 'light');
 
 $rootPath = dirname(__DIR__, 2);
 require_once $rootPath . '/configs/currency_display.php';
-$serverDisplayCurrency = ($_COOKIE['novabank_display_currency'] ?? 'CAD') === 'USD' ? 'USD' : 'CAD';
+$serverDisplayCurrency = in_array($_COOKIE['novabank_display_currency'] ?? 'CAD', ['CAD', 'USD', 'EUR'], true)
+  ? ($_COOKIE['novabank_display_currency'] ?? 'CAD')
+  : 'CAD';
 $cachedCadUsdReferenceRate = getCachedCadUsdReferenceRate();
 require_once $rootPath . '/vendor/autoload.php';
 require_once $rootPath . '/src/DAL/stockDAL.php';
@@ -54,6 +56,7 @@ if ($isLoggedIn) {
   data-server-display-currency="<?= $serverDisplayCurrency ?>"
   data-currency-rate-ready="<?= $cachedCadUsdReferenceRate !== null ? 'true' : 'false' ?>"
   data-cad-usd-rate="<?= $cachedCadUsdReferenceRate !== null ? number_format($cachedCadUsdReferenceRate['rate'], 8, '.', '') : '' ?>"
+  data-cad-eur-rate="<?= $cachedCadUsdReferenceRate !== null && isset($cachedCadUsdReferenceRate['eurRate']) && $cachedCadUsdReferenceRate['eurRate'] !== null ? number_format($cachedCadUsdReferenceRate['eurRate'], 8, '.', '') : '' ?>"
   data-cad-usd-rate-date="<?= $cachedCadUsdReferenceRate !== null ? htmlspecialchars($cachedCadUsdReferenceRate['date'], ENT_QUOTES, 'UTF-8') : '' ?>"
   data-cad-usd-rate-stale="<?= $cachedCadUsdReferenceRate !== null && $cachedCadUsdReferenceRate['isStale'] ? 'true' : 'false' ?>">
 
@@ -66,11 +69,13 @@ if ($isLoggedIn) {
   <?php if ($isLoggedIn): ?>
     <script>
       (() => {
-        const serverCurrency = document.documentElement.dataset.serverDisplayCurrency === 'USD' ? 'USD' : 'CAD';
+        const serverCurrency = ['CAD', 'USD', 'EUR'].includes(document.documentElement.dataset.serverDisplayCurrency)
+          ? document.documentElement.dataset.serverDisplayCurrency
+          : 'CAD';
         let displayCurrency = serverCurrency;
         try {
           const savedCurrency = localStorage.getItem('novabank_display_currency');
-          if (savedCurrency === 'CAD' || savedCurrency === 'USD') {
+          if (savedCurrency === 'CAD' || savedCurrency === 'USD' || savedCurrency === 'EUR') {
             displayCurrency = savedCurrency;
           }
         } catch (error) {
@@ -765,11 +770,14 @@ if ($isLoggedIn) {
           <select id="headerCurrencySelect" aria-label="Devise d’affichage">
             <option value="CAD">CAD</option>
             <option value="USD">USD</option>
+            <option value="EUR">EUR</option>
           </select>
         </div>
         <script>
           document.getElementById('headerCurrencySelect').value =
-            document.documentElement.dataset.displayCurrency === 'USD' ? 'USD' : 'CAD';
+            ['CAD', 'USD', 'EUR'].includes(document.documentElement.dataset.displayCurrency)
+              ? document.documentElement.dataset.displayCurrency
+              : 'CAD';
         </script>
         <a href="index.php?action=notifications" class="notification-nav-link" data-notification-link
           aria-label="<?= $headerNotificationCount === null ? 'Notifications indisponibles' : 'Notifications' . ($headerNotificationCount > 0 ? ', ' . $headerNotificationCount . ' non lues' : '') ?>"
@@ -855,7 +863,7 @@ if ($isLoggedIn) {
 
   <?php if ($isLoggedIn): ?>
     <div id="currencyRateStatus" class="currency-rate-status is-loading" role="status" aria-live="polite">
-      Chargement du taux CAD/USD…
+      Chargement des taux CAD/USD/EUR…
     </div>
   <?php endif; ?>
 
@@ -1113,24 +1121,30 @@ if ($isLoggedIn) {
         const rateStatus = document.getElementById('currencyRateStatus');
         const currencySelect = document.getElementById('headerCurrencySelect');
         const preferenceStorageKey = 'novabank_display_currency';
-        let displayCurrency = document.documentElement.dataset.displayCurrency === 'USD' ? 'USD' : 'CAD';
+        let displayCurrency = ['CAD', 'USD', 'EUR'].includes(document.documentElement.dataset.displayCurrency)
+          ? document.documentElement.dataset.displayCurrency
+          : 'CAD';
         let cadToUsdRate = null;
+        let cadToEurRate = null;
         let rateDate = '';
         if (currencySelect) currencySelect.value = displayCurrency;
 
         const applyDisplayCurrency = () => {
           if (cadToUsdRate === null) return;
+          if (displayCurrency === 'EUR' && cadToEurRate === null) return;
 
           document.querySelectorAll('[data-currency-value][data-currency-base]').forEach((amountElement) => {
             const amount = Number(amountElement.dataset.currencyValue);
             const baseCurrency = amountElement.dataset.currencyBase.toUpperCase();
-            if (!Number.isFinite(amount) || !['CAD', 'USD'].includes(baseCurrency)) return;
+            if (!Number.isFinite(amount) || !['CAD', 'USD', 'EUR'].includes(baseCurrency)) return;
 
-            const convertedAmount = baseCurrency === displayCurrency
+            const ratesFromCad = { CAD: 1, USD: cadToUsdRate, EUR: cadToEurRate };
+            const amountInCad = baseCurrency === 'CAD'
               ? amount
-              : baseCurrency === 'CAD'
-                ? amount * cadToUsdRate
-                : amount / cadToUsdRate;
+              : baseCurrency === 'USD'
+                ? amount / cadToUsdRate
+                : amount / cadToEurRate;
+            const convertedAmount = amountInCad * ratesFromCad[displayCurrency];
 
             const numberLocale = document.documentElement.dataset.language === 'en' ? 'en-CA' : 'fr-CA';
             amountElement.textContent = new Intl.NumberFormat(numberLocale, {
@@ -1145,7 +1159,7 @@ if ($isLoggedIn) {
 
         try {
           const savedCurrency = localStorage.getItem(preferenceStorageKey);
-          if (savedCurrency === 'CAD' || savedCurrency === 'USD') {
+          if (savedCurrency === 'CAD' || savedCurrency === 'USD' || savedCurrency === 'EUR') {
             displayCurrency = savedCurrency;
           }
         } catch (error) {
@@ -1154,7 +1168,7 @@ if ($isLoggedIn) {
         document.documentElement.dataset.displayCurrency = displayCurrency;
 
         const setDisplayCurrency = (currency, persist = true) => {
-          if (currency !== 'CAD' && currency !== 'USD') {
+          if (currency !== 'CAD' && currency !== 'USD' && currency !== 'EUR') {
             return false;
           }
 
@@ -1193,7 +1207,7 @@ if ($isLoggedIn) {
         }
 
         window.addEventListener('storage', (event) => {
-          if (event.key === preferenceStorageKey && (event.newValue === 'CAD' || event.newValue === 'USD')) {
+          if (event.key === preferenceStorageKey && (event.newValue === 'CAD' || event.newValue === 'USD' || event.newValue === 'EUR')) {
             setDisplayCurrency(event.newValue, false);
           }
         });
@@ -1201,6 +1215,8 @@ if ($isLoggedIn) {
         const cachedRate = Number(document.documentElement.dataset.cadUsdRate);
         if (Number.isFinite(cachedRate) && cachedRate > 0) {
           cadToUsdRate = cachedRate;
+          const cachedEurRate = Number(document.documentElement.dataset.cadEurRate);
+          cadToEurRate = Number.isFinite(cachedEurRate) && cachedEurRate > 0 ? cachedEurRate : null;
           rateDate = document.documentElement.dataset.cadUsdRateDate || '';
           if (document.documentElement.dataset.cadUsdRateStale === 'true') {
             rateStatus.className = 'currency-rate-status is-warning';
@@ -1219,18 +1235,21 @@ if ($isLoggedIn) {
           .then(async (response) => {
             const result = await response.json();
             if (!response.ok) {
-              throw new Error(result.error || 'Impossible de charger le taux CAD/USD.');
+              throw new Error(result.error || 'Impossible de charger les taux CAD/USD/EUR.');
             }
             if (
               !Number.isFinite(Number(result.rate)) ||
               Number(result.rate) <= 0 ||
+              !Number.isFinite(Number(result.eurRate)) ||
+              Number(result.eurRate) <= 0 ||
               typeof result.date !== 'string' ||
               typeof result.isStale !== 'boolean'
             ) {
-              throw new Error('Le taux CAD/USD reçu est invalide.');
+              throw new Error('Le taux CAD/USD/EUR reçu est invalide.');
             }
 
             cadToUsdRate = Number(result.rate);
+            cadToEurRate = Number(result.eurRate);
             rateDate = result.date;
             if (result.isStale) {
               rateStatus.className = 'currency-rate-status is-warning';
@@ -1242,7 +1261,7 @@ if ($isLoggedIn) {
             applyDisplayCurrency();
           })
           .catch((error) => {
-            console.error('Unable to load the CAD/USD reference rate.', error);
+            console.error('Unable to load the CAD/USD/EUR reference rates.', error);
             document.documentElement.classList.remove('currency-pending');
             rateStatus.className = 'currency-rate-status is-error';
             rateStatus.textContent = 'Taux automatique indisponible : les montants restent dans leur devise d’origine.';

@@ -100,7 +100,7 @@ require $projectRoot . '/views/layout/header.php';
       <div class="leaderboard-card-heading">
         <div>
           <h2 id="leaderboard-title">Patrimoine et gains totaux</h2>
-          <p>Classement cumulatif, mis à jour à chaque visite · montants affichés en CAD ou USD selon votre préférence</p>
+          <p>Classement cumulatif, mis à jour à chaque visite · montants affichés en CAD, USD ou EUR selon votre préférence</p>
         </div>
       </div>
 

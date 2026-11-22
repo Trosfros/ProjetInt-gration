@@ -31,6 +31,28 @@ $riskLabels = [
     'high' => 'Élevé',
     'critical' => 'Critique',
 ];
+$detailLabels = [
+    'action' => 'Opération',
+    'accountId' => 'ID du compte',
+    'accountType' => 'Type de compte',
+    'amount' => 'Montant',
+    'currency' => 'Devise',
+    'direction' => 'Sens',
+    'estimatedValue' => 'Valeur estimée',
+    'isFavorite' => 'Ajoutée aux favoris',
+    'moduleId' => 'ID du niveau',
+    'questionId' => 'ID de la question',
+    'recipientCount' => 'Nombre de destinataires',
+    'requestId' => 'ID de la demande',
+    'shares' => 'Nombre d’actions',
+    'stockId' => 'ID de l’action',
+    'stockName' => 'Action',
+    'unitPrice' => 'Prix unitaire',
+    'method' => 'Méthode HTTP',
+    'endpoint' => 'Endpoint',
+    'failedAttemptsWindow' => 'Nombre de tentatives',
+    'windowMinutes' => 'Fenêtre de détection',
+];
 $pageTitle = 'Audit de sécurité | NovaBank';
 $pageStylesheets = ['dashboard.css', 'admin.css', 'audit.css'];
 $activePage = 'securityAudit';
@@ -89,29 +111,86 @@ require $projectRoot . '/views/layout/header.php';
               <?php foreach ($result['events'] as $event): ?>
                 <?php $risk = (string) $event['riskLevel']; $details = json_decode((string) ($event['detailsJson'] ?? ''), true); ?>
                 <tr>
-                  <td class="audit-date"><?= htmlspecialchars((new DateTimeImmutable((string) $event['createdAt']))->format('Y-m-d H:i:s'), ENT_QUOTES, 'UTF-8') ?></td>
+                  <td class="audit-date"><?= htmlspecialchars(getQuebecDateTime((string) $event['createdAt'])->format('Y-m-d H:i:s'), ENT_QUOTES, 'UTF-8') ?></td>
                   <td><span class="audit-risk risk-<?= htmlspecialchars($risk, ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($riskLabels[$risk] ?? $risk, ENT_QUOTES, 'UTF-8') ?></span></td>
                   <td><code><?= htmlspecialchars((string) $event['eventType'], ENT_QUOTES, 'UTF-8') ?></code></td>
                   <td><?= htmlspecialchars((string) $event['summary'], ENT_QUOTES, 'UTF-8') ?></td>
                   <td><?= htmlspecialchars((string) ($event['actorAlias'] ?? ($event['actorUserId'] ? '#' . $event['actorUserId'] : 'Système/inconnu')), ENT_QUOTES, 'UTF-8') ?></td>
                   <td><?= htmlspecialchars((string) ($event['targetAlias'] ?? ($event['targetUserId'] ? '#' . $event['targetUserId'] : '—')), ENT_QUOTES, 'UTF-8') ?></td>
                   <td>
-                    <details><summary>Voir</summary>
-                      <dl>
+                    <button type="button" class="audit-detail-button" data-audit-detail="<?= (int) $event['idAudit'] ?>">Voir</button>
+                    <template id="audit-detail-<?= (int) $event['idAudit'] ?>">
+                      <dl class="audit-detail-list">
+                        <dt>ID de l’événement</dt><dd><?= (int) $event['idAudit'] ?></dd>
+                        <dt>Type d’événement</dt><dd><code><?= htmlspecialchars((string) $event['eventType'], ENT_QUOTES, 'UTF-8') ?></code></dd>
+                        <dt>Niveau de risque</dt><dd><?= htmlspecialchars($riskLabels[$risk] ?? $risk, ENT_QUOTES, 'UTF-8') ?></dd>
+                        <dt>Utilisateur acteur</dt><dd><?= $event['actorUserId'] !== null ? '#' . (int) $event['actorUserId'] : 'Système/inconnu' ?></dd>
+                        <dt>Utilisateur concerné</dt><dd><?= $event['targetUserId'] !== null ? '#' . (int) $event['targetUserId'] : '—' ?></dd>
                         <?php foreach (is_array($details) ? $details : [] as $key => $value): ?>
-                          <dt><?= htmlspecialchars((string) $key, ENT_QUOTES, 'UTF-8') ?></dt>
-                          <dd><?= htmlspecialchars(is_scalar($value) ? (string) $value : (string) json_encode($value, JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8') ?></dd>
+                          <?php
+                            $detailKey = (string) $key;
+                            $detailLabel = $detailLabels[$detailKey] ?? ucfirst(str_replace('_', ' ', $detailKey));
+                            if ($detailKey === 'action') {
+                              $detailValue = $value === 'buy' ? 'Achat' : ($value === 'sell' ? 'Vente' : (string) $value);
+                            } elseif ($detailKey === 'direction') {
+                              $detailValue = $value === 'credit' ? 'Crédit' : ($value === 'debit' ? 'Débit' : (string) $value);
+                            } elseif ($detailKey === 'isFavorite') {
+                              $detailValue = $value ? 'Oui' : 'Non';
+                            } elseif (is_bool($value)) {
+                              $detailValue = $value ? 'Oui' : 'Non';
+                            } elseif (is_scalar($value)) {
+                              $detailValue = (string) $value;
+                            } else {
+                              $detailValue = (string) json_encode($value, JSON_UNESCAPED_UNICODE);
+                            }
+                            if (in_array($detailKey, ['amount', 'estimatedValue', 'unitPrice'], true) && is_numeric($detailValue)) {
+                              $detailValue .= ' CAD';
+                            }
+                          ?>
+                          <dt><?= htmlspecialchars($detailLabel, ENT_QUOTES, 'UTF-8') ?></dt>
+                          <dd><?= htmlspecialchars($detailValue, ENT_QUOTES, 'UTF-8') ?></dd>
                         <?php endforeach; ?>
                         <dt>Adresse IP</dt><dd><?= htmlspecialchars((string) ($event['ipAddress'] ?? '—'), ENT_QUOTES, 'UTF-8') ?></dd>
                         <dt>Navigateur</dt><dd><?= htmlspecialchars((string) ($event['userAgent'] ?? '—'), ENT_QUOTES, 'UTF-8') ?></dd>
                       </dl>
-                    </details>
+                    </template>
                   </td>
                 </tr>
               <?php endforeach; ?>
               </tbody>
             </table>
           </div>
+          <dialog class="audit-detail-dialog" id="audit-detail-dialog" aria-labelledby="audit-detail-title">
+            <div class="audit-detail-dialog-header">
+              <div>
+                <p class="audit-kicker">Événement d’audit</p>
+                <h2 id="audit-detail-title">Détails de l’événement</h2>
+              </div>
+              <button type="button" class="audit-detail-close" data-audit-detail-close aria-label="Fermer">×</button>
+            </div>
+            <div class="audit-detail-dialog-body" data-audit-detail-body></div>
+          </dialog>
+          <script>
+            (() => {
+              const dialog = document.getElementById('audit-detail-dialog');
+              const body = dialog?.querySelector('[data-audit-detail-body]');
+              if (!dialog || !body) return;
+
+              document.querySelectorAll('[data-audit-detail]').forEach((button) => {
+                button.addEventListener('click', () => {
+                  const template = document.getElementById(`audit-detail-${button.dataset.auditDetail}`);
+                  body.replaceChildren();
+                  if (template) body.append(template.content.cloneNode(true));
+                  dialog.showModal();
+                });
+              });
+
+              dialog.querySelector('[data-audit-detail-close]')?.addEventListener('click', () => dialog.close());
+              dialog.addEventListener('click', (event) => {
+                if (event.target === dialog) dialog.close();
+              });
+            })();
+          </script>
           <?php if ($result['pages'] > 1): ?>
             <nav class="audit-pagination" aria-label="Pagination">
               <?php for ($pageNumber = max(1, $result['page'] - 3); $pageNumber <= min($result['pages'], $result['page'] + 3); $pageNumber++): ?>

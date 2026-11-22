@@ -277,14 +277,14 @@ if ($action === 'logout') {
         $currencyRate = getCadUsdReferenceRate();
         if ($currencyRate === null) {
             http_response_code(503);
-            echo json_encode(['error' => 'Le taux CAD/USD est temporairement indisponible.']);
+            echo json_encode(['error' => 'Le taux CAD/USD/EUR est temporairement indisponible.']);
         } else {
             echo json_encode($currencyRate, JSON_THROW_ON_ERROR);
         }
     } catch (Throwable $e) {
         error_log('index.php failed to load the CAD/USD reference rate: ' . $e->getMessage());
         http_response_code(503);
-        echo json_encode(['error' => 'Le taux CAD/USD est temporairement indisponible.']);
+        echo json_encode(['error' => 'Le taux CAD/USD/EUR est temporairement indisponible.']);
     }
     exit;
 } else if ($action === 'notifications') {
@@ -513,6 +513,13 @@ if ($action === 'logout') {
     header('Location: index.php?action=loginPage');
     exit;
 } else if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'login') {
+    require_once __DIR__ . '/src/Models/AuditModel.php';
+    if (AuditModel::isLoginLockedOut()) {
+        AuditModel::recordLoginBruteForceIfNeeded();
+        $_SESSION['login_error'] = 'Trop de tentatives échouées. Réessayez dans 15 minutes.';
+        header('Location: index.php?action=loginPage');
+        exit;
+    }
     if (!validCsrfToken(is_string($_POST['csrf_token'] ?? null) ? $_POST['csrf_token'] : null)) {
         $_SESSION['login_error'] = 'Votre session a expiré. Rechargez la page et réessayez.';
         header('Location: index.php?action=loginPage');
@@ -579,7 +586,10 @@ if ($action === 'logout') {
             ['accountFound' => is_array($user)],
             $pdo
         );
-        $_SESSION['login_error'] = 'Identifiants invalides.';
+        AuditModel::recordLoginBruteForceIfNeeded();
+        $_SESSION['login_error'] = AuditModel::isLoginLockedOut()
+            ? 'Trop de tentatives échouées. Réessayez dans 15 minutes.'
+            : 'Identifiants invalides.';
         header('Location: index.php?action=loginPage');
         exit;
     } catch (Throwable $e) {

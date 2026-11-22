@@ -10,20 +10,31 @@ function renderCurrencyAmount(float $amount, string $currency = 'CAD'): string
     }
 
     $displayCurrency = $_COOKIE['novabank_display_currency'] ?? 'CAD';
-    if (!in_array($displayCurrency, ['CAD', 'USD'], true)) {
+    if (!in_array($displayCurrency, ['CAD', 'USD', 'EUR'], true)) {
         $displayCurrency = 'CAD';
     }
 
     $displayAmount = $amount;
     $formattedCurrency = $currency;
-    if (in_array($currency, ['CAD', 'USD'], true)) {
+    if (in_array($currency, ['CAD', 'USD', 'EUR'], true)) {
         $cachedRate = getCachedCadUsdReferenceRate();
         if ($displayCurrency === $currency) {
             $formattedCurrency = $displayCurrency;
         } elseif ($cachedRate !== null) {
-            $displayAmount = $currency === 'CAD'
-                ? $amount * $cachedRate['rate']
-                : $amount / $cachedRate['rate'];
+            $ratesFromCad = [
+                'CAD' => 1.0,
+                'USD' => (float) $cachedRate['rate'],
+                'EUR' => (float) ($cachedRate['eurRate'] ?? 0),
+            ];
+            $eurRateAvailable = ($ratesFromCad['EUR'] ?? 0) > 0;
+            if ($eurRateAvailable) {
+                $amountInCad = $currency === 'CAD'
+                    ? $amount
+                    : ($currency === 'USD'
+                        ? $amount / $ratesFromCad['USD']
+                        : $amount / $ratesFromCad['EUR']);
+                $displayAmount = $amountInCad * $ratesFromCad[$displayCurrency];
+            }
             $formattedCurrency = $displayCurrency;
         }
     }
@@ -78,6 +89,7 @@ function getCachedCadUsdReferenceRate(): ?array
 
     $cachedResult = [
         'rate' => $rate,
+        'eurRate' => isset($cached['eurRate']) && is_numeric($cached['eurRate']) ? (float) $cached['eurRate'] : null,
         'date' => $date,
         'isStale' => $now - $fetchedAt > 86400,
     ];
@@ -106,6 +118,9 @@ function getCadUsdReferenceRate(): ?array
     $cachedRate = is_array($cached) && isset($cached['rate']) && is_numeric($cached['rate'])
         ? (float) $cached['rate']
         : null;
+    $cachedEurRate = is_array($cached) && isset($cached['eurRate']) && is_numeric($cached['eurRate'])
+        ? (float) $cached['eurRate']
+        : null;
     $cachedDate = is_array($cached) && is_string($cached['date'] ?? null)
         ? $cached['date']
         : '';
@@ -123,17 +138,32 @@ function getCadUsdReferenceRate(): ?array
         && $cachedFetchedAt <= $now;
     $cachedAge = $hasCachedRate ? $now - $cachedFetchedAt : PHP_INT_MAX;
 
-    if ($hasCachedRate && $cachedAge <= 86400) {
-        return ['rate' => $cachedRate, 'date' => $cachedDate, 'isStale' => false];
+    if (
+        $hasCachedRate
+        && $cachedEurRate !== null
+        && is_finite($cachedEurRate)
+        && $cachedEurRate > 0
+        && $cachedAge <= 86400
+    ) {
+        return ['rate' => $cachedRate, 'eurRate' => $cachedEurRate, 'date' => $cachedDate, 'isStale' => false];
     }
 
-    $staleResult = static function () use ($hasCachedRate, $cachedRate, $cachedDate, $cachedAge): ?array {
-        return $hasCachedRate && $cachedAge <= 259200
-            ? ['rate' => $cachedRate, 'date' => $cachedDate, 'isStale' => true]
+    $staleResult = static function () use ($hasCachedRate, $cachedRate, $cachedEurRate, $cachedDate, $cachedAge): ?array {
+        return $hasCachedRate
+            && $cachedEurRate !== null
+            && is_finite($cachedEurRate)
+            && $cachedEurRate > 0
+            && $cachedAge <= 259200
+            ? ['rate' => $cachedRate, 'eurRate' => $cachedEurRate, 'date' => $cachedDate, 'isStale' => true]
             : null;
     };
 
-    if ($lastAttemptAt > 0 && $lastAttemptAt <= $now && $now - $lastAttemptAt < 900) {
+    if (
+        $cachedEurRate !== null
+        && $lastAttemptAt > 0
+        && $lastAttemptAt <= $now
+        && $now - $lastAttemptAt < 900
+    ) {
         return $staleResult();
     }
 
@@ -168,7 +198,7 @@ function getCadUsdReferenceRate(): ?array
     };
 
     try {
-        $curl = curl_init('https://api.frankfurter.dev/v1/latest?base=CAD&symbols=USD');
+        $curl = curl_init('https://api.frankfurter.dev/v1/latest?base=CAD&symbols=USD,EUR');
         if ($curl === false) {
             throw new RuntimeException('Unable to initialize the currency rate request.');
         }
@@ -203,6 +233,9 @@ function getCadUsdReferenceRate(): ?array
         $rate = is_array($rateData) && isset($rateData['rates']['USD']) && is_numeric($rateData['rates']['USD'])
             ? (float) $rateData['rates']['USD']
             : 0.0;
+        $eurRate = is_array($rateData) && isset($rateData['rates']['EUR']) && is_numeric($rateData['rates']['EUR'])
+            ? (float) $rateData['rates']['EUR']
+            : 0.0;
         $date = is_array($rateData) && is_string($rateData['date'] ?? null)
             ? $rateData['date']
             : '';
@@ -212,22 +245,26 @@ function getCadUsdReferenceRate(): ?array
             || ($rateData['base'] ?? null) !== 'CAD'
             || !is_finite($rate)
             || $rate <= 0
+            || !is_finite($eurRate)
+            || $eurRate <= 0
             || preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) !== 1
         ) {
-            throw new RuntimeException('Currency rate service returned invalid CAD/USD data.');
+            throw new RuntimeException('Currency rate service returned invalid CAD/USD/EUR data.');
         }
 
         $storeCache([
             'rate' => $rate,
+            'eurRate' => $eurRate,
             'date' => $date,
             'fetchedAt' => $now,
             'lastAttemptAt' => $now,
         ]);
-        return ['rate' => $rate, 'date' => $date, 'isStale' => false];
+        return ['rate' => $rate, 'eurRate' => $eurRate, 'date' => $date, 'isStale' => false];
     } catch (Throwable $e) {
         error_log('Unable to load the CAD/USD reference rate: ' . $e->getMessage());
         $storeCache([
             'rate' => $hasCachedRate ? $cachedRate : null,
+            'eurRate' => $hasCachedRate ? $cachedEurRate : null,
             'date' => $hasCachedRate ? $cachedDate : null,
             'fetchedAt' => $hasCachedRate ? $cachedFetchedAt : 0,
             'lastAttemptAt' => $now,

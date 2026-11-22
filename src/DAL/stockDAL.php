@@ -65,7 +65,10 @@ class StockDAL
             }
             AuditModel::record('investment.purchase', 'high', 'Ordre d’achat exécuté.', $userId, $userId, [
                 'stockId' => $idStock,
+                'stockName' => $stock['Name'],
+                'action' => 'buy',
                 'shares' => number_format($shares, 8, '.', ''),
+                'unitPrice' => number_format($stock['Price'], 2, '.', ''),
                 'estimatedValue' => number_format($stock['Price'] * $shares, 2, '.', ''),
             ], $this->pdo);
             return ['success' => true, 'message' => "Achat passer avec succès!"];
@@ -105,7 +108,10 @@ class StockDAL
             );
             AuditModel::record('investment.sale', 'high', 'Ordre de vente exécuté.', $userId, $userId, [
                 'stockId' => $idStock,
+                'stockName' => $stock['Name'],
+                'action' => 'sell',
                 'shares' => number_format((float) $shares, 8, '.', ''),
+                'unitPrice' => number_format($stock['Price'], 2, '.', ''),
                 'estimatedValue' => number_format($stock['Price'] * (float) $shares, 2, '.', ''),
             ], $this->pdo);
             return ['success' => true, 'message' => "Vendu stock avec succès!"];

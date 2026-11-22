@@ -47,6 +47,63 @@ class AuditModel
         }
     }
 
+    public static function countRecentEvent(
+        string $eventType,
+        int $minutes = 15,
+        ?string $ipAddress = null
+    ): int {
+        if ($minutes < 1 || !preg_match('/^[a-z0-9_.-]{1,64}$/i', $eventType)) {
+            return 0;
+        }
+
+        try {
+            $model = new self();
+            $where = 'a.`eventType` = :eventType
+                      AND a.`createdAt` >= (UTC_TIMESTAMP() - INTERVAL :minutes MINUTE)';
+            $params = ['eventType' => $eventType, 'minutes' => $minutes];
+            if ($ipAddress !== null && $ipAddress !== '') {
+                $where .= ' AND a.`ipAddress` = :ipAddress';
+                $params['ipAddress'] = $ipAddress;
+            }
+            $stmt = $model->pdo->prepare('SELECT COUNT(*) FROM `SecurityAuditLog` a WHERE ' . $where);
+            foreach ($params as $key => $value) {
+                $stmt->bindValue(':' . $key, $value, $key === 'minutes' ? PDO::PARAM_INT : PDO::PARAM_STR);
+            }
+            $stmt->execute();
+            return (int) $stmt->fetchColumn();
+        } catch (Throwable $e) {
+            error_log('Unable to count recent audit events: ' . $e->getMessage());
+            return 0;
+        }
+    }
+
+    public static function isLoginLockedOut(int $failedAttempts = 5, int $minutes = 15): bool
+    {
+        $ipAddress = self::clientIp();
+        return $ipAddress !== null
+            && self::countRecentEvent('auth.login.failed', $minutes, $ipAddress) >= $failedAttempts;
+    }
+
+    public static function recordLoginBruteForceIfNeeded(int $failedAttempts = 5, int $minutes = 15): void
+    {
+        $ipAddress = self::clientIp();
+        if ($ipAddress === null
+            || self::countRecentEvent('auth.login.failed', $minutes, $ipAddress) < $failedAttempts
+            || self::countRecentEvent('security.login.brute_force', $minutes, $ipAddress) > 0
+        ) {
+            return;
+        }
+
+        self::record(
+            'security.login.brute_force',
+            'critical',
+            'Tentatives répétées de connexion détectées.',
+            null,
+            null,
+            ['failedAttemptsWindow' => $failedAttempts, 'windowMinutes' => $minutes]
+        );
+    }
+
     public function getEvents(array $filters, int $page = 1, int $perPage = 50): array
     {
         $where = [];

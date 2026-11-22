@@ -147,7 +147,7 @@ require $projectRoot . '/views/layout/header.php';
 
             <section class="profile-password-section settings-preferences" aria-labelledby="currency-setting-title">
                 <h2 id="currency-setting-title">Devise d’affichage</h2>
-                <p>Choisissez CAD ou USD avec le sélecteur du header. Votre préférence s’applique aux montants affichés sur toutes les pages.</p>
+                <p>Choisissez CAD, USD ou EUR avec le sélecteur du header. Votre préférence s’applique aux montants affichés sur toutes les pages.</p>
             </section>
 
             <section class="profile-password-section settings-preferences" aria-labelledby="language-setting-title">
