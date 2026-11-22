@@ -10,6 +10,10 @@
 <!-- Réalisé par codepen.io ainsi que l'aide de l'ia -->
 <script>
   document.addEventListener('DOMContentLoaded', () => {
+    if (!('IntersectionObserver' in window)) {
+      return;
+    }
+
     const observer = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
@@ -21,6 +25,7 @@
       threshold: 0.15
     });
 
+    document.documentElement.classList.add('has-scroll-reveal');
     document.querySelectorAll('.scroll-reveal').forEach(el => observer.observe(el));
   });
 </script>

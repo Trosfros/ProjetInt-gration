@@ -366,6 +366,204 @@ body::before {
   0% { transform: translateX(0); }
   100% { transform: translateX(-25%); }
 }
+
+.features {
+  position: relative;
+  isolation: isolate;
+  width: min(1180px, calc(100% - 3rem));
+  margin: 0 auto !important;
+  padding: clamp(4rem, 8vw, 7rem) 0;
+}
+
+.features::before {
+  position: absolute;
+  z-index: -1;
+  top: 10%;
+  left: 50%;
+  width: min(70vw, 760px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(56, 189, 248, 0.08), transparent 68%);
+  content: "";
+  pointer-events: none;
+  transform: translateX(-50%);
+}
+
+.features-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 0.8fr);
+  align-items: end;
+  gap: 2rem;
+  margin-bottom: 2.5rem;
+}
+
+.features-head h2 {
+  color: var(--text-main);
+  font-size: clamp(2rem, 4vw, 3.25rem);
+  line-height: 1.12;
+  letter-spacing: -0.04em;
+}
+
+.features-head > p {
+  max-width: 560px;
+  color: var(--text-muted);
+  font-size: 1rem;
+  line-height: 1.7;
+}
+
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.25rem;
+}
+
+.feat-card {
+  display: flex;
+  min-width: 0;
+  min-height: 290px;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 1.6rem;
+  border: 1px solid var(--card-border);
+  border-radius: 18px;
+  background: linear-gradient(145deg, rgba(15, 23, 42, 0.88), rgba(7, 13, 24, 0.82));
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.16);
+  transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.feat-card:hover {
+  transform: translateY(-5px);
+  border-color: rgba(56, 189, 248, 0.35);
+  box-shadow: 0 22px 48px rgba(0, 0, 0, 0.26), 0 0 24px rgba(56, 189, 248, 0.08);
+}
+
+.feat-icon {
+  display: grid;
+  width: 3.25rem;
+  height: 3.25rem;
+  flex: 0 0 auto;
+  place-items: center;
+  margin-bottom: 1.4rem;
+  border: 1px solid rgba(56, 189, 248, 0.22);
+  border-radius: 14px;
+  background: rgba(56, 189, 248, 0.12);
+}
+
+.feat-icon svg {
+  width: 1.7rem;
+  height: 1.7rem;
+}
+
+.feat-icon.ic-market {
+  border-color: rgba(99, 102, 241, 0.28);
+  background: rgba(99, 102, 241, 0.16);
+}
+
+.feat-icon.ic-shield {
+  border-color: rgba(16, 185, 129, 0.25);
+  background: rgba(16, 185, 129, 0.12);
+}
+
+.feat-content h3 {
+  margin-bottom: 0.6rem;
+  color: var(--text-main);
+  font-size: 1.15rem;
+  line-height: 1.4;
+}
+
+.feat-content p {
+  color: var(--text-muted);
+  font-size: 0.93rem;
+  line-height: 1.65;
+}
+
+.feat-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: auto;
+  padding-top: 1.4rem;
+  color: #7dd3fc;
+  font-size: 0.92rem;
+  font-weight: 650;
+  text-decoration: none;
+  transition: color 160ms ease, gap 160ms ease;
+}
+
+.feat-link:hover {
+  gap: 0.75rem;
+  color: #bae6fd;
+}
+
+.features .scroll-reveal {
+  opacity: 1;
+  transform: none;
+}
+
+html.has-scroll-reveal .features .scroll-reveal {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 550ms ease, transform 550ms ease;
+}
+
+html.has-scroll-reveal .features .scroll-reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (max-width: 900px) {
+  .features {
+    width: min(100% - 2.5rem, 720px);
+  }
+
+  .features-head {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .features-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .features {
+    width: calc(100% - 2rem);
+    padding: 3.5rem 0;
+  }
+
+  .features-head {
+    margin-bottom: 1.75rem;
+  }
+
+  .features-head h2 {
+    font-size: clamp(1.8rem, 8vw, 2.4rem);
+  }
+
+  .features-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .feat-card {
+    min-height: 0;
+    padding: 1.35rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .feat-card,
+  .feat-link,
+  html.has-scroll-reveal .features .scroll-reveal {
+    transition: none;
+  }
+
+  html.has-scroll-reveal .features .scroll-reveal {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 .ticker-item {
   position: relative;
   font-size: 0.85rem;
