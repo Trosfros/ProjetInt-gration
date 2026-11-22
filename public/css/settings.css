@@ -363,3 +363,15 @@
     height: 32px;
   }
 }
+
+@media (max-width: 520px) {
+  .settings-save-button,
+  .settings-delete-button {
+    justify-self: stretch;
+    width: 100%;
+  }
+
+  .settings-threshold-field {
+    max-width: none;
+  }
+}

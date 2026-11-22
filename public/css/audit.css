@@ -31,3 +31,7 @@
 .audit-pagination a[aria-current="page"] { color: #fff; background: #0284c7; border-color: #0284c7; }
 .audit-empty,.audit-notice { padding: 1rem; border: 1px solid var(--card-border); border-radius: 12px; background: var(--card-bg, rgba(15,23,42,.62)); color: #cbd5e1; }
 @media (max-width: 700px) { .audit-shell { padding: .8rem; } .audit-filters { display: grid; grid-template-columns: 1fr 1fr; } .audit-filters label { min-width: 0; } .audit-filters select,.audit-filters input { width: 100%; } }
+@media (max-width: 420px) {
+  .audit-filters { grid-template-columns: 1fr; }
+  .audit-pagination a { min-width: 44px; min-height: 44px; display: inline-grid; place-items: center; }
+}

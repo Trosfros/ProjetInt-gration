@@ -63,3 +63,17 @@ html.light-mode .snowfall {
 @media (prefers-reduced-motion: reduce) {
   .snowfall > span { animation: none; }
 }
+
+
+@media (max-width: 600px) {
+  .snowfall > span:nth-child(1),
+  .snowfall > span:nth-child(3) {
+    display: none;
+  }
+
+  .snowfall > span:nth-child(2) {
+    top: -600px;
+    left: 0;
+    right: -300px;
+  }
+}

@@ -218,3 +218,43 @@
     grid-template-columns: 1fr;
   }
 }
+
+@media (max-width: 600px) {
+  .market-layout,
+  .market-layout .dashboard-main {
+    min-height: auto;
+  }
+
+  .market-overview-card {
+    height: 260px;
+    padding: 8px;
+  }
+
+  .market-widget-card {
+    height: 420px;
+    padding: 8px;
+    margin-top: 16px;
+  }
+
+  .trade-panel-card {
+    padding: 16px;
+  }
+
+  .trade-panel-header {
+    flex-wrap: wrap;
+  }
+
+  .trade-action-btns {
+    width: 100%;
+  }
+
+  .btn-trade {
+    flex: 1;
+    min-height: 44px;
+  }
+
+  .btn-favorite {
+    width: 44px;
+    height: 44px;
+  }
+}
