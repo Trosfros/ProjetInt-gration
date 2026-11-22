@@ -557,7 +557,25 @@ if ($action === 'logout') {
                 'isAdmin' => (int) ($user['IsAdmin'] ?? 0) === 1,
             ];
             require_once __DIR__ . '/src/Models/AuditModel.php';
-            AuditModel::record('auth.login.success', 'info', 'Connexion réussie.', (int) $user['idUser'], (int) $user['idUser'], [], $pdo);
+            $loginTimezone = mb_substr((string) ($_POST['login_timezone'] ?? ''), 0, 64, 'UTF-8');
+            $loginLocale = mb_substr((string) ($_POST['login_locale'] ?? ''), 0, 32, 'UTF-8');
+            AuditModel::recordUnusualLocationIfNeeded(
+                (int) $user['idUser'],
+                $loginTimezone,
+                $loginLocale
+            );
+            AuditModel::record(
+                'auth.login.success',
+                'info',
+                'Connexion réussie.',
+                (int) $user['idUser'],
+                (int) $user['idUser'],
+                [
+                    'timezone' => $loginTimezone,
+                    'locale' => $loginLocale,
+                ],
+                $pdo
+            );
             require_once __DIR__ . '/src/Models/NotificationModel.php';
             try {
                 (new NotificationModel($pdo))->notifyLoginSuccess((int) $user['idUser']);
@@ -583,7 +601,10 @@ if ($action === 'logout') {
             'Échec de connexion.',
             null,
             is_array($user) ? (int) $user['idUser'] : null,
-            ['accountFound' => is_array($user)],
+            [
+                'accountFound' => is_array($user),
+                'attemptedEmail' => mb_substr($email, 0, 255, 'UTF-8'),
+            ],
             $pdo
         );
         AuditModel::recordLoginBruteForceIfNeeded();

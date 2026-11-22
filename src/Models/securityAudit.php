@@ -52,6 +52,26 @@ $detailLabels = [
     'endpoint' => 'Endpoint',
     'failedAttemptsWindow' => 'Nombre de tentatives',
     'windowMinutes' => 'Fenêtre de détection',
+    'failedAttemptsObserved' => 'Tentatives observées',
+    'failedAttemptsThreshold' => 'Seuil de détection',
+    'lockoutMinutesRemaining' => 'Blocage temporaire',
+    'sourceIp' => 'Adresse IP source',
+    'firstAttemptAt' => 'Première tentative',
+    'lastAttemptAt' => 'Dernière tentative',
+    'existingAccountsTargeted' => 'Tentatives sur des comptes existants',
+    'targetedAccounts' => 'Adresses ciblées',
+    'attemptedEmail' => 'Adresse tentée',
+    'accountFound' => 'Compte existant',
+    'userAgent' => 'Navigateur',
+    'timezoneCurrent' => 'Fuseau horaire actuel',
+    'timezoneUsual' => 'Fuseau horaire habituel',
+    'localeCurrent' => 'Locale actuelle',
+    'regionCurrent' => 'Région actuelle',
+    'regionUsual' => 'Région habituelle',
+    'previousSuccessfulLogins' => 'Connexions réussies précédentes',
+    'detectionMethod' => 'Méthode de détection',
+    'timezone' => 'Fuseau horaire',
+    'locale' => 'Locale navigateur',
 ];
 $pageTitle = 'Audit de sécurité | NovaBank';
 $pageStylesheets = ['dashboard.css', 'admin.css', 'audit.css'];
@@ -142,6 +162,12 @@ require $projectRoot . '/views/layout/header.php';
                               $detailValue = (string) $value;
                             } else {
                               $detailValue = (string) json_encode($value, JSON_UNESCAPED_UNICODE);
+                            }
+                            if (in_array($detailKey, ['firstAttemptAt', 'lastAttemptAt'], true) && $detailValue !== '') {
+                              $detailValue = getQuebecDateTime($detailValue)->format('Y-m-d H:i:s');
+                            }
+                            if ($detailKey === 'targetedAccounts' && is_array($value)) {
+                              $detailValue = $value ? implode(', ', array_map('strval', $value)) : 'Aucune adresse enregistrée';
                             }
                             if (in_array($detailKey, ['amount', 'estimatedValue', 'unitPrice'], true) && is_numeric($detailValue)) {
                               $detailValue .= ' CAD';

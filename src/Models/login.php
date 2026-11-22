@@ -42,6 +42,8 @@ require $projectRoot . '/views/layout/header.php';
 
     <form id="loginForm" action="index.php?action=login" method="POST" class="auth-form">
       <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($loginCsrfToken, ENT_QUOTES, 'UTF-8') ?>">
+      <input type="hidden" name="login_timezone" id="loginTimezone">
+      <input type="hidden" name="login_locale" id="loginLocale">
       <div class="form-group">
         <label for="email">Adresse email</label>
         <input type="email" id="email" name="email" placeholder="nom@exemple.com" required autocomplete="email">
@@ -71,6 +73,15 @@ require $projectRoot . '/views/layout/header.php';
     const form = document.getElementById('loginForm');
     const overlay = document.getElementById('loadingOverlay');
     const submitBtn = document.getElementById('submitBtn');
+    const timezoneInput = document.getElementById('loginTimezone');
+    const localeInput = document.getElementById('loginLocale');
+
+    if (timezoneInput) {
+      timezoneInput.value = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+    }
+    if (localeInput) {
+      localeInput.value = navigator.language || '';
+    }
 
     if (form && overlay) {
       form.addEventListener('submit', function (e) {

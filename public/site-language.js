@@ -78,6 +78,7 @@
     'Jeton CSRF invalide ou expiré.': 'Invalid or expired CSRF token.',
     'Tentatives répétées de connexion détectées.': 'Repeated login attempts detected.',
     'Tentatives répétées avec jetons CSRF invalides détectées.': 'Repeated attempts with invalid CSRF tokens detected.',
+    'Connexion depuis un lieu inhabituel.': 'Login from an unusual location.',
     'Recherches populaires': 'Popular searches',
     'Acheter des actions Apple (AAPL)': 'Buy Apple shares (AAPL)',
     'Consulter mon portefeuille': 'View my portfolio',

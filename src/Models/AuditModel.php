@@ -87,12 +87,23 @@ class AuditModel
     public static function recordLoginBruteForceIfNeeded(int $failedAttempts = 5, int $minutes = 15): void
     {
         $ipAddress = self::clientIp();
+        $observedAttempts = $ipAddress === null
+            ? 0
+            : self::countRecentEvent('auth.login.failed', $minutes, $ipAddress);
         if ($ipAddress === null
-            || self::countRecentEvent('auth.login.failed', $minutes, $ipAddress) < $failedAttempts
+            || $observedAttempts < $failedAttempts
             || self::countRecentEvent('security.login.brute_force', $minutes, $ipAddress) > 0
         ) {
             return;
         }
+
+        $details = self::getRecentLoginFailureDetails($minutes, $ipAddress);
+        $details['failedAttemptsObserved'] = $observedAttempts;
+        $details['failedAttemptsThreshold'] = $failedAttempts;
+        $details['windowMinutes'] = $minutes;
+        $details['lockoutMinutesRemaining'] = $minutes;
+        $details['sourceIp'] = $ipAddress;
+        $details['userAgent'] = mb_substr((string) ($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 512, 'UTF-8');
 
         self::record(
             'security.login.brute_force',
@@ -100,8 +111,145 @@ class AuditModel
             'Tentatives répétées de connexion détectées.',
             null,
             null,
-            ['failedAttemptsWindow' => $failedAttempts, 'windowMinutes' => $minutes]
+            $details
         );
+    }
+
+    public static function recordUnusualLocationIfNeeded(
+        int $userId,
+        string $timezone,
+        string $locale
+    ): void {
+        $timezone = trim($timezone);
+        $locale = trim($locale);
+        if ($userId <= 0 || $timezone === '' && $locale === '') {
+            return;
+        }
+
+        try {
+            $model = new self();
+            $stmt = $model->pdo->prepare(
+                'SELECT `detailsJson`
+                 FROM `SecurityAuditLog`
+                 WHERE `eventType` = :eventType
+                   AND `targetUserId` = :userId
+                 ORDER BY `createdAt` DESC
+                 LIMIT 10'
+            );
+            $stmt->execute(['eventType' => 'auth.login.success', 'userId' => $userId]);
+
+            $timezones = [];
+            $regions = [];
+            $previousLogins = 0;
+            foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+                $details = json_decode((string) ($row['detailsJson'] ?? ''), true);
+                if (!is_array($details)) {
+                    continue;
+                }
+                $previousLogins++;
+                $previousTimezone = trim((string) ($details['timezone'] ?? ''));
+                $previousLocale = trim((string) ($details['locale'] ?? ''));
+                if ($previousTimezone !== '') {
+                    $timezones[$previousTimezone] = ($timezones[$previousTimezone] ?? 0) + 1;
+                }
+                $previousRegion = self::localeRegion($previousLocale);
+                if ($previousRegion !== '') {
+                    $regions[$previousRegion] = ($regions[$previousRegion] ?? 0) + 1;
+                }
+            }
+
+            if ($previousLogins < 3) {
+                return;
+            }
+
+            arsort($timezones);
+            arsort($regions);
+            $baselineTimezone = (string) array_key_first($timezones);
+            $baselineRegion = (string) array_key_first($regions);
+            $currentRegion = self::localeRegion($locale);
+
+            $timezoneChanged = $baselineTimezone !== '' && $timezone !== '' && $baselineTimezone !== $timezone;
+            $regionChanged = $baselineRegion !== '' && $currentRegion !== '' && $baselineRegion !== $currentRegion;
+            if (!$timezoneChanged && !$regionChanged) {
+                return;
+            }
+
+            self::record(
+                'security.login.location_changed',
+                'critical',
+                'Connexion depuis un lieu inhabituel.',
+                $userId,
+                $userId,
+                [
+                    'timezoneCurrent' => $timezone,
+                    'timezoneUsual' => $baselineTimezone,
+                    'localeCurrent' => $locale,
+                    'regionCurrent' => $currentRegion,
+                    'regionUsual' => $baselineRegion,
+                    'previousSuccessfulLogins' => $previousLogins,
+                    'detectionMethod' => 'timezone and browser locale',
+                ]
+            );
+        } catch (Throwable $e) {
+            error_log('Unable to detect unusual login location: ' . $e->getMessage());
+        }
+    }
+
+    private static function localeRegion(string $locale): string
+    {
+        if (preg_match('/(?:^|-)([A-Z]{2})(?:-|$)/', $locale, $matches)) {
+            return strtoupper($matches[1]);
+        }
+        return '';
+    }
+
+    private static function getRecentLoginFailureDetails(int $minutes, string $ipAddress): array
+    {
+        try {
+            $model = new self();
+            $stmt = $model->pdo->prepare(
+                'SELECT `createdAt`, `detailsJson`
+                 FROM `SecurityAuditLog`
+                 WHERE `eventType` = :eventType
+                   AND `ipAddress` = :ipAddress
+                   AND `createdAt` >= (UTC_TIMESTAMP() - INTERVAL :minutes MINUTE)
+                 ORDER BY `createdAt` ASC'
+            );
+            $stmt->bindValue(':eventType', 'auth.login.failed');
+            $stmt->bindValue(':ipAddress', $ipAddress);
+            $stmt->bindValue(':minutes', $minutes, PDO::PARAM_INT);
+            $stmt->execute();
+
+            $firstAttempt = null;
+            $lastAttempt = null;
+            $targetedAccounts = [];
+            $existingAccounts = 0;
+            foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+                $firstAttempt ??= (string) $row['createdAt'];
+                $lastAttempt = (string) $row['createdAt'];
+                $data = json_decode((string) ($row['detailsJson'] ?? ''), true);
+                if (!is_array($data)) {
+                    continue;
+                }
+                if (!empty($data['accountFound'])) {
+                    $existingAccounts++;
+                }
+                $email = trim((string) ($data['attemptedEmail'] ?? ''));
+                if ($email !== '' && !in_array($email, $targetedAccounts, true)) {
+                    $targetedAccounts[] = mb_substr($email, 0, 255, 'UTF-8');
+                }
+            }
+
+            return [
+                'firstAttemptAt' => $firstAttempt,
+                'lastAttemptAt' => $lastAttempt,
+                'existingAccountsTargeted' => $existingAccounts,
+                'targetedAccounts' => $targetedAccounts,
+            ];
+        } catch (Throwable $e) {
+            error_log('Unable to aggregate recent login failures: ' . $e->getMessage());
+            return [];
+        }
     }
 
     public function getEvents(array $filters, int $page = 1, int $perPage = 50): array
