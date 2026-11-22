@@ -11,8 +11,7 @@ require_once __DIR__ . '/configs/constants.php';
 
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
-ini_set('display_errors', '1');
-error_reporting(E_ALL);
+
 function sendVerificationEmail(string $email, string $username, string $token): void
 {
     $config = require __DIR__ . '/configs/config.php';
