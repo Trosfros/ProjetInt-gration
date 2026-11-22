@@ -1,6 +1,7 @@
 .admin-page {
   min-width: 0;
   padding: clamp(1.25rem, 3vw, 2.5rem);
+  padding-top: 2.5rem !important;
 }
 
 .admin-header {
@@ -200,6 +201,99 @@
   margin-top: 0.15rem;
   padding-top: 1.15rem;
   border-top: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.admin-message-confirmation[hidden] {
+  display: none;
+}
+
+.admin-message-confirmation {
+  display: grid;
+  gap: 1rem;
+  margin: 0 1.6rem 1.6rem;
+  padding: 1.25rem;
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.08), rgba(15, 23, 42, 0.78));
+  border: 1px solid rgba(56, 189, 248, 0.22);
+  border-radius: 12px;
+}
+
+.admin-message-confirmation-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.8rem;
+}
+
+.admin-message-confirmation-icon {
+  display: grid;
+  width: 1.8rem;
+  height: 1.8rem;
+  flex: 0 0 auto;
+  place-items: center;
+  color: #7dd3fc;
+  background: rgba(56, 189, 248, 0.12);
+  border-radius: 50%;
+  font-size: 0.95rem;
+  font-weight: 800;
+}
+
+.admin-message-confirmation h3 {
+  margin: 0;
+  color: #f8fafc;
+  font-size: 1rem;
+}
+
+.admin-message-confirmation-heading p:last-child {
+  margin: 0.3rem 0 0;
+  color: #94a3b8;
+  font-size: 0.84rem;
+}
+
+.admin-message-preview {
+  padding: 0.9rem 1rem;
+  color: #cbd5e1;
+  background: rgba(2, 6, 14, 0.45);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  border-radius: 9px;
+  overflow-wrap: anywhere;
+}
+
+.admin-message-preview strong {
+  display: block;
+  color: #f8fafc;
+  font-size: 0.9rem;
+}
+
+.admin-message-preview p {
+  margin: 0.4rem 0 0;
+  color: #94a3b8;
+  font-size: 0.86rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.admin-message-confirmation-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.admin-message-edit-button {
+  min-height: 3rem;
+  padding: 0.65rem 1rem;
+  color: #cbd5e1;
+  background: transparent;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 10px;
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.admin-message-edit-button:hover {
+  color: #f8fafc;
+  background: rgba(148, 163, 184, 0.08);
 }
 
 .admin-message-audience {
@@ -417,15 +511,227 @@
   margin-bottom: 1.25rem;
 }
 
+.admin-education-heading {
+  padding: 1.4rem 1.6rem;
+}
+
+.admin-education-form {
+  display: grid;
+  grid-template-columns: minmax(0, 0.75fr) minmax(0, 1.25fr);
+  gap: 1.2rem 1.4rem;
+  padding: 1.5rem 1.6rem 1.6rem;
+}
+
+.admin-education-form label,
+.admin-education-options-field {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.admin-education-form label > span,
+.admin-education-options-heading > span {
+  color: #cbd5e1;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.admin-education-options-field,
+.admin-education-explanation-field,
+.admin-education-footer,
+.admin-education-recent {
+  grid-column: 1 / -1;
+}
+
+.admin-education-options-heading {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.admin-education-options-heading small {
+  color: #64748b;
+  font-size: 0.76rem;
+}
+
+.admin-education-options {
+  display: grid;
+  gap: 0.55rem;
+  margin-top: 0.25rem;
+}
+
+.admin-education-option {
+  display: grid;
+  grid-template-columns: 7.5rem minmax(0, 1fr) 2.25rem;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.admin-education-option .admin-education-correct {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  color: #94a3b8;
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+
+.admin-education-correct input {
+  width: 1rem;
+  min-height: 1rem;
+  accent-color: #38bdf8;
+}
+
+.admin-education-remove-option,
+.admin-education-add-option {
+  color: #7dd3fc;
+  background: transparent;
+  border: 1px solid rgba(56, 189, 248, 0.22);
+  border-radius: 8px;
+  cursor: pointer;
+  font: inherit;
+}
+
+.admin-education-remove-option {
+  width: 2.25rem;
+  height: 2.75rem;
+  font-size: 1.1rem;
+}
+
+.admin-education-add-option {
+  justify-self: start;
+  margin-top: 0.65rem;
+  padding: 0.55rem 0.75rem;
+}
+
+.admin-education-add-option:disabled {
+  color: #64748b;
+  border-color: rgba(148, 163, 184, 0.12);
+  cursor: not-allowed;
+}
+
+.admin-education-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-top: 1.15rem;
+  border-top: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.admin-education-footer p {
+  margin: 0;
+  color: #94a3b8;
+  font-size: 0.82rem;
+}
+
+.admin-education-recent {
+  padding: 0 1.6rem 1.6rem;
+}
+
+.admin-education-recent h3 {
+  margin: 0 0 0.75rem;
+  color: #f8fafc;
+  font-size: 0.95rem;
+}
+
+.admin-education-question-list {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.admin-education-question-list article {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.8rem 1rem;
+  background: rgba(7, 13, 25, 0.55);
+  border: 1px solid rgba(148, 163, 184, 0.1);
+  border-radius: 9px;
+}
+
+.admin-education-question-list article div {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.admin-education-question-list article div span,
+.admin-education-question-list article > span {
+  color: #64748b;
+  font-size: 0.72rem;
+}
+
+.admin-education-question-list article strong {
+  overflow: hidden;
+  color: #cbd5e1;
+  font-size: 0.86rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-education-question-actions {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: 0.75rem;
+}
+
+.admin-education-question-actions > span {
+  color: #64748b;
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+
+.admin-education-delete-form {
+  margin: 0;
+}
+
+.admin-education-delete-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 2.25rem;
+  padding: 0.45rem 0.65rem;
+  color: #fecaca;
+  background: rgba(127, 29, 29, 0.18);
+  border: 1px solid rgba(248, 113, 113, 0.22);
+  border-radius: 8px;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.admin-education-delete-button:hover {
+  background: rgba(127, 29, 29, 0.32);
+  border-color: rgba(248, 113, 113, 0.38);
+}
+
+.admin-education-delete-button svg {
+  width: 1rem;
+  height: 1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 @media (max-width: 900px) {
   .admin-message-form {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-education-form {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
 @media (max-width: 640px) {
   .admin-page {
     padding: 1.25rem 1rem;
+    padding-top: 2rem !important;
   }
 
   .admin-message-form {
@@ -438,6 +744,20 @@
     flex-direction: column;
   }
 
+  .admin-message-confirmation {
+    margin: 0 1.2rem 1.2rem;
+    padding: 1rem;
+  }
+
+  .admin-message-confirmation-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .admin-message-confirmation-actions button {
+    width: 100%;
+  }
+
   .admin-message-form .admin-adjustment-submit {
     width: 100%;
   }
@@ -445,6 +765,28 @@
   .admin-header-icon {
     width: 2.75rem;
     height: 2.75rem;
+  }
+
+  .admin-education-option {
+    grid-template-columns: minmax(0, 1fr) 2.25rem;
+  }
+
+  .admin-education-option .admin-education-correct {
+    grid-column: 1 / -1;
+  }
+
+  .admin-education-footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .admin-education-question-list article {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .admin-education-question-actions {
+    justify-content: space-between;
   }
 
   .admin-users-table th,

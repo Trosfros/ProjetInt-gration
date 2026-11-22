@@ -1,5 +1,7 @@
 .env
 storage/market_cache.json
 storage/market_cache.lock
+storage/currency_rate_cache.json
+storage/currency_rate_cache.lock
 configs/database.php
 configs/database.php

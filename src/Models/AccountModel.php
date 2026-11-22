@@ -38,7 +38,7 @@ require $projectRoot . '/views/layout/header.php';
                 </div>
                 <div class="user-balance">
                     <p class="user-balance-label">Balance</p>
-                    <h1 class="user-balance-amount">$<?= number_format($userBalance, 2) ?></h1>
+                    <h1 class="user-balance-amount"><?= renderCurrencyAmount((float) $userBalance, 'CAD') ?></h1>
                 </div>
             </header>
             <section class="account-grid">
@@ -69,7 +69,7 @@ require $projectRoot . '/views/layout/header.php';
                         <div class="account-balance-block">
                             <span class="account-balance-label">Solde</span>
                             <span class="account-balance <?= $balance < 0 ? 'is-negative' : '' ?>">
-                                <?= htmlspecialchars($currency) ?>     <?= number_format($balance, 2) ?>
+                                <?= renderCurrencyAmount($balance, (string) $currency) ?>
                             </span>
                         </div>
 

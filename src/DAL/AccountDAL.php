@@ -1,87 +1,243 @@
 <?php
 require_once dirname(__DIR__, 2) . "/configs/database.php";
 require_once dirname(__DIR__, 2) . "/src/Models/TransactionModel.php";
+require_once dirname(__DIR__, 2) . '/src/Models/AuditModel.php';
+require_once dirname(__DIR__, 2) . '/src/Models/NotificationModel.php';
 
 class AccountDAL
 {
+    private const MAX_ACCOUNT_BALANCE_CENTS = 999999999999999;
+
     private PDO $pdo;
+    private NotificationModel $notificationModel;
 
     public function __construct()
     {
         $this->pdo = getPDO();
         $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        $this->notificationModel = new NotificationModel($this->pdo);
     }
 
     public function createAccount(string $Alias, string $accountName, ?string $accountType = 'checking', ?string $currency = 'CAD'): array
     {
+        $accountName = trim($accountName);
+        $accountType = $accountType ?? 'checking';
+        $currency = $currency ?? 'CAD';
+
+        if ($accountName === '') {
+            return ['success' => false, 'message' => 'Le nom du compte est requis.'];
+        }
+        if (!in_array($accountType, ['checking', 'savings', 'investment'], true)) {
+            return ['success' => false, 'message' => 'Le type de compte est invalide.'];
+        }
+        if (!in_array($currency, ['CAD', 'USD'], true)) {
+            return ['success' => false, 'message' => 'La devise sélectionnée est invalide.'];
+        }
+
+        $userId = $this->GetActiveUserID($Alias);
+        $this->pdo->beginTransaction();
         try {
-            $userId = $this->GetActiveUserID($Alias);
+            $userStmt = $this->pdo->prepare(
+                'SELECT `idUser` FROM `User` WHERE `idUser` = :userId FOR UPDATE'
+            );
+            $userStmt->execute(['userId' => $userId]);
+            if (!$userStmt->fetchColumn()) {
+                throw new RuntimeException('Utilisateur introuvable.');
+            }
 
-            $stmt = $this->pdo->prepare("CALL createAccount(?, ?, ?, ?)");
-            $stmt->bindParam(1, $userId, PDO::PARAM_INT);
-            $stmt->bindParam(2, $accountName, PDO::PARAM_STR);
-            $stmt->bindParam(3, $accountType, PDO::PARAM_STR);
-            $stmt->bindParam(4, $currency, PDO::PARAM_STR);
-            $stmt->execute();
+            $duplicateStmt = $this->pdo->prepare(
+                "SELECT `idAccount`
+                 FROM `Account`
+                 WHERE `idUser` = :userId
+                   AND `AccountName` = :accountName
+                   AND `Status` NOT IN ('closed', 'Fermée')
+                 LIMIT 1
+                 FOR UPDATE"
+            );
+            $duplicateStmt->execute(['userId' => $userId, 'accountName' => $accountName]);
+            if ($duplicateStmt->fetchColumn()) {
+                $this->pdo->rollBack();
+                return ['success' => false, 'message' => 'Un compte actif porte déjà ce nom.'];
+            }
 
-            return ['success' => true, 'message' => "Compte créé avec succès"];
+            $insertStmt = $this->pdo->prepare(
+                'INSERT INTO `Account` (`idUser`, `Money`, `AccountName`, `AccountNumber`, `AccountType`, `Currency`)
+                 VALUES (:userId, 0, :accountName, :accountNumber, :accountType, :currency)'
+            );
+            $insertStmt->execute([
+                'userId' => $userId,
+                'accountName' => $accountName,
+                'accountNumber' => bin2hex(random_bytes(16)),
+                'accountType' => $accountType,
+                'currency' => $currency,
+            ]);
+            $accountId = (int) $this->pdo->lastInsertId();
+            $this->pdo->commit();
 
+            AuditModel::record('account.created', 'low', 'Compte bancaire créé.', $userId, $userId, [
+                'accountId' => $accountId,
+                'accountType' => $accountType,
+                'currency' => $currency,
+            ], $this->pdo);
+
+            return ['success' => true, 'message' => 'Compte créé avec succès.'];
         } catch (PDOException $e) {
-            if ($e->errorInfo[0] === '45000') {
-                return ['success' => false, 'message' => $e->errorInfo[2]];
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+            throw $e;
+        } catch (Throwable $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
             }
             throw $e;
         }
     }
-    public function AddMoneyToAccount(string $accountName, string $username, float $money): array
+    public function AddMoneyToAccount(string $accountName, string $username, string $money): array
     {
+        return $this->moveAccountMoney($accountName, $username, $money, true);
+    }
 
-        if ($money < 0) {
-            return ["success" => false, "message" => "Ne peut pas ajouter 0 dollar au compte ou même moins"];
+    public function RemoveMoneyFromAccount(string $accountName, string $username, string $money): array
+    {
+        return $this->moveAccountMoney($accountName, $username, $money, false);
+    }
+
+    private function moveAccountMoney(string $accountName, string $username, string $money, bool $deposit): array
+    {
+        if (!preg_match('/^(?:0|[1-9]\d{0,12})\.(\d{2})$/', $money, $amountParts)) {
+            return ['success' => false, 'message' => 'Saisissez un montant valide.'];
         }
+
+        $amountCents = ((int) substr($money, 0, strpos($money, '.')) * 100) + (int) $amountParts[1];
+        if ($amountCents <= 0) {
+            return ['success' => false, 'message' => 'Le montant doit être supérieur à 0 $.'];
+        }
+
         $idAccount = $this->GetAccountID($accountName, $username);
         $idUser = $this->GetActiveUserID($username);
-        $transactionModel = new TransactionModel();
-        try {
-            $stmt = $this->pdo->prepare("CALL AddMoneyToAccount(?,?,?)");
-            $stmt->bindParam(1, $idUser, PDO::PARAM_INT);
-            $stmt->bindParam(2, $idAccount, PDO::PARAM_INT);
-            $stmt->bindParam(3, $money);
-            $stmt->execute();
+        $transactionModel = new TransactionModel($this->pdo);
 
-            $this->recordAccountTransaction($transactionModel, $idUser, $idAccount, 'deposit', $money);
-            return ["success" => true, "message" => "Ajout de l'argent au compte avec succès!"];
-        } catch (PDOException $e) {
-            if ($e->errorInfo[0] == '45000') {
-                return ['success' => false, 'message' => $e->getMessage()];
+        $this->pdo->beginTransaction();
+        try {
+            $accountStmt = $this->pdo->prepare(
+                'SELECT `idUser`, `Money`, `OverdraftLimit`, `Status`, `Currency`
+                 FROM `Account`
+                 WHERE `idAccount` = :accountId
+                 FOR UPDATE'
+            );
+            $accountStmt->execute(['accountId' => $idAccount]);
+            $account = $accountStmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$account || (int) $account['idUser'] !== $idUser) {
+                throw new RuntimeException('Le compte demandé est introuvable.');
+            }
+            if (!in_array($account['Status'], ['active', 'actif'], true)) {
+                $this->pdo->rollBack();
+                return ['success' => false, 'message' => 'Ce compte n’est pas actif.'];
+            }
+
+            $accountCents = $this->toAccountCents((string) $account['Money']);
+            if ($deposit) {
+                if ($accountCents > self::MAX_ACCOUNT_BALANCE_CENTS - $amountCents) {
+                    $this->pdo->rollBack();
+                    return ['success' => false, 'message' => 'Le solde du compte dépasserait la limite autorisée.'];
+                }
+
+                $userStmt = $this->pdo->prepare(
+                    'SELECT COALESCE(`Balance`, 0) AS `balance`,
+                            COALESCE(`Balance`, 0) >= CAST(:amount AS DECIMAL(15,2)) AS `hasBalance`
+                     FROM `User`
+                     WHERE `idUser` = :userId
+                     FOR UPDATE'
+                );
+                $userStmt->execute(['amount' => $money, 'userId' => $idUser]);
+                $user = $userStmt->fetch(PDO::FETCH_ASSOC);
+                if (!$user || !(bool) $user['hasBalance']) {
+                    $this->pdo->rollBack();
+                    return ['success' => false, 'message' => 'Votre solde disponible est insuffisant pour ajouter ce montant.'];
+                }
+                $userBalanceCents = $this->toAccountCents((string) $user['balance']);
+
+                $updateAccount = $this->pdo->prepare(
+                    'UPDATE `Account` SET `Money` = `Money` + CAST(:amount AS DECIMAL(15,2)) WHERE `idAccount` = :accountId'
+                );
+                $updateAccount->execute(['amount' => $money, 'accountId' => $idAccount]);
+                $updateUser = $this->pdo->prepare(
+                    'UPDATE `User` SET `Balance` = COALESCE(`Balance`, 0) - CAST(:amount AS DECIMAL(15,2)) WHERE `idUser` = :userId'
+                );
+                $updateUser->execute(['amount' => $money, 'userId' => $idUser]);
+                $type = 'deposit';
+                $message = 'Ajout de l’argent au compte effectué avec succès.';
+            } else {
+                $overdraftCents = $this->toAccountCents((string) $account['OverdraftLimit']);
+                if ($accountCents - $amountCents < -$overdraftCents) {
+                    $this->pdo->rollBack();
+                    return ['success' => false, 'message' => 'Le solde du compte est insuffisant pour effectuer ce retrait.'];
+                }
+
+                $userStmt = $this->pdo->prepare('SELECT `idUser` FROM `User` WHERE `idUser` = :userId FOR UPDATE');
+                $userStmt->execute(['userId' => $idUser]);
+                if (!$userStmt->fetchColumn()) {
+                    throw new RuntimeException('Utilisateur introuvable.');
+                }
+
+                $updateAccount = $this->pdo->prepare(
+                    'UPDATE `Account` SET `Money` = `Money` - CAST(:amount AS DECIMAL(15,2)) WHERE `idAccount` = :accountId'
+                );
+                $updateAccount->execute(['amount' => $money, 'accountId' => $idAccount]);
+                $updateUser = $this->pdo->prepare(
+                    'UPDATE `User` SET `Balance` = COALESCE(`Balance`, 0) + CAST(:amount AS DECIMAL(15,2)) WHERE `idUser` = :userId'
+                );
+                $updateUser->execute(['amount' => $money, 'userId' => $idUser]);
+                $type = 'withdrawal';
+                $message = 'Retrait effectué avec succès.';
+            }
+
+            $this->recordAccountTransaction($transactionModel, $idUser, $idAccount, $type, $money);
+            if ($deposit) {
+                $this->notificationModel->notifyLowBalanceCrossing(
+                    $idUser,
+                    number_format($userBalanceCents / 100, 2, '.', ''),
+                    number_format(($userBalanceCents - $amountCents) / 100, 2, '.', '')
+                );
+            }
+            $this->pdo->commit();
+
+            $risk = $deposit ? 'medium' : 'high';
+            AuditModel::record(
+                $deposit ? 'account.deposit' : 'account.withdrawal',
+                $risk,
+                $deposit ? 'Transfert vers un compte interne effectué.' : 'Retrait depuis un compte interne effectué.',
+                $idUser,
+                $idUser,
+                ['accountId' => $idAccount, 'amount' => $money, 'currency' => (string) ($account['Currency'] ?? 'CAD')],
+                $this->pdo
+            );
+
+            return ['success' => true, 'message' => $message];
+        } catch (Throwable $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
             }
             throw $e;
         }
     }
-    public function RemoveMoneyFromAccount(string $accountName, string $username, float $money): array
+
+    private function toAccountCents(string $amount): int
     {
-
-        if ($money < 0) {
-            return ["success" => false, "message" => "Ne peut pas retirer un montant négatif de dollar au compte"];
+        if (!preg_match('/^(-?)(?:0|[1-9]\d{0,12})\.(\d{2})$/', $amount, $parts)) {
+            throw new RuntimeException('Le solde enregistré du compte est invalide.');
         }
-        $idAccount = $this->GetAccountID($accountName, $username);
-        $idUser = $this->GetActiveUserID($username);
-        $transactionModel = new TransactionModel();
-        try {
-            $stmt = $this->pdo->prepare("CALL RemoveMoneyFromAccount(?,?,?)");
-            $stmt->bindParam(1, $idUser, PDO::PARAM_INT);
-            $stmt->bindParam(2, $idAccount, PDO::PARAM_INT);
-            $stmt->bindParam(3, $money);
-            $stmt->execute();
 
-            $this->recordAccountTransaction($transactionModel, $idUser, $idAccount, 'withdrawal', $money);
-            return ["success" => true, "message" => "Ajout de l'argent au compte avec succès!"];
-        } catch (PDOException $e) {
-            if ($e->errorInfo[0] == '45000') {
-                return ['success' => false, 'message' => $e->getMessage()];
-            }
-            throw $e;
+        $wholeAmount = substr($amount, 0, strpos($amount, '.'));
+        $negative = str_starts_with($wholeAmount, '-');
+        if ($negative) {
+            $wholeAmount = substr($wholeAmount, 1);
         }
+        $cents = ((int) $wholeAmount * 100) + (int) $parts[2];
+
+        return $negative ? -$cents : $cents;
     }
     public function GetUserAccounts(string $Alias): array
     {
@@ -127,6 +283,8 @@ class AccountDAL
         $stmt = $this->pdo->prepare("CALL deleteAccount(?)");
         $stmt->bindParam(1, $accountId, PDO::PARAM_INT);
         $stmt->execute();
+        $userId = $this->GetActiveUserID($username);
+        AuditModel::record('account.closed', 'medium', 'Compte fermé.', $userId, $userId, ['accountId' => $accountId], $this->pdo);
         return ['success' => true, 'message' => "Compte fermé avec succès."];
     } catch (PDOException $e) {
         if ($e->errorInfo[0] === '45000') {
@@ -191,7 +349,7 @@ class AccountDAL
         return (float) $result['Balance'];
     }
 
-    private function recordAccountTransaction(TransactionModel $transactionModel, int $userId, int $accountId, string $type, float $amount): void
+    private function recordAccountTransaction(TransactionModel $transactionModel, int $userId, int $accountId, string $type, string $amount): void
     {
         $stmt = $this->pdo->prepare(
             'SELECT `AccountName`, `Currency` FROM `Account` WHERE `idAccount` = :accountId AND `idUser` = :userId'

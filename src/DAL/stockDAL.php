@@ -2,15 +2,19 @@
 
 require_once dirname(__DIR__, 2) . "/configs/database.php";
 require_once dirname(__DIR__, 2) . "/src/Models/TransactionModel.php";
+require_once dirname(__DIR__, 2) . '/src/Models/AuditModel.php';
+require_once dirname(__DIR__, 2) . '/src/Models/NotificationModel.php';
 
 class StockDAL
 {
     private PDO $pdo;
+    private NotificationModel $notificationModel;
 
     public function __construct()
     {
         $this->pdo = getPDO();
         $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        $this->notificationModel = new NotificationModel($this->pdo);
     }
     //returns if function worked
     public function buyStock(string $alias, int $idStock, float $shares): array
@@ -24,6 +28,13 @@ class StockDAL
         $transactionModel = new TransactionModel();
 
         try {
+            $balanceStmt = $this->pdo->prepare('SELECT `Balance` FROM `User` WHERE `idUser` = :userId');
+            $balanceStmt->execute(['userId' => $userId]);
+            $previousBalance = $balanceStmt->fetchColumn();
+            if ($previousBalance === false) {
+                throw new RuntimeException('User not found while fetching balance.');
+            }
+
             $stmt = $this->pdo->prepare("CALL BuyStockInvestment(?, ?, ?)");
             $stmt->bindParam(1, $userId, PDO::PARAM_INT);
             $stmt->bindParam(2, $idStock, PDO::PARAM_INT);
@@ -38,6 +49,25 @@ class StockDAL
                 (float) number_format($stock['Price'] * $shares, 2, '.', ''),
                 'CAD'
             );
+            $balanceStmt->execute(['userId' => $userId]);
+            $currentBalance = $balanceStmt->fetchColumn();
+            if ($currentBalance === false) {
+                throw new RuntimeException('User not found while fetching balance.');
+            }
+            try {
+                $this->notificationModel->notifyLowBalanceCrossing(
+                    $userId,
+                    number_format((float) ($previousBalance ?? 0), 2, '.', ''),
+                    number_format((float) $currentBalance, 2, '.', '')
+                );
+            } catch (PDOException $e) {
+                error_log('stockDAL failed to create low-balance notification: ' . $e->getMessage());
+            }
+            AuditModel::record('investment.purchase', 'high', 'Ordre d’achat exécuté.', $userId, $userId, [
+                'stockId' => $idStock,
+                'shares' => number_format($shares, 8, '.', ''),
+                'estimatedValue' => number_format($stock['Price'] * $shares, 2, '.', ''),
+            ], $this->pdo);
             return ['success' => true, 'message' => "Achat passer avec succès!"];
         } catch (PDOException $e) {
 
@@ -73,6 +103,11 @@ class StockDAL
                 (float) number_format($stock['Price'] * (float) $shares, 2, '.', ''),
                 'CAD'
             );
+            AuditModel::record('investment.sale', 'high', 'Ordre de vente exécuté.', $userId, $userId, [
+                'stockId' => $idStock,
+                'shares' => number_format((float) $shares, 8, '.', ''),
+                'estimatedValue' => number_format($stock['Price'] * (float) $shares, 2, '.', ''),
+            ], $this->pdo);
             return ['success' => true, 'message' => "Vendu stock avec succès!"];
         } catch (PDOException $e) {
 
@@ -90,48 +125,60 @@ class StockDAL
         }
 
         $userId = $this->GetActiveUserID($alias);
-       
-        try 
-        {
-            $stmt = $this->pdo->prepare("select * from StockFavorite WHERE idUser = ?");
-            $stmt->bindParam(1,$userId,PDO::PARAM_INT);
+
+        try {
+            $stmt = $this->pdo->prepare("SELECT s.* FROM StockFavorite sf INNER JOIN Stock s ON s.idStock = sf.idStock WHERE sf.IdUser = ?");
+            $stmt->bindParam(1, $userId, PDO::PARAM_INT);
             $stmt->execute();
 
             $res = $stmt->fetchAll();
             $stmt->closeCursor();
-            
+
             return $res;
 
-        } 
-        catch(PDOException $e) {
+        } catch (PDOException $e) {
             return ['success' => false, 'message' => 'impossible de traiter la demande'];
         }
 
     }
-    public function ToggleFavorite(string $alias, int $idStock):array
+    public function ToggleFavorite(string $alias, int $idStock): array
     {
-        if ($alias == null || $idStock == null)
-            {
-                return ['success' => 'false', 'message' => 'cannot give null information to this func pls'];
-            }
+        if ($alias == null || $idStock == null) {
+            return ['success' => 'false', 'message' => 'cannot give null information to this func pls'];
+        }
         $userId = $this->GetActiveUserID($alias);
 
-        try 
-        {
+        try {
             $stmt = $this->pdo->prepare("CALL TOGGLE_STOCK_FAVORITE(?,?)");
-            $stmt->bindParam(1,$userId,PDO::PARAM_INT);
-            $stmt->bindParam(2,$idStock,PDO::PARAM_INT);
+            $stmt->bindParam(1, $userId, PDO::PARAM_INT);
+            $stmt->bindParam(2, $idStock, PDO::PARAM_INT);
             $stmt->execute();
 
             $stmt->closeCursor();
 
-            return ['success' => true, 'message' => 'ceci à été ajouter dans vos favoris!'];
-        }
-        catch (PDOException $e)
-        {
-            return ['success' => false, 'message' => 'Impossible de traiter la demande' ];
+            $isFavorite = $this->isFavorite($userId, $idStock);
+            AuditModel::record('investment.favorite.changed', 'low', 'Action favorite mise à jour.', $userId, $userId, [
+                'stockId' => $idStock,
+                'isFavorite' => $isFavorite,
+            ], $this->pdo);
+
+            return [
+                'success' => true,
+                'isFavorite' => $isFavorite,
+                'message' => $isFavorite ? 'Ajouté à vos favoris!' : 'Retiré de vos favoris.',
+            ];
+        } catch (PDOException $e) {
+            return ['success' => false, 'message' => 'Impossible de traiter la demande'];
         }
 
+    }
+    public function isFavorite(int $userId, int $idStock): bool
+    {
+        $stmt = $this->pdo->prepare("SELECT 1 FROM StockFavorite WHERE IdUser = ? AND idStock = ? LIMIT 1");
+        $stmt->execute([$userId, $idStock]);
+        $found = $stmt->fetchColumn() !== false;
+        $stmt->closeCursor();
+        return $found;
     }
     private function getStockPrice(int $idStock): float
     {
@@ -193,6 +240,45 @@ class StockDAL
         $stmt->bindParam(3, $change);
         $stmt->execute();
         $stmt->closeCursor();
+    }
+    public function getUsersFavoriteIds(string $alias): array
+    {
+        $userId = $this->GetActiveUserID($alias);
+        $stmt = $this->pdo->prepare("SELECT idStock FROM StockFavorite WHERE IdUser = ?");
+        $stmt->execute([$userId]);
+        $ids = array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));
+        $stmt->closeCursor();
+        return $ids;
+    }
+    // Returns [symbol => idStock] for the given symbols (Stock.Name holds the symbol)
+    public function getStockIdsBySymbols(array $symbols): array
+    {
+        $symbols = array_values(array_unique(array_filter($symbols)));
+        if (empty($symbols)) {
+            return [];
+        }
+
+        $placeholders = implode(',', array_fill(0, count($symbols), '?'));
+        $stmt = $this->pdo->prepare("SELECT idStock, `Name` FROM `Stock` WHERE `Name` IN ($placeholders)");
+        $stmt->execute($symbols);
+
+        $map = [];
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $map[$row['Name']] = (int) $row['idStock'];
+        }
+        $stmt->closeCursor();
+        return $map;
+    }
+    public function AddArrayStock(array $stock): void
+    {
+        foreach ($stock as $s) {
+            $stmt = $this->pdo->prepare('call addStock(?,?,?)');
+            $stmt->bindParam(1, $s["symbol"], PDO::PARAM_STR);
+            $stmt->bindParam(2, $s["price"]);
+            $stmt->bindParam(3, $s["change"]);
+            $stmt->execute();
+            $stmt->closeCursor();
+        }
     }
 
 }

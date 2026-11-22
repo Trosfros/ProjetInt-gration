@@ -1,0 +1,20 @@
+CREATE TABLE IF NOT EXISTS `SecurityAuditLog` (
+  `idAudit` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `eventType` VARCHAR(64) NOT NULL,
+  `riskLevel` ENUM('info', 'low', 'medium', 'high', 'critical') NOT NULL DEFAULT 'medium',
+  `summary` VARCHAR(255) NOT NULL,
+  `actorUserId` INT NULL,
+  `targetUserId` INT NULL,
+  `detailsJson` JSON NULL,
+  `ipAddress` VARCHAR(45) NULL,
+  `userAgent` VARCHAR(512) NULL,
+  `createdAt` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`idAudit`),
+  INDEX `idx_audit_created` (`createdAt`, `idAudit`),
+  INDEX `idx_audit_risk_created` (`riskLevel`, `createdAt`),
+  INDEX `idx_audit_event_created` (`eventType`, `createdAt`),
+  INDEX `idx_audit_actor_created` (`actorUserId`, `createdAt`),
+  INDEX `idx_audit_target_created` (`targetUserId`, `createdAt`),
+  CONSTRAINT `FK_Audit_Actor` FOREIGN KEY (`actorUserId`) REFERENCES `User` (`idUser`) ON DELETE SET NULL ON UPDATE CASCADE,
+  CONSTRAINT `FK_Audit_Target` FOREIGN KEY (`targetUserId`) REFERENCES `User` (`idUser`) ON DELETE SET NULL ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

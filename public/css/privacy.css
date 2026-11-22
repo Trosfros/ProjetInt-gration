@@ -1,0 +1,90 @@
+.privacy-page {
+  position: relative;
+  z-index: 1;
+  width: min(100% - 2rem, 900px);
+  margin: 0 auto;
+  padding: 3rem 0 5rem !important;
+  flex: 1;
+}
+
+.privacy-card {
+  padding: clamp(1.5rem, 5vw, 3rem);
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  border-radius: 22px;
+  background:
+    radial-gradient(ellipse at 92% 10%, rgba(56, 189, 248, 0.14), transparent 38%),
+    linear-gradient(135deg, rgba(14, 18, 29, 0.96), rgba(15, 23, 42, 0.84));
+  box-shadow: 0 22px 60px rgba(0, 0, 0, 0.22);
+}
+
+.privacy-eyebrow {
+  display: block;
+  margin-bottom: 0.65rem;
+  color: var(--primary);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.privacy-card h1 {
+  margin-bottom: 1rem;
+  color: var(--text-main);
+  font-size: clamp(2rem, 5vw, 3rem);
+  letter-spacing: -0.04em;
+}
+
+.privacy-card h2 {
+  margin: 2rem 0 0.65rem;
+  color: var(--text-main);
+  font-size: 1.2rem;
+}
+
+.privacy-card p,
+.privacy-card li {
+  color: #cbd5e1;
+  font-size: 1rem;
+  line-height: 1.75;
+}
+
+.privacy-intro {
+  max-width: 720px;
+}
+
+.privacy-card ul {
+  display: grid;
+  gap: 0.75rem;
+  padding-left: 1.25rem;
+}
+
+.privacy-card code {
+  color: #bae6fd;
+  overflow-wrap: anywhere;
+}
+
+.privacy-back-link {
+  display: inline-flex;
+  margin-top: 2rem;
+  color: #7dd3fc;
+  font-weight: 650;
+  text-underline-offset: 0.2em;
+}
+
+html.light-mode .privacy-card {
+  border-color: rgba(30, 50, 80, 0.12);
+  background: linear-gradient(135deg, #fff, #f4f9ff);
+}
+
+html.light-mode .privacy-card h1,
+html.light-mode .privacy-card h2 {
+  color: #17243a;
+}
+
+html.light-mode .privacy-card p,
+html.light-mode .privacy-card li {
+  color: #52647c;
+}
+
+html.light-mode .privacy-card code {
+  color: #087ea4;
+}

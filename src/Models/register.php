@@ -36,7 +36,11 @@ require $projectRoot . '/views/layout/header.php';
     <div class="auth-header">
       <?php if ($pendingRegistration !== null): ?>
         <h2>Vérifier votre adresse courriel</h2>
-        <p>Entrez le code à six chiffres envoyé à <?= htmlspecialchars((string) $pendingRegistration['email'], ENT_QUOTES, 'UTF-8') ?> pour terminer la création de votre compte.</p>
+        <?php if ($pendingRegistration['code_sent'] ?? true): ?>
+          <p>Entrez le code à six chiffres envoyé à <?= htmlspecialchars((string) $pendingRegistration['email'], ENT_QUOTES, 'UTF-8') ?> pour terminer la création de votre compte.</p>
+        <?php else: ?>
+          <p>Un compte non vérifié existe déjà pour cette adresse. Renvoyez un code pour terminer la création du compte.</p>
+        <?php endif; ?>
       <?php else: ?>
         <h2>Créer un compte</h2>
         <p>Rejoins NovaBank et commence ta simulation.</p>
@@ -51,15 +55,17 @@ require $projectRoot . '/views/layout/header.php';
     <?php endif; ?>
 
     <?php if ($pendingRegistration !== null): ?>
-      <form action="index.php?action=register" method="POST" class="auth-form">
-        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8') ?>">
-        <input type="hidden" name="form_action" value="verify_code">
-        <div class="form-group">
-          <label for="verification-code">Code à six chiffres</label>
-          <input id="verification-code" name="verification_code" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" required>
-        </div>
-        <button type="submit" class="btn-primary btn-block">Confirmer le code</button>
-      </form>
+      <?php if ($pendingRegistration['code_sent'] ?? true): ?>
+        <form action="index.php?action=register" method="POST" class="auth-form">
+          <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8') ?>">
+          <input type="hidden" name="form_action" value="verify_code">
+          <div class="form-group">
+            <label for="verification-code">Code à six chiffres</label>
+            <input id="verification-code" name="verification_code" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" required>
+          </div>
+          <button type="submit" class="btn-primary btn-block">Confirmer le code</button>
+        </form>
+      <?php endif; ?>
 
       <form action="index.php?action=register" method="POST" class="auth-form" style="margin-top: 1rem;">
         <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8') ?>">

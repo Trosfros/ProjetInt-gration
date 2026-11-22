@@ -76,7 +76,7 @@ require $projectRoot . '/views/layout/header.php';
                                     <?php
                                     $type = (string) $transaction['TransactionType'];
                                     $isIncoming = in_array($type, ['deposit', 'sale', 'transfer_received'], true);
-                                    $transactionDate = new DateTimeImmutable((string) $transaction['CreatedAt']);
+                                    $transactionDate = getQuebecDateTime((string) $transaction['CreatedAt']);
                                     ?>
                                     <tr>
                                         <td data-label="Transaction">
@@ -95,8 +95,7 @@ require $projectRoot . '/views/layout/header.php';
                                             <small class="history-time"><?= htmlspecialchars($transactionDate->format('H:i'), ENT_QUOTES, 'UTF-8') ?></small>
                                         </td>
                                         <td data-label="Montant" class="<?= $isIncoming ? 'history-positive' : 'history-negative' ?>">
-                                            <?= $isIncoming ? '+' : '−' ?><?= number_format((float) $transaction['Amount'], 2, ',', ' ') ?>
-                                            <?= htmlspecialchars((string) $transaction['Currency'], ENT_QUOTES, 'UTF-8') ?>
+                                            <?= $isIncoming ? '+' : '−' ?><?= renderCurrencyAmount((float) $transaction['Amount'], (string) $transaction['Currency']) ?>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>

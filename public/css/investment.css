@@ -160,7 +160,7 @@
 /* Grille des cartes d'actions */
 .stocks-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
   gap: 1.2rem;
 }
 
@@ -366,5 +366,56 @@
   .investment-header {
     flex-direction: column;
     align-items: flex-start;
+  }
+}
+
+@media (max-width: 600px) {
+  .investment-shell {
+    width: 100%;
+    padding: 1rem 0 2rem;
+  }
+
+  .investment-header {
+    margin-bottom: 1.25rem;
+  }
+
+  .investment-header h1 {
+    font-size: 1.7rem;
+  }
+
+  .summary-cards-grid {
+    gap: 0.8rem;
+    margin-bottom: 1.4rem;
+  }
+
+  .summary-card,
+  .stock-card {
+    padding: 1.1rem;
+    border-radius: 14px;
+  }
+
+  .stock-card-header {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .stock-data-grid {
+    row-gap: 0.9rem;
+  }
+
+  .data-value-large {
+    font-size: 1.2rem;
+  }
+
+  .btn-sell-card,
+  .sell-quantity,
+  .investment-button,
+  .btn-discover {
+    min-height: 44px;
+  }
+
+  .portfolio-filter-control {
+    width: 100%;
   }
 }

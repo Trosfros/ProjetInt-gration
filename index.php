@@ -1,7 +1,9 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+require_once __DIR__ . '/vendor/autoload.php';
+\Dotenv\Dotenv::createImmutable(__DIR__)->safeLoad();
+require_once __DIR__ . '/configs/security.php';
+startSecureSession();
+sendSecurityHeaders();
 
 require __DIR__ . '/vendor/autoload.php';
 require __DIR__ . '/configs/database.php';
@@ -10,15 +12,24 @@ require_once __DIR__ . '/configs/constants.php';
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
-function sendVerificationEmail(string $email, string $username, string$token): void {
-    $config = require __DIR__ . '/configs/config.php';$mail = new PHPMailer(true);
+function sendVerificationEmail(string $email, string $username, string $token): void
+{
+    $config = require __DIR__ . '/configs/config.php';
+    $mail = new PHPMailer(true);
 
     try {
-        $mail->isSMTP();$mail->Host = $config['mail']['host'];$mail->SMTPAuth = true;
-        $mail->Username = $config['mail']['username'];$mail->Password = $config['mail']['password'];$mail->SMTPSecure = $config['mail']['smtp_secure'];$mail->Port = $config['mail']['port'];$mail->CharSet = 'UTF-8';
+        $mail->isSMTP();
+        $mail->Host = $config['mail']['host'];
+        $mail->SMTPAuth = true;
+        $mail->Username = $config['mail']['username'];
+        $mail->Password = $config['mail']['password'];
+        $mail->SMTPSecure = $config['mail']['smtp_secure'];
+        $mail->Port = $config['mail']['port'];
+        $mail->CharSet = 'UTF-8';
 
-        $mail->setFrom($config['mail']['from_email'],$config['mail']['from_name']);
-        $mail->addAddress($email, $username);$mail->Subject = 'Confirmez votre adresse email - NovaBank';
+        $mail->setFrom($config['mail']['from_email'], $config['mail']['from_name']);
+        $mail->addAddress($email, $username);
+        $mail->Subject = 'Confirmez votre adresse email - NovaBank';
 
         $verificationUrl = rtrim($config['app_url'], '/') . '/index.php?' . http_build_query([
             'action' => 'verify',
@@ -27,7 +38,8 @@ function sendVerificationEmail(string $email, string $username, string$token): v
         $safeUsername = htmlspecialchars($username, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
         $safeVerificationUrl = htmlspecialchars($verificationUrl, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 
-        $mail->isHTML(true);$mail->Body = "
+        $mail->isHTML(true);
+        $mail->Body = "
             <div style=\"font-family: Arial, sans-serif; color: #1f2937; line-height: 1.6; max-width: 600px; margin: 0 auto;\">
                 <h1 style=\"color: #0f172a; font-size: 24px;\">Bienvenue sur NovaBank, $safeUsername&nbsp;!</h1>
                 <p>Merci d’avoir créé votre compte. Pour terminer votre inscription et accéder à votre espace, confirmez votre adresse email en cliquant sur le bouton ci-dessous.</p>
@@ -49,7 +61,8 @@ function sendVerificationEmail(string $email, string $username, string$token): v
     }
 }
 
-function sendPasswordChangeCode(string $email, string $username, string $code): void {
+function sendPasswordChangeCode(string $email, string $username, string $code): void
+{
     $config = require __DIR__ . '/configs/config.php';
     $mail = new PHPMailer(true);
 
@@ -83,7 +96,8 @@ function sendPasswordChangeCode(string $email, string $username, string $code): 
     }
 }
 
-function sendRegistrationCode(string $email, string $username, string $code): void {
+function sendRegistrationCode(string $email, string $username, string $code): void
+{
     $config = require __DIR__ . '/configs/config.php';
     $mail = new PHPMailer(true);
 
@@ -117,10 +131,16 @@ function sendRegistrationCode(string $email, string $username, string $code): vo
     }
 }
 
-$action =$_GET['action'] ?? '';
+$action = $_GET['action'] ?? '';
 $isLoggedIn = !empty($_SESSION['user']);
 
 if ($action === 'logout') {
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST'
+        || !validCsrfToken(is_string($_POST['csrf_token'] ?? null) ? $_POST['csrf_token'] : null)
+    ) {
+        http_response_code(403);
+        exit('Requête invalide.');
+    }
     unset(
         $_SESSION['user'],
         $_SESSION['password_change'],
@@ -129,26 +149,25 @@ if ($action === 'logout') {
         $_SESSION['password_reset_email'],
         $_SESSION['password_reset_last_sent_at']
     );
+    session_regenerate_id(true);
     header('Location: index.php');
     exit;
-}
-else if ($action === 'market') {
+} else if ($action === 'market') {
     header('Location: index.php?action=investment');
     exit;
-}
-else if ($action === 'loginPage') {
+} else if ($action === 'loginPage') {
     require __DIR__ . '/src/Models/login.php';
     exit;
-}
-else if ($action === 'registerPage') {
+} else if ($action === 'registerPage') {
     require __DIR__ . '/src/Models/register.php';
     exit;
-}
-else if ($action === 'about') {
+} else if ($action === 'about') {
     require __DIR__ . '/src/Models/about.php';
     exit;
-}
-else if ($action === 'forgotPassword') {
+} else if ($action === 'privacy') {
+    require __DIR__ . '/src/Models/privacy.php';
+    exit;
+} else if ($action === 'forgotPassword') {
     if ($isLoggedIn) {
         header('Location: index.php?action=profile');
         exit;
@@ -156,8 +175,7 @@ else if ($action === 'forgotPassword') {
 
     require __DIR__ . '/src/Models/forgotPassword.php';
     exit;
-}
-else if ($action === 'profilePhoto') {
+} else if ($action === 'profilePhoto') {
     if (!$isLoggedIn) {
         http_response_code(404);
         exit;
@@ -189,8 +207,7 @@ else if ($action === 'profilePhoto') {
     header('X-Content-Type-Options: nosniff');
     echo $photo;
     exit;
-}
-else if ($action === 'profile') {
+} else if ($action === 'profile') {
     if (!$isLoggedIn) {
         $_SESSION['redirect_after_login'] = 'profile';
         header('Location: index.php?action=loginPage');
@@ -199,8 +216,7 @@ else if ($action === 'profile') {
 
     require __DIR__ . '/src/Models/profile.php';
     exit;
-}
-else if ($action === 'marketPage') {
+} else if ($action === 'marketPage') {
     if (!$isLoggedIn) {
         header('Location: index.php?action=loginPage');
         exit;
@@ -208,8 +224,7 @@ else if ($action === 'marketPage') {
 
     require __DIR__ . '/src/Models/market.php';
     exit;
-}
-else if ($action === 'investment') {
+} else if ($action === 'investment') {
     if (!$isLoggedIn) {
         header('Location: index.php?action=loginPage');
         exit;
@@ -217,12 +232,19 @@ else if ($action === 'investment') {
 
     require __DIR__ . '/src/Models/investment.php';
     exit;
-}
-else if ($action === 'accounts') {
+} else if ($action === 'accounts') {
     require __DIR__ . '/src/Models/AccountModel.php';
     exit;
-}
-else if ($action === 'notificationsCount') {
+} else if ($action === 'settings') {
+    if (!$isLoggedIn) {
+        $_SESSION['redirect_after_login'] = 'settings';
+        header('Location: index.php?action=loginPage');
+        exit;
+    }
+
+    require __DIR__ . '/src/Models/settings.php';
+    exit;
+} else if ($action === 'notificationsCount') {
     header('Content-Type: application/json; charset=utf-8');
     if (!$isLoggedIn) {
         http_response_code(401);
@@ -241,8 +263,31 @@ else if ($action === 'notificationsCount') {
         echo json_encode(['error' => 'Impossible de charger les notifications.']);
     }
     exit;
-}
-else if ($action === 'notifications') {
+} else if ($action === 'currencyRate') {
+    header('Content-Type: application/json; charset=utf-8');
+    header('Cache-Control: no-store, private');
+    if (!$isLoggedIn) {
+        http_response_code(401);
+        echo json_encode(['error' => 'Vous devez être connecté.']);
+        exit;
+    }
+
+    try {
+        require_once __DIR__ . '/configs/currency_display.php';
+        $currencyRate = getCadUsdReferenceRate();
+        if ($currencyRate === null) {
+            http_response_code(503);
+            echo json_encode(['error' => 'Le taux CAD/USD est temporairement indisponible.']);
+        } else {
+            echo json_encode($currencyRate, JSON_THROW_ON_ERROR);
+        }
+    } catch (Throwable $e) {
+        error_log('index.php failed to load the CAD/USD reference rate: ' . $e->getMessage());
+        http_response_code(503);
+        echo json_encode(['error' => 'Le taux CAD/USD est temporairement indisponible.']);
+    }
+    exit;
+} else if ($action === 'notifications') {
     if (!$isLoggedIn) {
         $_SESSION['redirect_after_login'] = 'notifications';
         header('Location: index.php?action=loginPage');
@@ -274,8 +319,50 @@ else if ($action === 'notifications') {
 
     require __DIR__ . '/src/Models/notifications.php';
     exit;
-}
-else if ($action === 'admin') {
+} else if ($action === 'support') {
+    if (!$isLoggedIn) {
+        $_SESSION['redirect_after_login'] = 'support';
+        header('Location: index.php?action=loginPage');
+        exit;
+    }
+
+    require __DIR__ . '/src/Models/support.php';
+    exit;
+} else if ($action === 'adminSupport') {
+    if (!$isLoggedIn) {
+        $_SESSION['redirect_after_login'] = 'adminSupport';
+        header('Location: index.php?action=loginPage');
+        exit;
+    }
+
+    require_once __DIR__ . '/src/Middlewares/AdminMiddleware.php';
+    if (!AdminMiddleware::isAdmin(getPDO(), (int) $_SESSION['user']['id'])) {
+        http_response_code(403);
+        $pageTitle = 'Accès refusé | NovaBank';
+        require __DIR__ . '/views/errors/403.php';
+        exit;
+    }
+
+    require __DIR__ . '/src/Models/adminSupport.php';
+    exit;
+} else if ($action === 'securityAudit') {
+    if (!$isLoggedIn) {
+        $_SESSION['redirect_after_login'] = 'admin';
+        header('Location: index.php?action=loginPage');
+        exit;
+    }
+
+    require_once __DIR__ . '/src/Middlewares/AdminMiddleware.php';
+    if (!AdminMiddleware::isAdmin(getPDO(), (int) $_SESSION['user']['id'])) {
+        http_response_code(403);
+        $pageTitle = 'Accès refusé | NovaBank';
+        require __DIR__ . '/views/errors/403.php';
+        exit;
+    }
+
+    require __DIR__ . '/src/Models/securityAudit.php';
+    exit;
+} else if ($action === 'admin') {
     if (!$isLoggedIn) {
         $_SESSION['redirect_after_login'] = $action;
         header('Location: index.php?action=loginPage');
@@ -292,8 +379,7 @@ else if ($action === 'admin') {
 
     require __DIR__ . '/src/Models/admin.php';
     exit;
-}
-else if ($action === 'history') {
+} else if ($action === 'history') {
     if (!$isLoggedIn) {
         $_SESSION['redirect_after_login'] = $action;
         header('Location: index.php?action=loginPage');
@@ -302,8 +388,16 @@ else if ($action === 'history') {
 
     require __DIR__ . '/src/Models/history.php';
     exit;
-}
-else if ($action === 'transfers') {
+} else if ($action === 'leaderboard') {
+    if (!$isLoggedIn) {
+        $_SESSION['redirect_after_login'] = $action;
+        header('Location: index.php?action=loginPage');
+        exit;
+    }
+
+    require __DIR__ . '/src/Models/leaderboard.php';
+    exit;
+} else if ($action === 'transfers') {
     if (!$isLoggedIn) {
         $_SESSION['redirect_after_login'] = $action;
         header('Location: index.php?action=loginPage');
@@ -312,8 +406,7 @@ else if ($action === 'transfers') {
 
     require __DIR__ . '/src/Models/transfers.php';
     exit;
-}
-else if ($action === 'education') {
+} else if ($action === 'education') {
     if (!$isLoggedIn) {
         $_SESSION['redirect_after_login'] = 'education';
         header('Location: index.php?action=loginPage');
@@ -369,8 +462,8 @@ else if ($action === 'education') {
                     $userId,
                     filter_var($payload['questionId'] ?? null, FILTER_VALIDATE_INT) ?: 0,
                     filter_var($payload['optionIndex'] ?? null, FILTER_VALIDATE_INT) !== false
-                        ? (int) $payload['optionIndex']
-                        : -1
+                    ? (int) $payload['optionIndex']
+                    : -1
                 );
                 $result['success'] = true;
             } else {
@@ -391,24 +484,27 @@ else if ($action === 'education') {
         }
         exit;
     }
-}
-else if ($action === 'verify') {
+} else if ($action === 'verify') {
     $token = trim($_GET['token'] ?? '');
 
     if ($token !== '') {
         try {
             $pdo = getPDO();
-            $stmt =$pdo->prepare('SELECT idUser FROM `User` WHERE `email_verification_token` = :token LIMIT 1');
-            $stmt->execute(['token' =>$token]);
-            $user =$stmt->fetch();
+            $stmt = $pdo->prepare('SELECT idUser FROM `User` WHERE `email_verification_token` = :token LIMIT 1');
+            $stmt->execute(['token' => $token]);
+            $user = $stmt->fetch();
 
             if ($user) {
-                $update =$pdo->prepare('UPDATE `User` SET `email_verified` = 1, `email_verification_token` = NULL WHERE `idUser` = :id');
-                $update->execute(['id' => $user['idUser']]);$_SESSION['verify_success'] = 'Votre adresse email a bien été vérifiée. Vous pouvez maintenant vous connecter.';
+                $update = $pdo->prepare('UPDATE `User` SET `email_verified` = 1, `email_verification_token` = NULL WHERE `idUser` = :id');
+                $update->execute(['id' => $user['idUser']]);
+                require_once __DIR__ . '/src/Models/AuditModel.php';
+                AuditModel::record('user.email_verified', 'low', 'Adresse courriel vérifiée.', (int) $user['idUser'], (int) $user['idUser'], [], $pdo);
+                $_SESSION['verify_success'] = 'Votre adresse email a bien été vérifiée. Vous pouvez maintenant vous connecter.';
             } else {
                 $_SESSION['verify_error'] = 'Lien de vérification invalide ou déjà utilisé.';
             }
-        } catch (Throwable $e) {$_SESSION['verify_error'] = 'Erreur lors de la vérification de l’email.';
+        } catch (Throwable $e) {
+            $_SESSION['verify_error'] = 'Erreur lors de la vérification de l’email.';
         }
     } else {
         $_SESSION['verify_error'] = 'Aucun token de vérification fourni.';
@@ -416,34 +512,51 @@ else if ($action === 'verify') {
 
     header('Location: index.php?action=loginPage');
     exit;
-}
-else if ($_SERVER['REQUEST_METHOD'] === 'POST' &&$action === 'login') {
+} else if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'login') {
+    if (!validCsrfToken(is_string($_POST['csrf_token'] ?? null) ? $_POST['csrf_token'] : null)) {
+        $_SESSION['login_error'] = 'Votre session a expiré. Rechargez la page et réessayez.';
+        header('Location: index.php?action=loginPage');
+        exit;
+    }
     $email = trim($_POST['email'] ?? '');
-    $password =$_POST['password'] ?? '';
+    $password = $_POST['password'] ?? '';
 
-    if ($email === '' || $password === '') {$_SESSION['login_error'] = 'Veuillez renseigner votre email et votre mot de passe.';
+    if ($email === '' || $password === '') {
+        $_SESSION['login_error'] = 'Veuillez renseigner votre email et votre mot de passe.';
         header('Location: index.php?action=loginPage');
         exit;
     }
 
     try {
         $pdo = getPDO();
-        $stmt =$pdo->prepare('SELECT `idUser`, `Alias`, `Description`, `Password`, `email_verified`, `IsAdmin` FROM `User` WHERE `Description` = :email LIMIT 1');
-        $stmt->execute(['email' =>$email]);
-        $user =$stmt->fetch();
+        $stmt = $pdo->prepare('SELECT `idUser`, `Alias`, `Description`, `Password`, `email_verified`, `IsAdmin` FROM `User` WHERE `Description` = :email LIMIT 1');
+        $stmt->execute(['email' => $email]);
+        $user = $stmt->fetch();
 
-        if ($user && password_verify($password,$user['Password'])) {
-            if ((int) ($user['email_verified'] ?? 0) !== 1) {$_SESSION['login_error'] = 'Veuillez vérifier votre adresse email avant de vous connecter.';
+        if ($user && password_verify($password, $user['Password'])) {
+            if ((int) ($user['email_verified'] ?? 0) !== 1) {
+                require_once __DIR__ . '/src/Models/AuditModel.php';
+                AuditModel::record('auth.login.unverified', 'medium', 'Connexion refusée : adresse courriel non vérifiée.', null, (int) $user['idUser'], [], $pdo);
+                $_SESSION['login_error'] = 'Veuillez vérifier votre adresse email avant de vous connecter.';
                 header('Location: index.php?action=loginPage');
                 exit;
             }
 
+            session_regenerate_id(true);
             $_SESSION['user'] = [
                 'id' => $user['idUser'],
                 'username' => $user['Alias'],
                 'email' => $user['Description'],
                 'isAdmin' => (int) ($user['IsAdmin'] ?? 0) === 1,
             ];
+            require_once __DIR__ . '/src/Models/AuditModel.php';
+            AuditModel::record('auth.login.success', 'info', 'Connexion réussie.', (int) $user['idUser'], (int) $user['idUser'], [], $pdo);
+            require_once __DIR__ . '/src/Models/NotificationModel.php';
+            try {
+                (new NotificationModel($pdo))->notifyLoginSuccess((int) $user['idUser']);
+            } catch (PDOException $e) {
+                error_log('index.php failed to create login notification: ' . $e->getMessage());
+            }
             unset(
                 $_SESSION['password_reset'],
                 $_SESSION['password_reset_email'],
@@ -456,15 +569,25 @@ else if ($_SERVER['REQUEST_METHOD'] === 'POST' &&$action === 'login') {
             exit;
         }
 
+        require_once __DIR__ . '/src/Models/AuditModel.php';
+        AuditModel::record(
+            'auth.login.failed',
+            'high',
+            'Échec de connexion.',
+            null,
+            is_array($user) ? (int) $user['idUser'] : null,
+            ['accountFound' => is_array($user)],
+            $pdo
+        );
         $_SESSION['login_error'] = 'Identifiants invalides.';
         header('Location: index.php?action=loginPage');
         exit;
-    } catch (Throwable $e) {$_SESSION['login_error'] = 'Erreur de connexion à la base de données.';
+    } catch (Throwable $e) {
+        $_SESSION['login_error'] = 'Erreur de connexion à la base de données.';
         header('Location: index.php?action=loginPage');
         exit;
     }
-}
-else if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'register') {
+} else if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'register') {
     $csrfToken = (string) ($_SESSION['register_csrf_token'] ?? '');
     $submittedToken = (string) ($_POST['csrf_token'] ?? '');
 
@@ -482,7 +605,8 @@ else if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'register') {
 
         if (!is_array($registration) || ($registration['expires_at'] ?? 0) <= time()) {
             $_SESSION['register_error'] = 'Code invalide ou expiré. Demandez un nouveau code.';
-        } elseif (!preg_match('/^\d{6}$/', $submittedCode)
+        } elseif (
+            !preg_match('/^\d{6}$/', $submittedCode)
             || !password_verify($submittedCode, (string) ($registration['code_hash'] ?? ''))
         ) {
             $registration['attempts'] = (int) ($registration['attempts'] ?? 0) + 1;
@@ -496,7 +620,8 @@ else if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'register') {
             }
         } else {
             try {
-                $update = getPDO()->prepare(
+                $pdo = getPDO();
+                $update = $pdo->prepare(
                     'UPDATE `User` SET `email_verified` = 1, `email_verification_token` = NULL WHERE `idUser` = :userId AND `email_verified` = 0'
                 );
                 $update->execute(['userId' => (int) $registration['user_id']]);
@@ -504,6 +629,9 @@ else if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'register') {
                 if ($update->rowCount() !== 1) {
                     throw new RuntimeException('No unverified account was updated by registration verification.');
                 }
+
+                require_once __DIR__ . '/src/Models/AuditModel.php';
+                AuditModel::record('user.email_verified', 'low', 'Adresse courriel vérifiée.', (int) $registration['user_id'], (int) $registration['user_id'], [], $pdo);
 
                 unset($_SESSION['registration_verification'], $_SESSION['registration_last_sent_at']);
                 $_SESSION['verify_success'] = 'Votre adresse courriel est vérifiée. Votre compte est prêt, vous pouvez vous connecter.';
@@ -535,6 +663,7 @@ else if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'register') {
                 $registration['code_hash'] = password_hash($code, PASSWORD_DEFAULT);
                 $registration['expires_at'] = time() + 600;
                 $registration['attempts'] = 0;
+                $registration['code_sent'] = true;
                 $_SESSION['registration_verification'] = $registration;
                 $_SESSION['registration_last_sent_at'] = time();
                 $_SESSION['register_success'] = 'Un nouveau code de vérification a été envoyé. Il est valable 10 minutes.';
@@ -573,10 +702,41 @@ else if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'register') {
 
     try {
         $pdo = getPDO();
-        $stmt = $pdo->prepare('SELECT idUser FROM `User` WHERE `Alias` = :username OR `Description` = :email LIMIT 1');
-        $stmt->execute(['username' => $username, 'email' => $email]);
+        $emailStmt = $pdo->prepare(
+            'SELECT `idUser`, `Alias`, `Description`, `Password`, `email_verified`
+             FROM `User` WHERE `Description` = :email LIMIT 1'
+        );
+        $emailStmt->execute(['email' => $email]);
+        $existingEmailAccount = $emailStmt->fetch(PDO::FETCH_ASSOC);
 
-        if ($stmt->fetch()) {
+        if (is_array($existingEmailAccount)) {
+            if (
+                (int) $existingEmailAccount['email_verified'] === 0
+                && password_verify($password, (string) $existingEmailAccount['Password'])
+            ) {
+                $_SESSION['registration_verification'] = [
+                    'user_id' => (int) $existingEmailAccount['idUser'],
+                    'username' => (string) $existingEmailAccount['Alias'],
+                    'email' => (string) $existingEmailAccount['Description'],
+                    'code_hash' => '',
+                    'expires_at' => 0,
+                    'attempts' => 0,
+                    'code_sent' => false,
+                ];
+                unset($_SESSION['registration_last_sent_at']);
+                $_SESSION['register_success'] = 'Cette inscription est déjà en attente. Renvoyez le code pour terminer la vérification.';
+                header('Location: index.php?action=registerPage');
+                exit;
+            }
+
+            $_SESSION['register_error'] = 'Ce nom d’utilisateur ou cette adresse courriel existe déjà.';
+            header('Location: index.php?action=registerPage');
+            exit;
+        }
+
+        $usernameStmt = $pdo->prepare('SELECT `idUser` FROM `User` WHERE `Alias` = :username LIMIT 1');
+        $usernameStmt->execute(['username' => $username]);
+        if ($usernameStmt->fetch()) {
             $_SESSION['register_error'] = 'Ce nom d’utilisateur ou cette adresse courriel existe déjà.';
             header('Location: index.php?action=registerPage');
             exit;
@@ -596,6 +756,9 @@ else if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'register') {
         sendRegistrationCode($email, $username, $code);
         $pdo->commit();
 
+        require_once __DIR__ . '/src/Models/AuditModel.php';
+        AuditModel::record('user.registered', 'low', 'Nouvel utilisateur créé.', null, $userId, [], $pdo);
+
         $_SESSION['registration_verification'] = [
             'user_id' => $userId,
             'username' => $username,
@@ -603,6 +766,7 @@ else if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'register') {
             'code_hash' => password_hash($code, PASSWORD_DEFAULT),
             'expires_at' => time() + 600,
             'attempts' => 0,
+            'code_sent' => true,
         ];
         $_SESSION['registration_last_sent_at'] = time();
         $_SESSION['register_success'] = 'Un code de vérification a été envoyé à votre adresse courriel. Il est valable 10 minutes.';
@@ -616,8 +780,7 @@ else if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'register') {
 
     header('Location: index.php?action=registerPage');
     exit;
-}
-else if ($action !== '' && $action !== 'dashboard' &&$action !== 'education') {
+} else if ($action !== '' && $action !== 'dashboard' && $action !== 'education') {
     http_response_code(404);
     $pageTitle = 'Page introuvable | NovaBank';
     require __DIR__ . '/views/errors/404.php';
@@ -649,7 +812,8 @@ if ($isLoggedIn && $action === 'education') {
 $pageTitle = ($action === 'education') ? 'Éducation financière | NovaBank' : 'NovaBank | Banque virtuelle & Simulateur de Bourse';
 $pageStylesheets = !$isLoggedIn
     ? ['home.css']
-    : ($action === 'education' ? ['dashboard.css', 'education.css'] : ['dashboard.css']);
+    : ($action === 'education' ? ['dashboard.css', 'education.css','snow.css'] : ['dashboard.css']);
+
 $activePage = $action === 'education' ? 'education' : 'dashboard';
 require __DIR__ . '/views/layout/header.php';
 
@@ -718,11 +882,13 @@ if ($isLoggedIn && ($action === '' || $action === 'dashboard')) {
 }
 ?>
 
+
 <?php if ($isLoggedIn): ?>
     <div class="dashboard-layout">
         <?php require __DIR__ . '/views/layout/sidebar.php'; ?>
-
+      
         <main class="dashboard-main" aria-label="Espace principal">
+          
             <?php if ($action === 'education'): ?>
                 <!-- Inclusion de la vue éducation dans le conteneur du tableau de bord -->
                 <?php require __DIR__ . '/src/Models/education.php'; ?>
@@ -737,19 +903,19 @@ if ($isLoggedIn && ($action === '' || $action === 'dashboard')) {
                     </p>
                 </header>
 
-                <section class="dashboard-summary-cards" id="dashboard-summary-cards" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; margin-bottom: 30px;">
-                    <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 20px;">
+                <section class="dashboard-summary-cards" id="dashboard-summary-cards"
+                    style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; margin-bottom: 30px;">
+                    <div
+                        style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 20px;">
                         <div class="dashboard-balance-heading">
-                            <span style="color: #94a3b8; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px;">Solde disponible</span>
-                            <button
-                                class="balance-visibility-toggle"
-                                type="button"
-                                aria-label="Masquer les soldes et les investissements"
-                                aria-pressed="false"
+                            <span
+                                style="color: #94a3b8; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px;">Solde
+                                disponible</span>
+                            <button class="balance-visibility-toggle" type="button"
+                                aria-label="Masquer les soldes et les investissements" aria-pressed="false"
                                 aria-controls="dashboard-summary-cards"
                                 data-privacy-storage-key="novabank-dashboard-privacy-<?= (int) $_SESSION['user']['id'] ?>"
-                                title="Masquer les soldes et les investissements"
-                            >
+                                title="Masquer les soldes et les investissements">
                                 <svg class="balance-eye-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                                     <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"></path>
                                     <circle cx="12" cy="12" r="3"></circle>
@@ -757,43 +923,55 @@ if ($isLoggedIn && ($action === '' || $action === 'dashboard')) {
                                 </svg>
                             </button>
                         </div>
-                        <div class="dashboard-balance-value" id="dashboard-balance-value" style="color: #38bdf8; font-size: 2rem; font-weight: 700; margin-top: 6px;">
-                            <span class="privacy-value-visible"><?= $dashboardData === null ? '—' : htmlspecialchars(number_format($dashboardData['balance'], 2, ',', ' ') . ' $', ENT_QUOTES, 'UTF-8') ?></span>
+                        <div class="dashboard-balance-value" id="dashboard-balance-value"
+                            style="color: #38bdf8; font-size: 2rem; font-weight: 700; margin-top: 6px;">
+                            <span class="privacy-value-visible"><?= $dashboardData === null ? '—' : renderCurrencyAmount($dashboardData['balance'], 'CAD') ?></span>
                             <span class="privacy-value-hidden" aria-label="Solde masqué" hidden>••••••</span>
                         </div>
                         <span style="color: #94a3b8; font-size: 0.85rem; font-weight: 500;">Solde actuel du compte</span>
                     </div>
 
-                    <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 20px;">
-                        <span style="color: #94a3b8; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px;">Investissements en cours</span>
+                    <div
+                        style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 20px;">
+                        <span
+                            style="color: #94a3b8; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px;">Investissements
+                            en cours</span>
                         <div style="color: #ffffff; font-size: 2rem; font-weight: 700; margin-top: 6px;">
-                            <span class="privacy-value-visible"><?php if ($dashboardData === null || !$dashboardData['pricesAvailable']): ?><?= $dashboardData === null ? '—' : 'Indisponible' ?><?php else: ?><?= htmlspecialchars(number_format($dashboardData['investmentValue'], 2, ',', ' ') . ' $', ENT_QUOTES, 'UTF-8') ?><?php endif; ?></span>
+                            <span
+                                class="privacy-value-visible"><?php if ($dashboardData === null || !$dashboardData['pricesAvailable']): ?><?= $dashboardData === null ? '—' : 'Indisponible' ?><?php else: ?><?= renderCurrencyAmount($dashboardData['investmentValue'], 'CAD') ?><?php endif; ?></span>
                             <span class="privacy-value-hidden" aria-label="Investissements masqués" hidden>••••••</span>
                         </div>
                         <span class="privacy-value-visible" style="color: #94a3b8; font-size: 0.85rem;">
                             <?= $dashboardData !== null && !$dashboardData['pricesAvailable'] ? 'Cours manquant pour une ou plusieurs positions' : 'Valeur actuelle des positions ouvertes' ?>
                         </span>
-                        <span class="privacy-value-hidden" style="color: #94a3b8; font-size: 0.85rem;" aria-label="Détails des investissements masqués" hidden>••••••</span>
+                        <span class="privacy-value-hidden" style="color: #94a3b8; font-size: 0.85rem;"
+                            aria-label="Détails des investissements masqués" hidden>••••••</span>
                     </div>
 
-                    <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 20px;">
-                        <span style="color: #94a3b8; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px;">Performance des positions</span>
-                        <div style="color: <?= $dashboardData !== null && $dashboardData['performance'] !== null && $dashboardData['performance'] < 0 ? '#f87171' : '#22c55e' ?>; font-size: 2rem; font-weight: 700; margin-top: 6px;">
-                            <span class="privacy-value-visible"><?= $dashboardData === null || $dashboardData['performance'] === null ? '—' : htmlspecialchars(number_format($dashboardData['performance'], 2, ',', ' ') . ' %', ENT_QUOTES, 'UTF-8') ?></span>
+                    <div
+                        style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 20px;">
+                        <span
+                            style="color: #94a3b8; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px;">Performance
+                            des positions</span>
+                        <div
+                            style="color: <?= $dashboardData !== null && $dashboardData['performance'] !== null && $dashboardData['performance'] < 0 ? '#f87171' : '#22c55e' ?>; font-size: 2rem; font-weight: 700; margin-top: 6px;">
+                            <span
+                                class="privacy-value-visible"><?= $dashboardData === null || $dashboardData['performance'] === null ? '—' : htmlspecialchars(number_format($dashboardData['performance'], 2, ',', ' ') . ' %', ENT_QUOTES, 'UTF-8') ?></span>
                             <span class="privacy-value-hidden" aria-label="Performance masquée" hidden>••••••</span>
                         </div>
                         <span class="privacy-value-visible" style="color: #94a3b8; font-size: 0.85rem;">
                             <?php if ($dashboardError !== null): ?>
                                 <?= htmlspecialchars($dashboardError, ENT_QUOTES, 'UTF-8') ?>
                             <?php elseif ($dashboardData !== null && $dashboardData['unrealizedPnl'] !== null && $dashboardData['investedAmount'] > 0): ?>
-                                Gain/perte latent(e) : <?= htmlspecialchars(number_format($dashboardData['unrealizedPnl'], 2, ',', ' ') . ' $', ENT_QUOTES, 'UTF-8') ?>
+                                Gain/perte latent(e) : <?= renderCurrencyAmount($dashboardData['unrealizedPnl'], 'CAD') ?>
                             <?php elseif ($dashboardData !== null && !$dashboardData['pricesAvailable']): ?>
                                 Performance indisponible : cours manquant
                             <?php else: ?>
                                 Aucune position ouverte
                             <?php endif; ?>
                         </span>
-                        <span class="privacy-value-hidden" style="color: #94a3b8; font-size: 0.85rem;" aria-label="Détails de performance masqués" hidden>••••••</span>
+                        <span class="privacy-value-hidden" style="color: #94a3b8; font-size: 0.85rem;"
+                            aria-label="Détails de performance masqués" hidden>••••••</span>
                     </div>
                 </section>
 
@@ -832,35 +1010,57 @@ if ($isLoggedIn && ($action === '' || $action === 'dashboard')) {
                 </script>
 
                 <section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
-                    <div style="background: rgba(15, 23, 42, 0.5); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 22px;">
+                    <div
+                        style="background: rgba(15, 23, 42, 0.5); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 22px;">
                         <h3 style="color: #ffffff; font-size: 1.15rem; margin-top: 0;">Simulateur de Bourse</h3>
-                        <p style="color: #94a3b8; font-size: 0.9rem; line-height: 1.5;">Consultez les cours réels de Wall Street et passez vos premiers ordres d'achat ou vente.</p>
-                        <a href="index.php?action=marketPage" class="btn-primary" style="display: inline-block; padding: 10px 18px; text-decoration: none; border-radius: 6px; font-weight: 600;">Accéder au Marché</a>
+                        <p style="color: #94a3b8; font-size: 0.9rem; line-height: 1.5;">Consultez les cours réels de Wall Street
+                            et passez vos premiers ordres d'achat ou vente.</p>
+                        <a href="index.php?action=marketPage" class="btn-primary"
+                            style="display: inline-block; padding: 10px 18px; text-decoration: none; border-radius: 6px; font-weight: 600;">Accéder
+                            au Marché</a>
                     </div>
 
-                    <div style="background: rgba(15, 23, 42, 0.5); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 22px;">
+                    <div
+                        style="background: rgba(15, 23, 42, 0.5); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 22px;">
                         <h3 style="color: #ffffff; font-size: 1.15rem; margin-top: 0;">Académie & Éducation</h3>
-                        <p style="color: #94a3b8; font-size: 0.9rem; line-height: 1.5;">Apprenez les principes de gestion du risque, la lecture des graphiques et les stratégies financières.</p>
-                        <a href="index.php?action=education" class="btn-secondary" style="display: inline-block; padding: 10px 18px; text-decoration: none; border-radius: 6px; font-weight: 600;">Consulter les Guides</a>
+                        <p style="color: #94a3b8; font-size: 0.9rem; line-height: 1.5;">Apprenez les principes de gestion du
+                            risque, la lecture des graphiques et les stratégies financières.</p>
+                        <a href="index.php?action=education" class="btn-secondary"
+                            style="display: inline-block; padding: 10px 18px; text-decoration: none; border-radius: 6px; font-weight: 600;">Consulter
+                            les Guides</a>
                     </div>
-                </section>
+                    
+                   
+                
+                </section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
+
+              
+                    <?php require __DIR__ . '/src/Models/favorites.php'; ?>
+                
+
+
             <?php endif; ?>
         </main>
     </div>
 <?php else: ?>
     <!-- Page d'accueil publique -->
     <main class="main-content">
-        <section class="home-hero" aria-labelledby="hero-title" style="position: relative; width: 100vw; margin-left: calc(-50vw + 50%); min-height: 85vh; display: flex; align-items: center; justify-content: space-between; padding: 60px 8%; box-sizing: border-box; overflow: hidden;">
-            <video autoplay muted loop playsinline style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; object-position: center; z-index: 1; pointer-events: none;">
+        <section class="home-hero" aria-labelledby="hero-title"
+            style="position: relative; width: 100vw; margin-left: calc(-50vw + 50%); min-height: 85vh; display: flex; align-items: center; justify-content: space-between; padding: 60px 8%; box-sizing: border-box; overflow: hidden;">
+            <video autoplay muted loop playsinline
+                style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; object-position: center; z-index: 1; pointer-events: none;">
                 <source src="public/video/invest.mp4" type="video/mp4">
                 Votre navigateur ne supporte pas la lecture vidéo.
             </video>
 
-            <div style="position: absolute; inset: 0; background: rgba(10, 15, 29, 0.65); z-index: 2; pointer-events: none;"></div>
+            <div
+                style="position: absolute; inset: 0; background: rgba(10, 15, 29, 0.65); z-index: 2; pointer-events: none;">
+            </div>
 
             <div class="home-copy" style="position: relative; z-index: 10; max-width: 580px; color: #ffffff;">
                 <div class="reveal-wrapper">
-                    <span class="home-eyebrow reveal-text delay-1" style="font-weight: 600; text-transform: uppercase; letter-spacing: 1px; display: inline-block; margin-bottom: 8px;">
+                    <span class="home-eyebrow reveal-text delay-1"
+                        style="font-weight: 600; text-transform: uppercase; letter-spacing: 1px; display: inline-block; margin-bottom: 8px;">
                         NovaBank
                     </span>
                 </div>
@@ -876,7 +1076,8 @@ if ($isLoggedIn && ($action === '' || $action === 'dashboard')) {
                 </h1>
 
                 <div class="reveal-wrapper">
-                    <p class="hero-lead reveal-text delay-4" style="color: #e2e8f0; font-size: 1.15rem; line-height: 1.6; margin-bottom: 24px;">
+                    <p class="hero-lead reveal-text delay-4"
+                        style="color: #e2e8f0; font-size: 1.15rem; line-height: 1.6; margin-bottom: 24px;">
                         Gérez votre compte, suivez vos finances et découvrez l'investissement depuis un seul espace.
                     </p>
                 </div>
@@ -893,9 +1094,11 @@ if ($isLoggedIn && ($action === '' || $action === 'dashboard')) {
                 </div>
             </div>
 
-            <aside class="home-side-panel reveal-fade delay-4" aria-label="Marchés en direct" style="position: relative; z-index: 10; background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(10px); padding: 24px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.1); width: 340px;">
+            <aside class="home-side-panel reveal-fade delay-4" aria-label="Marchés en direct"
+                style="position: relative; z-index: 10; background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(10px); padding: 24px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.1); width: 340px;">
                 <div class="reveal-wrapper">
-                    <span class="side-panel-label reveal-text delay-5" style="color: #94a3b8; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; display: inline-block;">
+                    <span class="side-panel-label reveal-text delay-5"
+                        style="color: #94a3b8; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; display: inline-block;">
                         Marchés en direct
                     </span>
                 </div>
@@ -909,12 +1112,14 @@ if ($isLoggedIn && ($action === '' || $action === 'dashboard')) {
                 <div class="market-preview-list">
                     <?php if (!empty($marketData)): ?>
                         <?php $delayIndex = 7; ?>
-                        <?php foreach (array_slice($marketData, 0, 3) as$stock): ?>
-                            <div class="market-preview-row reveal-fade delay-<?= min($delayIndex++, 7) ?>" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.08); color: #ffffff;">
+                        <?php foreach (array_slice($marketData, 0, 3) as $stock): ?>
+                            <div class="market-preview-row reveal-fade delay-<?= min($delayIndex++, 7) ?>"
+                                style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.08); color: #ffffff;">
                                 <strong><?= htmlspecialchars($stock['symbol']) ?></strong>
                                 <span>$<?= htmlspecialchars($stock['price']) ?></span>
-                                <span class="market-preview-change <?= $stock['change'] >= 0 ? 'up' : 'down' ?>" style="color: <?= $stock['change'] >= 0 ? '#4ade80' : '#f87171' ?>; font-weight: 600;">
-                                    <?= $stock['change'] >= 0 ? '+' : '' ?><?= htmlspecialchars($stock['change']) ?>%
+                                <span class="market-preview-change <?= $stock['change'] >= 0 ? 'up' : 'down' ?>"
+                                    style="color: <?= $stock['change'] >= 0 ? '#4ade80' : '#f87171' ?>; font-weight: 600;">
+                                    <?= $stock['change'] >= 0 ? '+' : '' ?>            <?= htmlspecialchars($stock['change']) ?>%
                                 </span>
                             </div>
                         <?php endforeach; ?>
@@ -926,7 +1131,9 @@ if ($isLoggedIn && ($action === '' || $action === 'dashboard')) {
                 </div>
 
                 <p class="security-note reveal-fade delay-7" style="margin-top: 16px; color: #94a3b8; font-size: 0.85rem;">
-                    <span class="security-dot" style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: #22c55e; margin-right: 6px;"></span> Serveur opérationnel.
+                    <span class="security-dot"
+                        style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: #22c55e; margin-right: 6px;"></span>
+                    Serveur opérationnel.
                 </p>
             </aside>
         </section>
@@ -940,62 +1147,80 @@ if ($isLoggedIn && ($action === '' || $action === 'dashboard')) {
                     </h2>
                 </div>
                 <p class="scroll-reveal delay-3">
-                    Une interface conçue pour combiner la simplicité d'un compte courant moderne et la puissance d'un terminal d'apprentissage boursier.
+                    Une interface conçue pour combiner la simplicité d'un compte courant moderne et la puissance d'un
+                    terminal d'apprentissage boursier.
                 </p>
             </div>
 
             <div class="features-grid">
                 <article class="feat-card scroll-reveal delay-1">
                     <div class="feat-icon ic-bank">
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <rect x="2" y="5" width="20" height="14" rx="2"/>
-                            <line x1="2" y1="10" x2="22" y2="10"/>
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="2" y="5" width="20" height="14" rx="2" />
+                            <line x1="2" y1="10" x2="22" y2="10" />
                         </svg>
                     </div>
                     <div class="feat-content">
                         <h3>Compte & Solde en direct</h3>
-                        <p>Gardez un œil sur votre solde virtuel de départ (1 500 $ offerts), effectuez des virements et suivez l'historique complet de vos opérations en temps réel.</p>
+                        <p>Gardez un œil sur votre solde virtuel de départ (1 500 $ offerts), effectuez des virements et
+                            suivez l'historique complet de vos opérations en temps réel.</p>
                     </div>
                     <a href="index.php?action=registerPage" class="feat-link">
-                        Ouvrir un compte 
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                        Ouvrir un compte
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2.5">
+                            <path d="M5 12h14M12 5l7 7-7 7" />
+                        </svg>
                     </a>
                 </article>
 
                 <article class="feat-card scroll-reveal delay-2">
                     <div class="feat-icon ic-market">
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
-                            <polyline points="17 6 23 6 23 12"/>
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
+                            <polyline points="17 6 23 6 23 12" />
                         </svg>
                     </div>
                     <div class="feat-content">
                         <h3>Simulateur de Bourse</h3>
-                        <p>Achetez et vendez des actions avec les cotations réelles de Wall Street. Testez vos stratégies d'investissement sans risquer le moindre dollar réel.</p>
+                        <p>Achetez et vendez des actions avec les cotations réelles de Wall Street. Testez vos stratégies
+                            d'investissement sans risquer le moindre dollar réel.</p>
                     </div>
                     <a href="index.php?action=registerPage" class="feat-link">
-                        Explorer le marché 
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                        Explorer le marché
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2.5">
+                            <path d="M5 12h14M12 5l7 7-7 7" />
+                        </svg>
                     </a>
                 </article>
 
                 <article class="feat-card scroll-reveal delay-3">
                     <div class="feat-icon ic-shield">
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
                         </svg>
                     </div>
                     <div class="feat-content">
                         <h3>Sécurité & Éducation</h3>
-                        <p>Comprenez la volatilité, la composition d'un portefeuille et les bases de la finance dans un environnement totalement sécurisé et authentifié.</p>
+                        <p>Comprenez la volatilité, la composition d'un portefeuille et les bases de la finance dans un
+                            environnement totalement sécurisé et authentifié.</p>
                     </div>
                     <a href="index.php?action=education" class="feat-link">
-                        Découvrir les guides 
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                        Découvrir les guides
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2.5">
+                            <path d="M5 12h14M12 5l7 7-7 7" />
+                        </svg>
                     </a>
                 </article>
             </div>
+
         </section>
+                   
     </main>
 <?php endif; ?>
 

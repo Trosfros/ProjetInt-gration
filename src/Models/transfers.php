@@ -65,7 +65,11 @@ require $projectRoot . '/views/layout/header.php';
                 <h1>Virements</h1>
                 <p>Transférez des fonds à un autre utilisateur NovaBank à l’aide de son adresse email.</p>
             </div>
-            <span class="transfer-header-icon" aria-hidden="true">↗</span>
+            <span class="transfer-header-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M7 17 17 7M7 7h10v10" />
+                </svg>
+            </span>
         </header>
 
         <?php if ($transferSuccess !== null): ?>
@@ -84,18 +88,18 @@ require $projectRoot . '/views/layout/header.php';
             <section class="transfer-overview" aria-label="Résumé des limites">
                 <article class="transfer-stat-card">
                     <span>Solde disponible</span>
-                    <strong><?= number_format($transferData['balance'], 2, ',', ' ') ?> $</strong>
+                    <strong><?= renderCurrencyAmount((float) $transferData['balance'], 'CAD') ?></strong>
                     <small>Solde actuel de votre compte</small>
                 </article>
                 <article class="transfer-stat-card">
                     <span>Limite quotidienne</span>
-                    <strong>10 000,00 $</strong>
+                    <strong><?= renderCurrencyAmount(10000.0, 'CAD') ?></strong>
                     <small>Montant total maximal envoyé par jour</small>
                 </article>
                 <article class="transfer-stat-card">
                     <span>Encore disponible aujourd’hui</span>
-                    <strong><?= number_format($transferData['dailyRemaining'], 2, ',', ' ') ?> $</strong>
-                    <small>Déjà envoyé : <?= number_format($transferData['dailySent'], 2, ',', ' ') ?> $</small>
+                    <strong><?= renderCurrencyAmount((float) $transferData['dailyRemaining'], 'CAD') ?></strong>
+                    <small>Déjà envoyé : <?= renderCurrencyAmount((float) $transferData['dailySent'], 'CAD') ?></small>
                 </article>
             </section>
 
