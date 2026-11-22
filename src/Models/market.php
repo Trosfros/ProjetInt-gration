@@ -39,7 +39,7 @@ try {
 } catch (Throwable $e) {
   error_log('Market page DB error: ' . $e->getMessage());
   foreach ($marketData as &$stock) {
-    $stock['id'] = null; 
+    $stock['id'] = null;
   }
   unset($stock);
 }
@@ -133,20 +133,24 @@ try {
                 autocomplete="off"
                 onchange="updateTab(this.value); updateFavoriteButton();">
                 <?php if (!empty($marketData)): ?>
-                  <?php foreach ($marketData as $stock): ?>
-                    <option data-id-stock="<?= htmlspecialchars($stock['id'] ?? '') ?>"
-                      value="<?= htmlspecialchars($stock['symbol']) ?>"
-                      data-price="<?= htmlspecialchars($stock['price'] ?? 0) ?>"
-                      data-favorite="<?= in_array((int) ($stock['id'] ?? 0), $favoriteIds, true) ? '1' : '0' ?>" <?=$stock['symbol'] === 'AAPL' ? 'selected' : '' ?>>
-                      <?= htmlspecialchars($stock['symbol']) ?> - $<?= htmlspecialchars($stock['price'] ?? 0) ?>
+                  <?php foreach ($marketData as $stock):
+                    $isFavStock = !empty($stock['id']) && in_array($stock['id'], $favoriteIds, false);
+                  ?>
+                    <option
+                      data-id-stock="<?= htmlspecialchars((string) ($stock['id'] ?? ''), ENT_QUOTES, 'UTF-8') ?>"
+                      data-favorite="<?= $isFavStock ? '1' : '0' ?>"
+                      value="<?= htmlspecialchars((string) $stock['symbol'], ENT_QUOTES, 'UTF-8') ?>"
+                      data-price="<?= htmlspecialchars((string) ($stock['price'] ?? 0), ENT_QUOTES, 'UTF-8') ?>"
+                      <?= ($stock['symbol'] ?? '') === 'AAPL' ? 'selected' : '' ?>>
+                      <?= htmlspecialchars((string) $stock['symbol'], ENT_QUOTES, 'UTF-8') ?> - $<?= htmlspecialchars((string) ($stock['price'] ?? 0), ENT_QUOTES, 'UTF-8') ?>
                     </option>
                   <?php endforeach; ?>
                 <?php else: ?>
-                  <option value="AAPL" data-price="180.00" selected>AAPL - Apple Inc.</option>
-                  <option value="TSLA" data-price="240.00">TSLA - Tesla Inc.</option>
-                  <option value="NVDA" data-price="120.00">NVDA - NVIDIA Corp.</option>
-                  <option value="MSFT" data-price="410.00">MSFT - Microsoft Corp.</option>
-                  <option value="AMZN" data-price="175.00">AMZN - Amazon.com Inc.</option>
+                  <option value="AAPL" data-price="180.00" data-favorite="0" selected>AAPL - Apple Inc.</option>
+                  <option value="TSLA" data-price="240.00" data-favorite="0">TSLA - Tesla Inc.</option>
+                  <option value="NVDA" data-price="120.00" data-favorite="0">NVDA - NVIDIA Corp.</option>
+                  <option value="MSFT" data-price="410.00" data-favorite="0">MSFT - Microsoft Corp.</option>
+                  <option value="AMZN" data-price="175.00" data-favorite="0">AMZN - Amazon.com Inc.</option>
                 <?php endif; ?>
               </select>
 
@@ -184,6 +188,21 @@ try {
     </div>
   </main>
 </div>
+
+<!-- FENÊTRE MODALE DE CONFIRMATION POUR ORDRE > 1000$ -->
+<dialog class="sell-confirm-dialog" id="trade-confirm-dialog" aria-labelledby="trade-dialog-title">
+  <form method="dialog" class="sell-dialog-close-form">
+    <button class="sell-dialog-close" type="submit" aria-label="Fermer la confirmation">×</button>
+  </form>
+  <div class="sell-dialog-icon" aria-hidden="true">⚠️</div>
+  <p class="investment-kicker">Confirmation d'ordre important</p>
+  <h2 id="trade-dialog-title"><span id="trade-dialog-action"></span> de <span id="trade-dialog-quantity"></span> <span id="trade-dialog-stock"></span></h2>
+  <p class="sell-dialog-description">Le total estimé de cet ordre dépasse 1 000,00 $ (<span id="trade-dialog-total"></span>). Veuillez confirmer pour exécuter la transaction.</p>
+  <div class="sell-dialog-actions">
+    <button type="button" class="sell-dialog-cancel" id="trade-dialog-cancel">Annuler</button>
+    <button type="button" class="sell-dialog-confirm" id="trade-dialog-confirm">Confirmer l'ordre</button>
+  </div>
+</dialog>
 
 <!-- CALCULATEUR DYNAMIQUE ET SCRIPTS -->
 <script type="text/javascript">
@@ -324,28 +343,71 @@ try {
     totalDisplay.value = '$' + total.toFixed(2);
   }
 
-  async function doPayment(side) {
-    const symbolSelect = document.getElementById('trade-symbol-select');
-    const qtyInput = document.getElementById('trade-qty-input');
-
-    const selectedOption = symbolSelect.options[symbolSelect.selectedIndex];
-    const idStock = parseInt(selectedOption.dataset.idStock, 10);
-    const amount = parseFloat(qtyInput.value);
+  async function toggleFavorite() {
+    const select = document.getElementById('trade-symbol-select');
+    const btn = document.getElementById('favorite-toggle-btn');
+    const opt = select.options[select.selectedIndex];
+    const idStock = parseInt(opt?.dataset.idStock, 10);
 
     if (!idStock) {
-      alert("Cette action n'a pas d'identifiant valide en base de données.");
-      return;
-    }
-    if (!amount || amount <= 0) {
-      alert('Entrez une quantité valide.');
+      showTradeFeedback("Cette action n'a pas d'identifiant valide en base de données.", false);
       return;
     }
 
+    btn.disabled = true;
+    try {
+      const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
+      const headers = { 'Content-Type': 'application/json' };
+      if (csrfToken) {
+        headers['X-CSRF-Token'] = csrfToken;
+      }
+
+      const res = await fetch('src/DAL/toggleFavorite.php', {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify({ idStock: idStock }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        opt.dataset.favorite = data.isFavorite ? '1' : '0';
+      } else {
+        showTradeFeedback(data.message, false);
+      }
+    } catch (err) {
+      showTradeFeedback('Erreur réseau lors de la mise à jour des favoris.', false);
+    } finally {
+      updateFavoriteButton();
+    }
+  }
+
+  function updateFavoriteButton() {
+    const select = document.getElementById('trade-symbol-select');
+    const btn = document.getElementById('favorite-toggle-btn');
+    if (!select || !btn) return;
+
+    const opt = select.options[select.selectedIndex];
+    const hasId = !!(opt && opt.dataset.idStock);
+    const isFav = !!(opt && opt.dataset.favorite === '1');
+    const label = isFav ? 'Retirer des favoris' : 'Ajouter aux favoris';
+
+    btn.disabled = !hasId;
+    btn.classList.toggle('is-favorite', isFav);
+    btn.setAttribute('aria-pressed', isFav ? 'true' : 'false');
+    btn.setAttribute('aria-label', label);
+    btn.title = hasId ? label : "Cette action n'est pas en base de données";
+    btn.textContent = isFav ? '★' : '☆';
+  }
+
+  const tradeDialog = document.getElementById('trade-confirm-dialog');
+  const tradeConfirmButton = document.getElementById('trade-dialog-confirm');
+  let pendingTrade = null;
+
+  async function executeOrder(side, idStock, amount) {
     showTradeFeedback(null);
     try {
       const res = await fetch('src/DAL/placeOrder.php', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ side: side, idStock: idStock, amount: amount, unit: 'shares' }),
       });
 
@@ -358,53 +420,56 @@ try {
       alert('Erreur réseau lors de la commande : ' + err);
     }
   }
-  async function toggleFavorite() {
-  const select = document.getElementById('trade-symbol-select');
-  const btn = document.getElementById('favorite-toggle-btn');
-  const opt = select.options[select.selectedIndex];
-  const idStock = parseInt(opt?.dataset.idStock, 10);
 
-  if (!idStock) {
-    showTradeFeedback("Cette action n'a pas d'identifiant valide en base de données.", false);
-    return;
-  }
+  async function doPayment(side) {
+    const symbolSelect = document.getElementById('trade-symbol-select');
+    const qtyInput = document.getElementById('trade-qty-input');
 
-   btn.disabled = true;
-  try {
-    const res = await fetch('src/DAL/toggleFavorite.php', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content },
-      body: JSON.stringify({ idStock: idStock }),
-    });
-    const data = await res.json();
-    if (data.success) {
-      opt.dataset.favorite = data.isFavorite ? '1' : '0';
-    } else {
-      showTradeFeedback(data.message, false);
+    const selectedOption = symbolSelect.options[symbolSelect.selectedIndex];
+    const idStock = parseInt(selectedOption.dataset.idStock, 10);
+    const amount = parseFloat(qtyInput.value);
+    const symbol = selectedOption.value;
+
+    if (!idStock) {
+      alert("Cette action n'a pas d'identifiant valide en base de données.");
+      return;
     }
-  } catch (err) {
-    showTradeFeedback('Erreur réseau lors de la mise à jour des favoris.', false);
-  } finally {
-    updateFavoriteButton();
+    if (!amount || amount <= 0) {
+      alert('Entrez une quantité valide.');
+      return;
+    }
+
+    const unitPrice = window.getSelectedStockPrice ? window.getSelectedStockPrice(symbol) : 150.00;
+    const total = amount * unitPrice;
+
+    // Si le total dépasse 1000$, on interrompt et on ouvre la modale de confirmation
+    if (total > 1000) {
+      pendingTrade = { side, idStock, amount };
+      document.getElementById('trade-dialog-action').textContent = side === 'buy' ? 'Achat' : 'Vente';
+      document.getElementById('trade-dialog-quantity').textContent = amount.toLocaleString('fr-CA');
+      document.getElementById('trade-dialog-stock').textContent = symbol;
+      document.getElementById('trade-dialog-total').textContent = total.toLocaleString('fr-CA', { style: 'currency', currency: 'USD' });
+
+      tradeDialog.showModal();
+      return;
+    }
+
+    // Sinon, on exécute directement
+    await executeOrder(side, idStock, amount);
   }
-}
-function updateFavoriteButton() {
-  const select = document.getElementById('trade-symbol-select');
-  const btn = document.getElementById('favorite-toggle-btn');
-  if (!select || !btn) return;
 
-  const opt = select.options[select.selectedIndex];
-  const hasId = !!(opt && opt.dataset.idStock);
-  const isFav = !!(opt && opt.dataset.favorite === '1');
-  const label = isFav ? 'Retirer des favoris' : 'Ajouter aux favoris';
+  document.getElementById('trade-dialog-cancel').addEventListener('click', () => {
+    tradeDialog.close();
+    pendingTrade = null;
+  });
 
-  btn.disabled = !hasId;
-  btn.classList.toggle('is-favorite', isFav);
-  btn.setAttribute('aria-pressed', isFav ? 'true' : 'false');
-  btn.setAttribute('aria-label', label);
-  btn.title = hasId ? label : "Cette action n'est pas en base de données";
-  btn.textContent = isFav ? '★' : '☆';
-}
+  tradeConfirmButton.addEventListener('click', async () => {
+    if (!pendingTrade) return;
+    const { side, idStock, amount } = pendingTrade;
+    tradeDialog.close();
+    pendingTrade = null;
+    await executeOrder(side, idStock, amount);
+  });
 </script>
 
 <?php require $projectRoot . '/views/layout/footer.php'; ?>
