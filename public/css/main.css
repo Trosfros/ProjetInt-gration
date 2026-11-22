@@ -438,6 +438,112 @@ footer {
   align-items: center;
   text-align: center;
 }
+
+.footer-content {
+  display: grid;
+  justify-items: center;
+  gap: 0.75rem;
+}
+
+.footer-privacy-link {
+  color: #7dd3fc;
+  font-size: 0.85rem;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.footer-privacy-link:hover {
+  color: #bae6fd;
+}
+
+.cookie-notice {
+  position: fixed;
+  z-index: 99990;
+  right: 1rem;
+  bottom: 1rem;
+  left: 1rem;
+  display: flex;
+  width: min(720px, calc(100% - 2rem));
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  margin: 0 auto;
+  padding: 1.25rem 1.4rem;
+  border: 1px solid rgba(125, 211, 252, 0.3);
+  border-radius: 16px;
+  background: rgba(8, 15, 28, 0.97);
+  color: #e2e8f0;
+  box-shadow: 0 18px 55px rgba(0, 0, 0, 0.45);
+  opacity: 0;
+  transform: translateY(calc(100% + 24px));
+  transition: opacity 300ms ease, transform 300ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.cookie-notice[hidden] {
+  display: none;
+}
+
+.cookie-notice.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.cookie-notice-copy {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.cookie-notice-copy h2 {
+  color: #f8fafc;
+  font-size: 1rem;
+}
+
+.cookie-notice-copy p {
+  max-width: 560px;
+  color: #cbd5e1;
+  font-size: 0.88rem;
+  line-height: 1.55;
+}
+
+.cookie-notice-copy a {
+  width: fit-content;
+  color: #7dd3fc;
+  font-size: 0.88rem;
+  text-underline-offset: 0.2em;
+}
+
+.cookie-notice-dismiss {
+  flex: 0 0 auto;
+  min-height: 42px;
+  padding: 0.65rem 1rem;
+  border: 1px solid #38bdf8;
+  border-radius: 9px;
+  background: #0284c7;
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 160ms ease, border-color 160ms ease;
+}
+
+.cookie-notice-dismiss:hover {
+  border-color: #7dd3fc;
+  background: #0369a1;
+}
+
+html.light-mode .cookie-notice {
+  border-color: rgba(8, 126, 164, 0.25);
+  background: rgba(255, 255, 255, 0.98);
+  color: #17243a;
+}
+
+html.light-mode .cookie-notice-copy h2 {
+  color: #17243a;
+}
+
+html.light-mode .cookie-notice-copy p {
+  color: #52647c;
+}
 footer p {
   color: var(--text-muted);
   font-size: 0.85rem;
@@ -775,6 +881,21 @@ img {
 
 @media (max-width: 600px) {
   /* iOS zoome automatiquement sur les champs dont le texte fait moins de 16px */
+  .cookie-notice {
+    right: 0.75rem;
+    bottom: 0.75rem;
+    left: 0.75rem;
+    width: auto;
+    align-items: stretch;
+    flex-direction: column;
+    gap: 0.9rem;
+    padding: 1rem;
+  }
+
+  .cookie-notice-dismiss {
+    width: 100%;
+  }
+
   input,
   select,
   textarea {
@@ -864,5 +985,12 @@ img {
   .notification-nav-link {
     min-width: 40px;
     min-height: 40px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cookie-notice,
+  .cookie-notice-dismiss {
+    transition: none;
   }
 }

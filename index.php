@@ -164,6 +164,9 @@ if ($action === 'logout') {
 } else if ($action === 'about') {
     require __DIR__ . '/src/Models/about.php';
     exit;
+} else if ($action === 'privacy') {
+    require __DIR__ . '/src/Models/privacy.php';
+    exit;
 } else if ($action === 'forgotPassword') {
     if ($isLoggedIn) {
         header('Location: index.php?action=profile');
