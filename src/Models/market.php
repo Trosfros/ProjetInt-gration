@@ -267,7 +267,7 @@ try {
       hide_volume: false,
       hotlist: false,
       interval: "D",
-      locale: "fr",
+      locale: document.documentElement.dataset.language === 'en' ? "en" : "fr",
       save_image: true,
       style: "1",
       symbol: symbol,

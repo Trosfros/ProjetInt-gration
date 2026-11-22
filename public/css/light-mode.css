@@ -944,6 +944,7 @@ html.light-mode .settings-threshold-field {
 }
 
 html.light-mode .settings-threshold-field input,
+html.light-mode .settings-threshold-field select,
 html.light-mode .settings-delete-form input {
   color: #26364d;
   background: #fff;

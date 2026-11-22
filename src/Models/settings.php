@@ -12,6 +12,7 @@ if (empty($_SESSION['user'])) {
 }
 
 require_once $projectRoot . '/src/Models/SettingsModel.php';
+require_once $projectRoot . '/configs/language.php';
 
 $userId = (int) $_SESSION['user']['id'];
 $settingsModel = new SettingsModel();
@@ -24,6 +25,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $submittedToken = is_string($_POST['csrf_token'] ?? null) ? $_POST['csrf_token'] : null;
     if (!validCsrfToken($submittedToken)) {
         $settingsError = 'Votre session a expiré. Rechargez la page et réessayez.';
+    } elseif (($_POST['form_action'] ?? '') === 'save_site_language') {
+        $language = is_string($_POST['site_language'] ?? null) ? $_POST['site_language'] : '';
+        if (!in_array($language, ['fr', 'en'], true)) {
+            $settingsError = 'Choisissez une langue valide.';
+        } else {
+            setcookie('novabank_language', $language, [
+                'expires' => time() + 31536000,
+                'path' => '/',
+                'secure' => isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off',
+                'httponly' => true,
+                'samesite' => 'Lax',
+            ]);
+            $_SESSION['settings_success'] = $language === 'en'
+                ? 'Your language preference has been saved.'
+                : 'Votre préférence de langue a été enregistrée.';
+            header('Location: index.php?action=settings');
+            exit;
+        }
     } elseif (($_POST['form_action'] ?? '') === 'save_notification_preferences') {
         try {
             $threshold = is_string($_POST['low_balance_threshold'] ?? null)
@@ -77,6 +96,7 @@ try {
 $pageTitle = 'Paramètres | NovaBank';
 $pageStylesheets = ['dashboard.css', 'profile.css', 'settings.css'];
 $activePage = 'settings';
+$currentLanguage = getCurrentLanguage();
 require $projectRoot . '/views/layout/header.php';
 ?>
 
@@ -128,6 +148,23 @@ require $projectRoot . '/views/layout/header.php';
             <section class="profile-password-section settings-preferences" aria-labelledby="currency-setting-title">
                 <h2 id="currency-setting-title">Devise d’affichage</h2>
                 <p>Choisissez CAD ou USD avec le sélecteur du header. Votre préférence s’applique aux montants affichés sur toutes les pages.</p>
+            </section>
+
+            <section class="profile-password-section settings-preferences" aria-labelledby="language-setting-title">
+                <h2 id="language-setting-title">Langue du site</h2>
+                <p>Choisissez la langue utilisée dans les menus et les pages de NovaBank.</p>
+                <form class="settings-language-form" method="post" action="index.php?action=settings">
+                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($settingsCsrfToken, ENT_QUOTES, 'UTF-8') ?>">
+                    <input type="hidden" name="form_action" value="save_site_language">
+                    <label class="settings-threshold-field" for="site-language">
+                        Langue
+                        <select id="site-language" name="site_language">
+                            <option value="fr"<?= $currentLanguage === 'fr' ? ' selected' : '' ?>>Français</option>
+                            <option value="en"<?= $currentLanguage === 'en' ? ' selected' : '' ?>>English</option>
+                        </select>
+                    </label>
+                    <button class="settings-save-button" type="submit">Enregistrer la langue</button>
+                </form>
             </section>
 
             <section class="settings-notification-section" aria-labelledby="notification-setting-title">
@@ -210,7 +247,7 @@ require $projectRoot . '/views/layout/header.php';
                         type="text"
                         name="delete_confirmation"
                         autocomplete="off"
-                        pattern="SUPPRIMER"
+                        pattern="<?= $currentLanguage === 'en' ? 'DELETE' : 'SUPPRIMER' ?>"
                         required
                     >
 

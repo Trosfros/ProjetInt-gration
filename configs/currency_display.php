@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__ . '/language.php';
+
 function renderCurrencyAmount(float $amount, string $currency = 'CAD'): string
 {
     $currency = strtoupper(trim($currency));
@@ -26,7 +28,9 @@ function renderCurrencyAmount(float $amount, string $currency = 'CAD'): string
         }
     }
 
-    $formattedAmount = number_format($displayAmount, 2, ',', ' ');
+    $formattedAmount = getCurrentLanguage() === 'en'
+        ? number_format($displayAmount, 2, '.', ',')
+        : number_format($displayAmount, 2, ',', ' ');
     $amountValue = number_format($amount, 8, '.', '');
     $safeCurrency = htmlspecialchars($currency, ENT_QUOTES, 'UTF-8');
     $safeAmountValue = htmlspecialchars($amountValue, ENT_QUOTES, 'UTF-8');

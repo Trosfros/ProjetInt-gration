@@ -301,6 +301,7 @@ const portfolioFilter = document.getElementById('portfolio-stock-filter');
 const portfolioFilterStatus = document.getElementById('portfolio-filter-status');
 const portfolioFilterEmpty = document.getElementById('portfolio-filter-empty');
 const portfolioStockCards = [...document.querySelectorAll('[data-stock-search]')];
+const portfolioLocale = document.documentElement.dataset.language === 'en' ? 'en-CA' : 'fr-CA';
 
 const normalizeSearchText = (value) => value
   .normalize('NFD')
@@ -343,7 +344,7 @@ document.querySelectorAll('.btn-sell-card').forEach((button) => {
     }
 
     pendingSale = { button, quantityInput, quantity };
-    document.getElementById('sell-dialog-quantity').textContent = quantity.toLocaleString('fr-CA', {
+    document.getElementById('sell-dialog-quantity').textContent = quantity.toLocaleString(portfolioLocale, {
       maximumFractionDigits: 8
     });
     document.getElementById('sell-dialog-stock').textContent = button.dataset.stockName;
@@ -351,7 +352,7 @@ document.querySelectorAll('.btn-sell-card').forEach((button) => {
     const proceedsElement = document.getElementById('sell-dialog-proceeds');
     const currentPrice = Number(button.dataset.currentPrice);
     if (Number.isFinite(currentPrice) && currentPrice > 0) {
-      proceedsElement.textContent = `Montant estimé : ${(quantity * currentPrice).toLocaleString('fr-CA', {
+      proceedsElement.textContent = `Montant estimé : ${(quantity * currentPrice).toLocaleString(portfolioLocale, {
         style: 'currency',
         currency: 'USD'
       })}`;
