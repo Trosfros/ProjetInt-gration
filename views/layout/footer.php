@@ -4,6 +4,8 @@
   </div>
 </footer>
 
+<script src="public/site-language.js"></script>
+
 <!-- Pour le défilement des éléments -->
 <!-- Réalisé par codepen.io ainsi que l'aide de l'ia -->
 <script>

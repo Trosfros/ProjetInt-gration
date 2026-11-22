@@ -38,7 +38,11 @@ class SettingsModel
 
     public function deleteUserAccount(int $userId, string $password, string $confirmation): void
     {
-        if ($userId <= 0 || $password === '' || !hash_equals('SUPPRIMER', trim($confirmation))) {
+        if (
+            $userId <= 0
+            || $password === ''
+            || !in_array(trim($confirmation), ['SUPPRIMER', 'DELETE'], true)
+        ) {
             throw new InvalidArgumentException('Confirmez la suppression et saisissez votre mot de passe.');
         }
 

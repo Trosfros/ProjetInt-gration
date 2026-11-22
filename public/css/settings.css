@@ -261,6 +261,7 @@
 }
 
 .settings-threshold-field input,
+.settings-threshold-field select,
 .settings-delete-form input {
   width: 100%;
   min-height: 44px;
@@ -273,6 +274,7 @@
 }
 
 .settings-threshold-field input:focus,
+.settings-threshold-field select:focus,
 .settings-delete-form input:focus {
   border-color: var(--primary);
   outline: 3px solid rgba(56, 189, 248, 0.16);
@@ -295,6 +297,17 @@
   margin-top: 0.25rem;
   color: #082f49;
   background: #38bdf8;
+}
+
+.settings-language-form {
+  display: grid;
+  justify-items: start;
+  gap: 0.8rem;
+  margin-top: 1rem;
+}
+
+.settings-threshold-field select {
+  cursor: pointer;
 }
 
 .settings-save-button:hover {

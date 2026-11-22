@@ -6,6 +6,8 @@ if (session_status() === PHP_SESSION_NONE) {
 $pageTitle = $pageTitle ?? 'NovaBank | Banque virtuelle & Simulateur de Bourse';
 $isLoggedIn = !empty($_SESSION['user']);
 $pageCsrfToken = function_exists('getCsrfToken') ? getCsrfToken() : '';
+require_once dirname(__DIR__, 2) . '/configs/language.php';
+$currentLanguage = getCurrentLanguage();
 
 // Récupération du thème depuis le cookie (par défaut 'dark')
 $currentTheme = $_COOKIE['novabank_theme'] ?? 'dark';
@@ -48,7 +50,7 @@ if ($isLoggedIn) {
 
 ?>
 <!DOCTYPE html>
-<html lang="fr" class="<?= $isLightMode ? 'light-mode' : '' ?>"
+<html lang="<?= htmlspecialchars($currentLanguage, ENT_QUOTES, 'UTF-8') ?>" data-language="<?= htmlspecialchars($currentLanguage, ENT_QUOTES, 'UTF-8') ?>" class="<?= $isLightMode ? 'light-mode' : '' ?>"
   data-server-display-currency="<?= $serverDisplayCurrency ?>"
   data-currency-rate-ready="<?= $cachedCadUsdReferenceRate !== null ? 'true' : 'false' ?>"
   data-cad-usd-rate="<?= $cachedCadUsdReferenceRate !== null ? number_format($cachedCadUsdReferenceRate['rate'], 8, '.', '') : '' ?>"
@@ -1130,7 +1132,8 @@ if ($isLoggedIn) {
                 ? amount * cadToUsdRate
                 : amount / cadToUsdRate;
 
-            amountElement.textContent = new Intl.NumberFormat('fr-CA', {
+            const numberLocale = document.documentElement.dataset.language === 'en' ? 'en-CA' : 'fr-CA';
+            amountElement.textContent = new Intl.NumberFormat(numberLocale, {
               style: 'currency',
               currency: displayCurrency,
               minimumFractionDigits: 2,

@@ -267,18 +267,25 @@ require $projectRoot . '/views/layout/header.php';
                     || !confirmationPanel || !previewTitle || !previewBody
                     || !editButton || !confirmButton) return;
 
+                const isEnglishInterface = document.documentElement.dataset.language === 'en';
                 const templates = {
                     maintenance: {
-                        title: 'Maintenance planifiée',
-                        body: 'Une maintenance de NovaBank est prévue prochainement. Certaines fonctionnalités pourraient être temporairement indisponibles. Merci de votre compréhension.'
+                        title: isEnglishInterface ? 'Scheduled maintenance' : 'Maintenance planifiée',
+                        body: isEnglishInterface
+                            ? 'NovaBank maintenance is scheduled soon. Some features may be temporarily unavailable. Thank you for your understanding.'
+                            : 'Une maintenance de NovaBank est prévue prochainement. Certaines fonctionnalités pourraient être temporairement indisponibles. Merci de votre compréhension.'
                     },
                     security: {
-                        title: 'Conseil de sécurité',
-                        body: 'Pour protéger votre compte, ne partagez jamais votre mot de passe ni vos codes de vérification. Si vous remarquez une activité inhabituelle, contactez notre équipe.'
+                        title: isEnglishInterface ? 'Security tip' : 'Conseil de sécurité',
+                        body: isEnglishInterface
+                            ? 'To protect your account, never share your password or verification codes. If you notice unusual activity, contact our team.'
+                            : 'Pour protéger votre compte, ne partagez jamais votre mot de passe ni vos codes de vérification. Si vous remarquez une activité inhabituelle, contactez notre équipe.'
                     },
                     update: {
-                        title: 'Mise à jour de NovaBank',
-                        body: 'NovaBank a été mis à jour afin d’améliorer votre expérience. Connectez-vous à votre compte pour découvrir les améliorations.'
+                        title: isEnglishInterface ? 'NovaBank update' : 'Mise à jour de NovaBank',
+                        body: isEnglishInterface
+                            ? 'NovaBank has been updated to improve your experience. Sign in to your account to discover what’s new.'
+                            : 'NovaBank a été mis à jour afin d’améliorer votre expérience. Connectez-vous à votre compte pour découvrir les améliorations.'
                     }
                 };
 
