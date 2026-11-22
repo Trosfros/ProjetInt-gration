@@ -73,6 +73,55 @@ $detailLabels = [
     'timezone' => 'Fuseau horaire',
     'locale' => 'Locale navigateur',
 ];
+$eventGuides = [
+    'auth.login.failed' => 'Une tentative de connexion a échoué. Vérifiez si l’adresse correspond à une saisie inhabituelle ou à plusieurs tentatives rapides.',
+    'auth.login.success' => 'La connexion a été acceptée avec les bons identifiants. Elle peut être normale ou inhabituelle selon l’adresse IP, le navigateur et le lieu signalés.',
+    'auth.login.unverified' => 'Une personne a tenté de se connecter avec un compte dont l’adresse courriel n’a pas encore été vérifiée.',
+    'security.login.brute_force' => 'Plusieurs échecs de connexion ont été détectés depuis la même adresse IP dans une courte période. Une attaque par force brute est probable.',
+    'security.login.location_changed' => 'Une connexion réussie présente un fuseau horaire ou une région différente des habitudes du compte. Cela peut être un voyage, un VPN ou une connexion suspecte.',
+    'security.csrf.failed' => 'Une requête a été rejetée parce que son jeton CSRF était absent, expiré ou incorrect. Cela protège contre les actions envoyées sans autorisation du formulaire.',
+    'security.csrf.brute_force' => 'Plusieurs jetons CSRF invalides ont été envoyés depuis la même adresse IP. Cela peut indiquer une tentative d’exploitation ou un automatisme.',
+    'account.created' => 'Un nouveau compte bancaire a été créé par un utilisateur.',
+    'account.closed' => 'Un compte bancaire a été fermé.',
+    'account.deposit' => 'Une opération de dépôt a été effectuée sur un compte interne.',
+    'account.withdrawal' => 'Une opération de retrait a été effectuée sur un compte interne.',
+    'account.password_changed' => 'Le mot de passe du compte a été modifié après vérification.',
+    'admin.balance.adjusted' => 'Un administrateur a ajouté ou retiré des fonds sur un compte utilisateur.',
+    'investment.purchase' => 'Un utilisateur a acheté des actions.',
+    'investment.sale' => 'Un utilisateur a vendu des actions.',
+    'investment.favorite.changed' => 'Une action a été ajoutée ou retirée des favoris.',
+    'transfer.sent' => 'Un virement a été effectué entre deux utilisateurs.',
+    'support.request.created' => 'Une nouvelle demande au service clientèle a été créée.',
+];
+$detailDescriptions = [
+    'id' => 'Identifiant unique utilisé pour retrouver précisément cet événement.',
+    'eventType' => 'Code technique permettant de filtrer ou identifier le type d’action.',
+    'riskLevel' => 'Importance estimée : information, faible, modéré, élevé ou critique.',
+    'failedAttemptsObserved' => 'Nombre d’échecs de connexion réellement observés pendant la période.',
+    'failedAttemptsThreshold' => 'Nombre d’échecs requis pour déclencher cet événement critique.',
+    'windowMinutes' => 'Période pendant laquelle les tentatives sont comptées.',
+    'lockoutMinutesRemaining' => 'Durée proposée pour bloquer temporairement les nouvelles tentatives.',
+    'firstAttemptAt' => 'Heure de la première tentative enregistrée dans la fenêtre.',
+    'lastAttemptAt' => 'Heure de la dernière tentative enregistrée dans la fenêtre.',
+    'existingAccountsTargeted' => 'Nombre de tentatives utilisant une adresse courriel déjà associée à un compte.',
+    'targetedAccounts' => 'Adresses courriel saisies dans les tentatives échouées.',
+    'sourceIp' => 'Adresse réseau d’origine des tentatives. ::1 signifie une connexion locale avec WAMP.',
+    'ipAddress' => 'Adresse IP enregistrée au moment de l’événement.',
+    'userAgent' => 'Navigateur, système d’exploitation et appareil détectés à partir du navigateur.',
+    'attemptedEmail' => 'Adresse courriel utilisée lors de cette tentative.',
+    'accountFound' => 'Indique si l’adresse saisie correspond à un compte existant.',
+    'timezoneCurrent' => 'Fuseau horaire déclaré par le navigateur au moment de la connexion.',
+    'timezoneUsual' => 'Fuseau horaire le plus souvent observé lors des connexions précédentes.',
+    'localeCurrent' => 'Langue et région déclarées par le navigateur actuel.',
+    'regionCurrent' => 'Région extraite de la locale actuelle.',
+    'regionUsual' => 'Région la plus souvent observée lors des connexions précédentes.',
+    'previousSuccessfulLogins' => 'Nombre de connexions réussies utilisées comme historique pour comparer.',
+    'detectionMethod' => 'Information utilisée pour déterminer que le lieu semble inhabituel.',
+    'stockName' => 'Nom de l’action concernée.',
+    'shares' => 'Nombre d’actions achetées ou vendues.',
+    'unitPrice' => 'Prix d’une action au moment de l’opération.',
+    'estimatedValue' => 'Nombre d’actions multiplié par le prix estimé au moment de l’opération.',
+];
 $pageTitle = 'Audit de sécurité | NovaBank';
 $pageStylesheets = ['dashboard.css', 'admin.css', 'audit.css'];
 $activePage = 'securityAudit';
@@ -120,6 +169,31 @@ require $projectRoot . '/views/layout/header.php';
           <a class="audit-reset" href="index.php?action=securityAudit">Réinitialiser</a>
         </form>
 
+        <details class="audit-guide">
+          <summary>Guide du journal d’audit</summary>
+          <div class="audit-guide-grid">
+            <section>
+              <h2>Niveaux de risque</h2>
+              <dl>
+                <dt><span class="audit-risk risk-info">Information</span></dt><dd>Événement normal, utile pour confirmer une action.</dd>
+                <dt><span class="audit-risk risk-low">Faible</span></dt><dd>Action ordinaire ayant peu d’effet sur la sécurité.</dd>
+                <dt><span class="audit-risk risk-medium">Modéré</span></dt><dd>Action sensible, inhabituelle ou nécessitant une vérification.</dd>
+                <dt><span class="audit-risk risk-high">Élevé</span></dt><dd>Échec, action financière ou modification importante.</dd>
+                <dt><span class="audit-risk risk-critical">Critique</span></dt><dd>Activité potentiellement malveillante ou répétée, à examiner rapidement.</dd>
+              </dl>
+            </section>
+            <section>
+              <h2>Types d’événements</h2>
+              <dl>
+                <?php foreach ($eventGuides as $eventType => $description): ?>
+                  <dt><code><?= htmlspecialchars($eventType, ENT_QUOTES, 'UTF-8') ?></code></dt>
+                  <dd><?= htmlspecialchars($description, ENT_QUOTES, 'UTF-8') ?></dd>
+                <?php endforeach; ?>
+              </dl>
+            </section>
+          </div>
+        </details>
+
         <div class="audit-summary"><?= number_format($result['total'], 0, ',', ' ') ?> événement(s) enregistré(s)</div>
         <?php if (!$result['events']): ?>
           <div class="audit-empty">Aucun événement ne correspond à ces filtres.</div>
@@ -140,6 +214,10 @@ require $projectRoot . '/views/layout/header.php';
                   <td>
                     <button type="button" class="audit-detail-button" data-audit-detail="<?= (int) $event['idAudit'] ?>">Voir</button>
                     <template id="audit-detail-<?= (int) $event['idAudit'] ?>">
+                      <section class="audit-detail-explanation">
+                        <h3>Que signifie cet événement ?</h3>
+                        <p><?= htmlspecialchars($eventGuides[$event['eventType']] ?? 'Cet événement a été enregistré par le système. Consultez ses champs pour connaître l’action, les utilisateurs concernés et son contexte.', ENT_QUOTES, 'UTF-8') ?></p>
+                      </section>
                       <dl class="audit-detail-list">
                         <dt>ID de l’événement</dt><dd><?= (int) $event['idAudit'] ?></dd>
                         <dt>Type d’événement</dt><dd><code><?= htmlspecialchars((string) $event['eventType'], ENT_QUOTES, 'UTF-8') ?></code></dd>
@@ -173,11 +251,25 @@ require $projectRoot . '/views/layout/header.php';
                               $detailValue .= ' CAD';
                             }
                           ?>
-                          <dt><?= htmlspecialchars($detailLabel, ENT_QUOTES, 'UTF-8') ?></dt>
-                          <dd><?= htmlspecialchars($detailValue, ENT_QUOTES, 'UTF-8') ?></dd>
+                          <?php $detailDescription = $detailDescriptions[$detailKey] ?? null; ?>
+                          <dt<?= $detailDescription ? ' title="' . htmlspecialchars($detailDescription, ENT_QUOTES, 'UTF-8') . '"' : '' ?>>
+                            <?= htmlspecialchars($detailLabel, ENT_QUOTES, 'UTF-8') ?>
+                          </dt>
+                          <dd>
+                            <?= htmlspecialchars($detailValue, ENT_QUOTES, 'UTF-8') ?>
+                            <?php if ($detailDescription): ?>
+                              <small><?= htmlspecialchars($detailDescription, ENT_QUOTES, 'UTF-8') ?></small>
+                            <?php endif; ?>
+                          </dd>
                         <?php endforeach; ?>
-                        <dt>Adresse IP</dt><dd><?= htmlspecialchars((string) ($event['ipAddress'] ?? '—'), ENT_QUOTES, 'UTF-8') ?></dd>
-                        <dt>Navigateur</dt><dd><?= htmlspecialchars((string) ($event['userAgent'] ?? '—'), ENT_QUOTES, 'UTF-8') ?></dd>
+                        <?php if (!isset($details['sourceIp']) && !isset($details['ipAddress'])): ?>
+                          <dt title="<?= htmlspecialchars($detailDescriptions['ipAddress'], ENT_QUOTES, 'UTF-8') ?>">Adresse IP</dt>
+                          <dd><?= htmlspecialchars((string) ($event['ipAddress'] ?? '—'), ENT_QUOTES, 'UTF-8') ?></dd>
+                        <?php endif; ?>
+                        <?php if (!isset($details['userAgent'])): ?>
+                          <dt title="<?= htmlspecialchars($detailDescriptions['userAgent'], ENT_QUOTES, 'UTF-8') ?>">Navigateur</dt>
+                          <dd><?= htmlspecialchars((string) ($event['userAgent'] ?? '—'), ENT_QUOTES, 'UTF-8') ?></dd>
+                        <?php endif; ?>
                       </dl>
                     </template>
                   </td>
