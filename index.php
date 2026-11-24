@@ -147,7 +147,8 @@ if ($action === 'logout') {
         $_SESSION['password_code_last_sent_at'],
         $_SESSION['password_reset'],
         $_SESSION['password_reset_email'],
-        $_SESSION['password_reset_last_sent_at']
+        $_SESSION['password_reset_last_sent_at'],
+        $_SESSION['profile_photo_cache_key']
     );
     session_regenerate_id(true);
     header('Location: index.php');
@@ -192,19 +193,28 @@ if ($action === 'logout') {
 
     if (!is_string($photo) || $photo === '') {
         http_response_code(404);
+        header('Cache-Control: private, max-age=300');
         exit;
     }
 
     $mimeType = (new finfo(FILEINFO_MIME_TYPE))->buffer($photo);
     if (!in_array($mimeType, ['image/jpeg', 'image/png', 'image/webp'], true)) {
         http_response_code(404);
+        header('Cache-Control: private, max-age=300');
+        exit;
+    }
+
+    $etag = '"' . hash('sha256', $photo) . '"';
+    header('Cache-Control: private, max-age=300');
+    header('ETag: ' . $etag);
+    header('X-Content-Type-Options: nosniff');
+    if (trim((string) ($_SERVER['HTTP_IF_NONE_MATCH'] ?? '')) === $etag) {
+        http_response_code(304);
         exit;
     }
 
     header('Content-Type: ' . $mimeType);
     header('Content-Length: ' . strlen($photo));
-    header('Cache-Control: private, no-store');
-    header('X-Content-Type-Options: nosniff');
     echo $photo;
     exit;
 } else if ($action === 'profile') {

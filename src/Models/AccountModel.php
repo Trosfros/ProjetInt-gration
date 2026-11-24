@@ -226,9 +226,13 @@ require $projectRoot . '/views/layout/header.php';
         }
 
         try {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
             const res = await fetch('src/DAL/newAccount.php', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': csrfToken,
+                },
                 body: JSON.stringify(payload),
             });
             const data = await res.json();
@@ -301,9 +305,13 @@ require $projectRoot . '/views/layout/header.php';
         }
 
         try {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
             const res = await fetch('src/DAL/updateAccountMoney.php', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': csrfToken,
+                },
                 body: JSON.stringify({ accountName, amount, mode }),
             });
             const data = await res.json();
@@ -346,9 +354,13 @@ require $projectRoot . '/views/layout/header.php';
         const idAccount = parseInt(document.getElementById('closeAccountId').value, 10);
 
         try {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
             const res = await fetch('src/DAL/closeAccount.php', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': csrfToken,
+                },
                 body: JSON.stringify({ idAccount }),
             });
             const data = await res.json();

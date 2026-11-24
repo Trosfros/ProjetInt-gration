@@ -8,14 +8,24 @@ function startSecureSession(): void
 
     $sessionDirectory = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'storage'
         . DIRECTORY_SEPARATOR . 'sessions';
-    if (!is_dir($sessionDirectory)) {
-        @mkdir($sessionDirectory, 0700, true);
+    if (!is_dir($sessionDirectory)
+        && !@mkdir($sessionDirectory, 0700, true)
+        && !is_dir($sessionDirectory)
+    ) {
+        error_log('Unable to create session save directory: ' . $sessionDirectory);
+        throw new RuntimeException('Unable to initialize session storage.');
     }
 
-    if (is_dir($sessionDirectory) && is_writable($sessionDirectory)) {
-        ini_set('session.save_path', $sessionDirectory);
-    } else {
-        error_log('Session save directory is unavailable: ' . $sessionDirectory);
+    if (!is_writable($sessionDirectory)) {
+        error_log('Session save directory is not writable: ' . $sessionDirectory);
+        throw new RuntimeException('Unable to initialize session storage.');
+    }
+
+    if (ini_set('session.save_path', $sessionDirectory) === false
+        || session_save_path() !== $sessionDirectory
+    ) {
+        error_log('Unable to configure session save directory: ' . $sessionDirectory);
+        throw new RuntimeException('Unable to initialize session storage.');
     }
 
     ini_set('session.use_strict_mode', '1');
@@ -31,6 +41,7 @@ function startSecureSession(): void
     ]);
     if (!@session_start()) {
         error_log('Unable to start PHP session.');
+        throw new RuntimeException('Unable to start PHP session.');
     }
 }
 

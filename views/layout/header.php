@@ -5,6 +5,13 @@ if (session_status() === PHP_SESSION_NONE) {
 
 $pageTitle = $pageTitle ?? 'NovaBank | Banque virtuelle & Simulateur de Bourse';
 $isLoggedIn = !empty($_SESSION['user']);
+$profilePhotoCacheKey = '';
+if ($isLoggedIn) {
+  if (empty($_SESSION['profile_photo_cache_key'])) {
+    $_SESSION['profile_photo_cache_key'] = bin2hex(random_bytes(16));
+  }
+  $profilePhotoCacheKey = (string) $_SESSION['profile_photo_cache_key'];
+}
 $pageCsrfToken = function_exists('getCsrfToken') ? getCsrfToken() : '';
 require_once dirname(__DIR__, 2) . '/configs/language.php';
 $currentLanguage = getCurrentLanguage();
@@ -793,7 +800,7 @@ if ($isLoggedIn) {
           aria-label="Voir le profil de <?= htmlspecialchars($headerUserName, ENT_QUOTES, 'UTF-8') ?>">
           <span class="user-avatar" aria-hidden="true">
             <span class="user-avatar-initial"><?= htmlspecialchars($headerUserInitial, ENT_QUOTES, 'UTF-8') ?></span>
-            <img src="index.php?action=profilePhoto" alt="" onerror="this.style.display='none'">
+            <img src="index.php?action=profilePhoto&amp;v=<?= rawurlencode($profilePhotoCacheKey) ?>" alt="" onerror="this.style.display='none'">
           </span>
           <span class="user-profile-name"><?= htmlspecialchars($headerUserName, ENT_QUOTES, 'UTF-8') ?></span>
         </a>

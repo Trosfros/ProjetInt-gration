@@ -163,6 +163,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             require_once $projectRoot . '/src/Models/AuditModel.php';
             AuditModel::record('account.profile_photo_changed', 'low', 'Photo de profil modifiée.', (int) $_SESSION['user']['id'], (int) $_SESSION['user']['id'], [], $pdo);
 
+            $_SESSION['profile_photo_cache_key'] = bin2hex(random_bytes(16));
             $_SESSION['profile_success'] = 'Votre photo de profil a été mise à jour.';
             header('Location: index.php?action=profile');
             exit;
@@ -187,7 +188,7 @@ require $projectRoot . '/views/layout/header.php';
     <div class="profile-heading">
       <div class="profile-avatar">
         <span aria-hidden="true"><?= htmlspecialchars($profileInitial, ENT_QUOTES, 'UTF-8') ?></span>
-        <img src="index.php?action=profilePhoto" alt="Photo de profil de <?= htmlspecialchars($profileName, ENT_QUOTES, 'UTF-8') ?>" onerror="this.style.display='none'">
+        <img src="index.php?action=profilePhoto&amp;v=<?= rawurlencode($profilePhotoCacheKey) ?>" alt="Photo de profil de <?= htmlspecialchars($profileName, ENT_QUOTES, 'UTF-8') ?>" onerror="this.style.display='none'">
       </div>
       <div>
         <p class="profile-eyebrow">Espace personnel</p>
