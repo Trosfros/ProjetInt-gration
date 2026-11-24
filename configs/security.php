@@ -6,8 +6,22 @@ function startSecureSession(): void
         return;
     }
 
+    $sessionDirectory = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'storage'
+        . DIRECTORY_SEPARATOR . 'sessions';
+    if (!is_dir($sessionDirectory)) {
+        @mkdir($sessionDirectory, 0700, true);
+    }
+
+    if (is_dir($sessionDirectory) && is_writable($sessionDirectory)) {
+        ini_set('session.save_path', $sessionDirectory);
+    } else {
+        error_log('Session save directory is unavailable: ' . $sessionDirectory);
+    }
+
     ini_set('session.use_strict_mode', '1');
     ini_set('session.use_only_cookies', '1');
+    ini_set('session.gc_probability', '0');
+    ini_set('session.gc_divisor', '100');
     session_set_cookie_params([
         'lifetime' => 0,
         'path' => '/',
@@ -15,7 +29,9 @@ function startSecureSession(): void
         'httponly' => true,
         'samesite' => 'Lax',
     ]);
-    session_start();
+    if (!@session_start()) {
+        error_log('Unable to start PHP session.');
+    }
 }
 
 function sendSecurityHeaders(): void

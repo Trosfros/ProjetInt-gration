@@ -405,9 +405,15 @@ try {
   async function executeOrder(side, idStock, amount) {
     showTradeFeedback(null);
     try {
+      const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
+      const headers = { 'Content-Type': 'application/json' };
+      if (csrfToken) {
+        headers['X-CSRF-Token'] = csrfToken;
+      }
+
       const res = await fetch('src/DAL/placeOrder.php', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: headers,
         body: JSON.stringify({ side: side, idStock: idStock, amount: amount, unit: 'shares' }),
       });
 
