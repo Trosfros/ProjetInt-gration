@@ -139,6 +139,7 @@ try {
                     <option
                       data-id-stock="<?= htmlspecialchars((string) ($stock['id'] ?? ''), ENT_QUOTES, 'UTF-8') ?>"
                       data-favorite="<?= $isFavStock ? '1' : '0' ?>"
+                      data-change="<?= htmlspecialchars((string) ($stock['change'] ?? 0), ENT_QUOTES, 'UTF-8') ?>"
                       value="<?= htmlspecialchars((string) $stock['symbol'], ENT_QUOTES, 'UTF-8') ?>"
                       data-price="<?= htmlspecialchars((string) ($stock['price'] ?? 0), ENT_QUOTES, 'UTF-8') ?>"
                       <?= ($stock['symbol'] ?? '') === 'AAPL' ? 'selected' : '' ?>>
@@ -146,11 +147,11 @@ try {
                     </option>
                   <?php endforeach; ?>
                 <?php else: ?>
-                  <option value="AAPL" data-price="180.00" data-favorite="0" selected>AAPL - Apple Inc.</option>
-                  <option value="TSLA" data-price="240.00" data-favorite="0">TSLA - Tesla Inc.</option>
-                  <option value="NVDA" data-price="120.00" data-favorite="0">NVDA - NVIDIA Corp.</option>
-                  <option value="MSFT" data-price="410.00" data-favorite="0">MSFT - Microsoft Corp.</option>
-                  <option value="AMZN" data-price="175.00" data-favorite="0">AMZN - Amazon.com Inc.</option>
+                  <option value="AAPL" data-price="180.00" data-change="1.2" data-favorite="0" selected>AAPL - Apple Inc.</option>
+                  <option value="TSLA" data-price="240.00" data-change="-2.4" data-favorite="0">TSLA - Tesla Inc.</option>
+                  <option value="NVDA" data-price="120.00" data-change="3.1" data-favorite="0">NVDA - NVIDIA Corp.</option>
+                  <option value="MSFT" data-price="410.00" data-change="-0.8" data-favorite="0">MSFT - Microsoft Corp.</option>
+                  <option value="AMZN" data-price="175.00" data-change="0.5" data-favorite="0">AMZN - Amazon.com Inc.</option>
                 <?php endif; ?>
               </select>
 
@@ -189,15 +190,15 @@ try {
   </main>
 </div>
 
-<!-- FENÊTRE MODALE DE CONFIRMATION POUR ORDRE > 1000$ -->
+<!-- FENÊTRE MODALE DE CONFIRMATION POUR ORDRE > 1000$ OU VARIATION NÉGATIVE -->
 <dialog class="sell-confirm-dialog" id="trade-confirm-dialog" aria-labelledby="trade-dialog-title">
   <form method="dialog" class="sell-dialog-close-form">
     <button class="sell-dialog-close" type="submit" aria-label="Fermer la confirmation">×</button>
   </form>
   <div class="sell-dialog-icon" aria-hidden="true">⚠️</div>
-  <p class="investment-kicker">Confirmation d'ordre important</p>
+  <p class="investment-kicker">Confirmation de transaction</p>
   <h2 id="trade-dialog-title"><span id="trade-dialog-action"></span> de <span id="trade-dialog-quantity"></span> <span id="trade-dialog-stock"></span></h2>
-  <p class="sell-dialog-description">Le total estimé de cet ordre dépasse 1 000,00 $ (<span id="trade-dialog-total"></span>). Veuillez confirmer pour exécuter la transaction.</p>
+  <p class="sell-dialog-description" id="trade-dialog-reason">Veuillez confirmer pour exécuter la transaction.</p>
   <div class="sell-dialog-actions">
     <button type="button" class="sell-dialog-cancel" id="trade-dialog-cancel">Annuler</button>
     <button type="button" class="sell-dialog-confirm" id="trade-dialog-confirm">Confirmer l'ordre</button>
@@ -213,6 +214,14 @@ try {
       'NVDA': 120.00,
       'MSFT': 410.00,
       'AMZN': 175.00
+    };
+
+    const defaultChanges = {
+      'AAPL': 1.2,
+      'TSLA': -2.4,
+      'NVDA': 3.1,
+      'MSFT': -0.8,
+      'AMZN': 0.5
     };
 
     window.getSelectedStockPrice = function (symbol) {
@@ -231,6 +240,16 @@ try {
       }
 
       return 150.00;
+    };
+
+    window.getSelectedStockChange = function (optionElement) {
+      if (optionElement && optionElement.dataset.change !== undefined && optionElement.dataset.change !== '') {
+        const c = parseFloat(optionElement.dataset.change);
+        if (!isNaN(c)) return c;
+      }
+
+      const cleanSym = (optionElement?.value ?? '').trim().toUpperCase();
+      return defaultChanges[cleanSym] ?? 0;
     };
 
     updateTotal();
@@ -405,15 +424,9 @@ try {
   async function executeOrder(side, idStock, amount) {
     showTradeFeedback(null);
     try {
-      const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
-      const headers = { 'Content-Type': 'application/json' };
-      if (csrfToken) {
-        headers['X-CSRF-Token'] = csrfToken;
-      }
-
       const res = await fetch('src/DAL/placeOrder.php', {
         method: 'POST',
-        headers: headers,
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ side: side, idStock: idStock, amount: amount, unit: 'shares' }),
       });
 
@@ -447,20 +460,33 @@ try {
 
     const unitPrice = window.getSelectedStockPrice ? window.getSelectedStockPrice(symbol) : 150.00;
     const total = amount * unitPrice;
+    const change = window.getSelectedStockChange ? window.getSelectedStockChange(selectedOption) : 0;
 
-    // Si le total dépasse 1000$, on interrompt et on ouvre la modale de confirmation
-    if (total > 1000) {
+    const isOverThousand = total > 1000;
+    const isNegativeChange = change < 0;
+
+    if (isOverThousand || isNegativeChange) {
+      const totalFormatted = total.toLocaleString('fr-CA', { style: 'currency', currency: 'USD' });
+      const reasons = [];
+
+      if (isOverThousand) {
+        reasons.push(`le total estimé dépasse 1 000,00 $ (${totalFormatted})`);
+      }
+      if (isNegativeChange) {
+        reasons.push(`la variation de l'action est en négatif (${change}%)`);
+      }
+
       pendingTrade = { side, idStock, amount };
       document.getElementById('trade-dialog-action').textContent = side === 'buy' ? 'Achat' : 'Vente';
       document.getElementById('trade-dialog-quantity').textContent = amount.toLocaleString('fr-CA');
       document.getElementById('trade-dialog-stock').textContent = symbol;
-      document.getElementById('trade-dialog-total').textContent = total.toLocaleString('fr-CA', { style: 'currency', currency: 'USD' });
+      document.getElementById('trade-dialog-reason').textContent =
+        `Attention : ${reasons.join(' et ')}. Veuillez confirmer pour exécuter la transaction.`;
 
       tradeDialog.showModal();
       return;
     }
 
-    // Sinon, on exécute directement
     await executeOrder(side, idStock, amount);
   }
 
