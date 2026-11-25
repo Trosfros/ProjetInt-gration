@@ -86,6 +86,77 @@ try {
     opacity: .4;
     cursor: not-allowed;
   }
+
+  /* --- Modales centrées à l'écran --- */
+  dialog.sell-confirm-dialog[open] {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    right: auto;
+    bottom: auto;
+    transform: translate(-50%, -50%);
+    margin: 0;
+    width: min(480px, calc(100vw - 32px));
+    max-height: calc(100vh - 32px);
+    overflow-y: auto;
+    z-index: 100000;
+  }
+
+  dialog.sell-confirm-dialog::backdrop {
+    background: rgba(2, 6, 23, 0.65);
+    backdrop-filter: blur(3px);
+  }
+
+  /* --- Modale d'avertissement de risque --- */
+  .risk-warning-dialog .risk-kicker {
+    color: #f59e0b;
+  }
+
+  .risk-dialog-list {
+    margin: 12px 0;
+    padding-left: 20px;
+    text-align: left;
+    line-height: 1.5;
+    color: #cbd5e1;
+  }
+
+  .risk-dialog-list li + li {
+    margin-top: 6px;
+  }
+
+  .risk-dialog-link {
+    color: #38bdf8;
+    text-decoration: underline;
+  }
+
+  .risk-dialog-ack {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 16px 0 4px;
+    cursor: pointer;
+    font-size: 0.95rem;
+  }
+
+  .risk-dialog-ack input {
+    width: 18px;
+    height: 18px;
+    accent-color: #f59e0b;
+    cursor: pointer;
+  }
+
+  #risk-dialog-confirm:disabled {
+    opacity: .45;
+    cursor: not-allowed;
+  }
+
+  html.light-mode .risk-dialog-list {
+    color: #334155;
+  }
+
+  html.light-mode .risk-dialog-link {
+    color: #0284c7;
+  }
 </style>
 <div class="dashboard-layout market-layout">
   <?php require $projectRoot . '/views/layout/sidebar.php'; ?>
@@ -202,6 +273,38 @@ try {
   <div class="sell-dialog-actions">
     <button type="button" class="sell-dialog-cancel" id="trade-dialog-cancel">Annuler</button>
     <button type="button" class="sell-dialog-confirm" id="trade-dialog-confirm">Confirmer l'ordre</button>
+  </div>
+</dialog>
+
+<!-- FENÊTRE MODALE D'AVERTISSEMENT DE RISQUE : ACHAT > 1000$ SUR UNE SEULE ACTION -->
+<dialog class="sell-confirm-dialog risk-warning-dialog" id="risk-warning-dialog" aria-labelledby="risk-dialog-title" aria-describedby="risk-dialog-description">
+  <form method="dialog" class="sell-dialog-close-form">
+    <button class="sell-dialog-close" type="submit" aria-label="Fermer l'avertissement">×</button>
+  </form>
+  <div class="sell-dialog-icon" aria-hidden="true">⚠️</div>
+  <p class="investment-kicker risk-kicker">Avertissement de risque</p>
+  <h2 id="risk-dialog-title">Investissement important sur <span id="risk-dialog-stock"></span></h2>
+  <div id="risk-dialog-description">
+    <p class="sell-dialog-description">
+      Vous êtes sur le point d'acheter <strong><span id="risk-dialog-quantity"></span> action(s)</strong>
+      pour un total estimé de <strong id="risk-dialog-total"></strong>, soit plus de 1 000,00 $ sur une seule action.
+    </p>
+    <ul class="risk-dialog-list">
+      <li>Concentrer une grosse somme sur une seule entreprise augmente le risque de perte si son cours chute.</li>
+      <li>Le cours d'une action peut varier fortement en peu de temps.</li>
+      <li>Répartir vos investissements sur plusieurs actions (diversification) réduit ce risque.</li>
+    </ul>
+    <p class="sell-dialog-description">
+      <a href="index.php?action=education#risk" class="risk-dialog-link">En savoir plus sur la gestion des risques</a>
+    </p>
+  </div>
+  <label class="risk-dialog-ack">
+    <input type="checkbox" id="risk-dialog-ack-input">
+    Je comprends les risques liés à cet investissement.
+  </label>
+  <div class="sell-dialog-actions">
+    <button type="button" class="sell-dialog-cancel" id="risk-dialog-cancel">Annuler</button>
+    <button type="button" class="sell-dialog-confirm" id="risk-dialog-confirm" disabled>Acheter quand même</button>
   </div>
 </dialog>
 
@@ -460,22 +563,22 @@ try {
 
     const unitPrice = window.getSelectedStockPrice ? window.getSelectedStockPrice(symbol) : 150.00;
     const total = amount * unitPrice;
-    const change = window.getSelectedStockChange ? window.getSelectedStockChange(selectedOption) : 0;
 
-    const isOverThousand = total > 1000;
-    const isNegativeChange = change < 0;
+    // Achat de plus de 1000$ sur une seule action : avertissement de risque
+    if (side === 'buy' && total > 1000) {
+      pendingTrade = { side, idStock, amount };
+      document.getElementById('risk-dialog-stock').textContent = symbol;
+      document.getElementById('risk-dialog-quantity').textContent = amount.toLocaleString('fr-CA');
+      document.getElementById('risk-dialog-total').textContent = total.toLocaleString('fr-CA', { style: 'currency', currency: 'USD' });
 
-    if (isOverThousand || isNegativeChange) {
-      const totalFormatted = total.toLocaleString('fr-CA', { style: 'currency', currency: 'USD' });
-      const reasons = [];
+      riskAckInput.checked = false;
+      riskConfirmButton.disabled = true;
+      riskDialog.showModal();
+      return;
+    }
 
-      if (isOverThousand) {
-        reasons.push(`le total estimé dépasse 1 000,00 $ (${totalFormatted})`);
-      }
-      if (isNegativeChange) {
-        reasons.push(`la variation de l'action est en négatif (${change}%)`);
-      }
-
+    // Vente de plus de 1000$ : simple confirmation
+    if (total > 1000) {
       pendingTrade = { side, idStock, amount };
       document.getElementById('trade-dialog-action').textContent = side === 'buy' ? 'Achat' : 'Vente';
       document.getElementById('trade-dialog-quantity').textContent = amount.toLocaleString('fr-CA');
@@ -500,6 +603,36 @@ try {
     const { side, idStock, amount } = pendingTrade;
     tradeDialog.close();
     pendingTrade = null;
+    await executeOrder(side, idStock, amount);
+  });
+
+  // --- Modale d'avertissement de risque ---
+  const riskDialog = document.getElementById('risk-warning-dialog');
+  const riskAckInput = document.getElementById('risk-dialog-ack-input');
+  const riskConfirmButton = document.getElementById('risk-dialog-confirm');
+
+  // Le bouton "Acheter quand même" n'est actif qu'une fois la case cochée
+  riskAckInput.addEventListener('change', () => {
+    riskConfirmButton.disabled = !riskAckInput.checked;
+  });
+
+  document.getElementById('risk-dialog-cancel').addEventListener('click', () => {
+    riskDialog.close();
+  });
+
+  // Fermeture par ×, Échap ou Annuler : l'ordre est abandonné
+  riskDialog.addEventListener('close', () => {
+    if (riskDialog.returnValue !== 'confirmed') {
+      pendingTrade = null;
+    }
+    riskDialog.returnValue = '';
+  });
+
+  riskConfirmButton.addEventListener('click', async () => {
+    if (!pendingTrade || !riskAckInput.checked) return;
+    const { side, idStock, amount } = pendingTrade;
+    pendingTrade = null;
+    riskDialog.close('confirmed');
     await executeOrder(side, idStock, amount);
   });
 </script>

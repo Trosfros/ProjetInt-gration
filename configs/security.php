@@ -8,24 +8,29 @@ function startSecureSession(): void
 
     $sessionDirectory = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'storage'
         . DIRECTORY_SEPARATOR . 'sessions';
-    if (!is_dir($sessionDirectory)
-        && !@mkdir($sessionDirectory, 0700, true)
-        && !is_dir($sessionDirectory)
-    ) {
-        error_log('Unable to create session save directory: ' . $sessionDirectory);
-        throw new RuntimeException('Unable to initialize session storage.');
+
+
+    $useCustomPath = is_dir($sessionDirectory)
+        || @mkdir($sessionDirectory, 0700, true)
+        || is_dir($sessionDirectory);
+
+    if (!$useCustomPath) {
+        error_log('Unable to create session save directory, falling back to PHP default: ' . $sessionDirectory);
+    } elseif (!is_writable($sessionDirectory)) {
+        error_log('Session save directory is not writable, falling back to PHP default: ' . $sessionDirectory);
+        $useCustomPath = false;
     }
 
-    if (!is_writable($sessionDirectory)) {
-        error_log('Session save directory is not writable: ' . $sessionDirectory);
-        throw new RuntimeException('Unable to initialize session storage.');
-    }
-
-    if (ini_set('session.save_path', $sessionDirectory) === false
-        || session_save_path() !== $sessionDirectory
+    $configuredSessionPath = session_save_path();
+    if ($useCustomPath
+        && $configuredSessionPath !== $sessionDirectory
+        && ini_set('session.save_path', $sessionDirectory) === false
     ) {
-        error_log('Unable to configure session save directory: ' . $sessionDirectory);
-        throw new RuntimeException('Unable to initialize session storage.');
+        $fallbackPath = $configuredSessionPath !== '' ? $configuredSessionPath : 'PHP default';
+        error_log(
+            'Unable to override session save directory; using PHP configured session storage: '
+            . $fallbackPath
+        );
     }
 
     ini_set('session.use_strict_mode', '1');
