@@ -945,7 +945,7 @@ if ($isLoggedIn && ($action === '' || $action === 'dashboard')) {
                 </header>
 
                 <section class="dashboard-summary-cards" id="dashboard-summary-cards"
-                    style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; margin-bottom: 30px;">
+                    style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); gap: 18px; margin-bottom: 30px;">
                     <div
                         style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 20px;">
                         <div class="dashboard-balance-heading">
@@ -1050,7 +1050,7 @@ if ($isLoggedIn && ($action === '' || $action === 'dashboard')) {
                     });
                 </script>
 
-                <section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
+                <section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr)); gap: 20px;">
                     <div
                         style="background: rgba(15, 23, 42, 0.5); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 22px;">
                         <h3 style="color: #ffffff; font-size: 1.15rem; margin-top: 0;">Simulateur de Bourse</h3>
@@ -1073,7 +1073,7 @@ if ($isLoggedIn && ($action === '' || $action === 'dashboard')) {
                     
                    
                 
-                </section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
+                </section>
 
               
                     <?php require __DIR__ . '/src/Models/favorites.php'; ?>
@@ -1085,9 +1085,10 @@ if ($isLoggedIn && ($action === '' || $action === 'dashboard')) {
     </div>
 <?php else: ?>
     <!-- Page d'accueil publique -->
+   
+ 
     <main class="main-content">
-        <section class="home-hero" aria-labelledby="hero-title"
-            style="position: relative; width: 100vw; margin-left: calc(-50vw + 50%); min-height: 85vh; display: flex; align-items: center; justify-content: space-between; padding: 60px 8%; box-sizing: border-box; overflow: hidden;">
+        <section class="home-hero" aria-labelledby="hero-title">
             <video autoplay muted loop playsinline
                 style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; object-position: center; z-index: 1; pointer-events: none;">
                 <source src="public/video/invest.mp4" type="video/mp4">
@@ -1098,7 +1099,7 @@ if ($isLoggedIn && ($action === '' || $action === 'dashboard')) {
                 style="position: absolute; inset: 0; background: rgba(10, 15, 29, 0.65); z-index: 2; pointer-events: none;">
             </div>
 
-            <div class="home-copy" style="position: relative; z-index: 10; max-width: 580px; color: #ffffff;">
+            <div class="home-copy">
                 <div class="reveal-wrapper">
                     <span class="home-eyebrow reveal-text delay-1"
                         style="font-weight: 600; text-transform: uppercase; letter-spacing: 1px; display: inline-block; margin-bottom: 8px;">
@@ -1106,7 +1107,7 @@ if ($isLoggedIn && ($action === '' || $action === 'dashboard')) {
                     </span>
                 </div>
 
-                <h1 id="hero-title" style="color: #ffffff; font-size: 2.75rem; line-height: 1.25; margin-bottom: 16px;">
+                <h1 id="hero-title">
                     <span class="reveal-wrapper">
                         <span class="reveal-text delay-2" style="color: #ffffff;">La banque simple,</span>
                     </span>
@@ -1117,13 +1118,12 @@ if ($isLoggedIn && ($action === '' || $action === 'dashboard')) {
                 </h1>
 
                 <div class="reveal-wrapper">
-                    <p class="hero-lead reveal-text delay-4"
-                        style="color: #e2e8f0; font-size: 1.15rem; line-height: 1.6; margin-bottom: 24px;">
+                    <p class="hero-lead reveal-text delay-4">
                         Gérez votre compte, suivez vos finances et découvrez l'investissement depuis un seul espace.
                     </p>
                 </div>
 
-                <div class="hero-buttons reveal-fade delay-5" style="display: flex; gap: 14px; margin-bottom: 20px;">
+                <div class="hero-buttons reveal-fade delay-5">
                     <a href="index.php?action=registerPage" class="btn-primary btn-large">Ouvrir un compte</a>
                     <a href="index.php?action=loginPage" class="btn-secondary btn-large">Se connecter</a>
                 </div>
@@ -1135,8 +1135,7 @@ if ($isLoggedIn && ($action === '' || $action === 'dashboard')) {
                 </div>
             </div>
 
-            <aside class="home-side-panel reveal-fade delay-4" aria-label="Marchés en direct"
-                style="position: relative; z-index: 10; background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(10px); padding: 24px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.1); width: 340px;">
+            <aside class="home-side-panel reveal-fade delay-4" aria-label="Marchés en direct">
                 <div class="reveal-wrapper">
                     <span class="side-panel-label reveal-text delay-5"
                         style="color: #94a3b8; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; display: inline-block;">
