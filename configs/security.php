@@ -9,7 +9,7 @@ function startSecureSession(): void
     $sessionDirectory = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'storage'
         . DIRECTORY_SEPARATOR . 'sessions';
 
-
+ 
     $useCustomPath = is_dir($sessionDirectory)
         || @mkdir($sessionDirectory, 0700, true)
         || is_dir($sessionDirectory);
